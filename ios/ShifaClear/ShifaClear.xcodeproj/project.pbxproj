@@ -1,0 +1,302 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		110000000000000000000001 /* ShifaClearApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 220000000000000000000001 /* ShifaClearApp.swift */; };
+		110000000000000000000002 /* ClinicalModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 220000000000000000000002 /* ClinicalModels.swift */; };
+		110000000000000000000003 /* ShifaClearAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 220000000000000000000003 /* ShifaClearAPI.swift */; };
+		110000000000000000000004 /* SpeechManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 220000000000000000000004 /* SpeechManager.swift */; };
+		110000000000000000000005 /* ShifaClearViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 220000000000000000000005 /* ShifaClearViewModel.swift */; };
+		110000000000000000000006 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 220000000000000000000006 /* ContentView.swift */; };
+		110000000000000000000007 /* IntakeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 220000000000000000000007 /* IntakeView.swift */; };
+		110000000000000000000008 /* ReportDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 220000000000000000000008 /* ReportDashboardView.swift */; };
+		110000000000000000000009 /* DocumentCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 220000000000000000000009 /* DocumentCameraView.swift */; };
+		110000000000000000000010 /* AuditAndFhirSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 220000000000000000000010 /* AuditAndFhirSheet.swift */; };
+		110000000000000000000011 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 220000000000000000000011 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		220000000000000000000000 /* ShifaClear.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ShifaClear.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		220000000000000000000001 /* ShifaClearApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShifaClearApp.swift; sourceTree = "<group>"; };
+		220000000000000000000002 /* ClinicalModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClinicalModels.swift; sourceTree = "<group>"; };
+		220000000000000000000003 /* ShifaClearAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShifaClearAPI.swift; sourceTree = "<group>"; };
+		220000000000000000000004 /* SpeechManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechManager.swift; sourceTree = "<group>"; };
+		220000000000000000000005 /* ShifaClearViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShifaClearViewModel.swift; sourceTree = "<group>"; };
+		220000000000000000000006 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		220000000000000000000007 /* IntakeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntakeView.swift; sourceTree = "<group>"; };
+		220000000000000000000008 /* ReportDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportDashboardView.swift; sourceTree = "<group>"; };
+		220000000000000000000009 /* DocumentCameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentCameraView.swift; sourceTree = "<group>"; };
+		220000000000000000000010 /* AuditAndFhirSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuditAndFhirSheet.swift; sourceTree = "<group>"; };
+		220000000000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		220000000000000000000012 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		330000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		440000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				440000000000000000000002 /* ShifaClear */,
+				440000000000000000000007 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		440000000000000000000002 /* ShifaClear */ = {
+			isa = PBXGroup;
+			children = (
+				220000000000000000000001 /* ShifaClearApp.swift */,
+				440000000000000000000003 /* Models */,
+				440000000000000000000004 /* Services */,
+				440000000000000000000005 /* ViewModels */,
+				440000000000000000000006 /* Views */,
+				220000000000000000000011 /* Assets.xcassets */,
+				220000000000000000000012 /* Info.plist */,
+			);
+			path = ShifaClear;
+			sourceTree = "<group>";
+		};
+		440000000000000000000003 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				220000000000000000000002 /* ClinicalModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		440000000000000000000004 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				220000000000000000000003 /* ShifaClearAPI.swift */,
+				220000000000000000000004 /* SpeechManager.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		440000000000000000000005 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				220000000000000000000005 /* ShifaClearViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		440000000000000000000006 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				220000000000000000000006 /* ContentView.swift */,
+				220000000000000000000007 /* IntakeView.swift */,
+				220000000000000000000008 /* ReportDashboardView.swift */,
+				220000000000000000000009 /* DocumentCameraView.swift */,
+				220000000000000000000010 /* AuditAndFhirSheet.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		440000000000000000000007 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				220000000000000000000000 /* ShifaClear.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		550000000000000000000001 /* ShifaClear */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 880000000000000000000002 /* Build configuration list for PBXNativeTarget "ShifaClear" */;
+			buildPhases = (
+				660000000000000000000001 /* Sources */,
+				330000000000000000000001 /* Frameworks */,
+				770000000000000000000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ShifaClear;
+			productName = ShifaClear;
+			productReference = 220000000000000000000000 /* ShifaClear.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		550000000000000000000000 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+			};
+			buildConfigurationList = 880000000000000000000001 /* Build configuration list for PBXProject "ShifaClear" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 440000000000000000000001;
+			productRefGroup = 440000000000000000000007 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				550000000000000000000001 /* ShifaClear */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		770000000000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				110000000000000000000011 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		660000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				110000000000000000000001 /* ShifaClearApp.swift in Sources */,
+				110000000000000000000002 /* ClinicalModels.swift in Sources */,
+				110000000000000000000003 /* ShifaClearAPI.swift in Sources */,
+				110000000000000000000004 /* SpeechManager.swift in Sources */,
+				110000000000000000000005 /* ShifaClearViewModel.swift in Sources */,
+				110000000000000000000006 /* ContentView.swift in Sources */,
+				110000000000000000000007 /* IntakeView.swift in Sources */,
+				110000000000000000000008 /* ReportDashboardView.swift in Sources */,
+				110000000000000000000009 /* DocumentCameraView.swift in Sources */,
+				110000000000000000000010 /* AuditAndFhirSheet.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		990000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		990000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		990000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ShifaClear/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ae.ku.shifaclear;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		990000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ShifaClear/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ae.ku.shifaclear;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		880000000000000000000001 /* Build configuration list for PBXProject "ShifaClear" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				990000000000000000000001 /* Debug */,
+				990000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		880000000000000000000002 /* Build configuration list for PBXNativeTarget "ShifaClear" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				990000000000000000000003 /* Debug */,
+				990000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 550000000000000000000000 /* Project object */;
+}

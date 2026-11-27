@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import {
   Noto_Sans_Arabic,
   Noto_Sans_Devanagari,
@@ -27,10 +27,27 @@ const notoDevanagari = Noto_Sans_Devanagari({
   display: 'swap',
 });
 
+export const viewport: Viewport = {
+  themeColor: '#0F766E',
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
+
 export const metadata: Metadata = {
   title: 'ShifaClear | Multilingual Med & Lab Demystifier',
   description:
     'Physician-engineered UAE health translator combining Gemini 3.8 Flash multimodal extraction with deterministic clinical safety guardrails across English, Arabic, Urdu, Tagalog, and Hindi.',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'ShifaClear',
+  },
+  icons: {
+    icon: '/icons/icon-192.png',
+    apple: '/apple-touch-icon.png',
+  },
 };
 
 export default function RootLayout({
