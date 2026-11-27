@@ -29,6 +29,7 @@ import { IntakePanel } from './IntakePanel';
 import { LongitudinalTrendChart } from './LongitudinalTrendChart';
 import { MedicationTimetable } from './MedicationTimetable';
 import { QrSettingsModal } from './QrSettingsModal';
+import { QuickDrugCheckerModal } from './QuickDrugCheckerModal';
 import { UrgentAlertBanner } from './UrgentAlertBanner';
 
 interface ShifaClearAppProps {
@@ -49,6 +50,7 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
 
   const [auditOpen, setAuditOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  const [drugCheckerOpen, setDrugCheckerOpen] = useState(false);
   const [sessionApiKey, setSessionApiKey] = useState('');
 
   // Audio playback state
@@ -192,9 +194,16 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
     }
   };
 
-  const handleQuickDrugCheck = (meds: RawMedication[], creatinineUmol?: number) => {
+  const handleQuickDrugCheck = (
+    meds: RawMedication[],
+    creatinineUmol?: number,
+    overrideAge?: number,
+    overrideSex?: BiologicalSex,
+  ) => {
     stopAnyAudio();
     setErrorMessage(null);
+    const effectiveAge = overrideAge ?? age;
+    const effectiveSex = overrideSex ?? sex;
     const evaluation = evaluateClinicalDocument(
       {
         documentType: creatinineUmol ? 'mixed' : 'prescription',
@@ -205,7 +214,13 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
           : [],
         medications: meds,
       },
-      { age, sex, unitSystem, language },
+      {
+        age: effectiveAge,
+        isPediatric: effectiveAge < 18,
+        sex: effectiveSex,
+        unitSystem,
+        language,
+      },
     );
 
     const headline =
@@ -409,6 +424,7 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
         elderMode={elderMode}
         onElderModeChange={setElderMode}
         hasEvaluation={Boolean(analysis)}
+        onOpenDrugChecker={() => setDrugCheckerOpen(true)}
         onOpenAudit={() => setAuditOpen(true)}
         onOpenQrSettings={() => setQrOpen(true)}
         onResetHome={() => {
@@ -440,7 +456,7 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
             onAnalyzeFiles={handleAnalyzeFiles}
             onAnalyzeText={handleAnalyzeText}
             onSelectDemoCase={(id) => runDemoCase(id)}
-            onQuickDrugCheck={handleQuickDrugCheck}
+            onOpenDrugChecker={() => setDrugCheckerOpen(true)}
           />
         ) : (
           <div className="space-y-7">
@@ -637,6 +653,14 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
       </footer>
 
       {/* Native <dialog> Modals */}
+      <QuickDrugCheckerModal
+        open={drugCheckerOpen}
+        onClose={() => setDrugCheckerOpen(false)}
+        defaultAge={age}
+        defaultSex={sex}
+        onSubmitCheck={handleQuickDrugCheck}
+      />
+
       <ClinicalAuditDrawer
         open={auditOpen}
         onClose={() => setAuditOpen(false)}

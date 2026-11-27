@@ -4,6 +4,7 @@ import React from 'react';
 import {
   Activity,
   ClipboardCheck,
+  Pill,
   QrCode,
   ShieldCheck,
 } from 'lucide-react';
@@ -18,6 +19,7 @@ interface HeaderBarProps {
   elderMode: boolean;
   onElderModeChange: (enabled: boolean) => void;
   hasEvaluation: boolean;
+  onOpenDrugChecker: () => void;
   onOpenAudit: () => void;
   onOpenQrSettings: () => void;
   onResetHome: () => void;
@@ -31,6 +33,7 @@ export function HeaderBar({
   elderMode,
   onElderModeChange,
   hasEvaluation,
+  onOpenDrugChecker,
   onOpenAudit,
   onOpenQrSettings,
   onResetHome,
@@ -74,19 +77,27 @@ export function HeaderBar({
           </button>
 
           {/* Compact mobile action buttons */}
-          <div className="flex items-center gap-2 lg:hidden">
+          <div className="flex items-center gap-1.5 lg:hidden">
+            <button
+              type="button"
+              onClick={onOpenDrugChecker}
+              className="inline-flex min-h-[40px] items-center gap-1 rounded-lg border border-teal-200 bg-teal-50 px-2.5 text-xs font-bold text-teal-900 hover:bg-teal-100"
+            >
+              <Pill className="h-3.5 w-3.5 text-teal-700" aria-hidden="true" />
+              <span>Drugs</span>
+            </button>
             <button
               type="button"
               onClick={onOpenAudit}
-              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+              className="inline-flex min-h-[40px] items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
             >
-              <ClipboardCheck className="h-4 w-4 text-teal-700" aria-hidden="true" />
-              <span>{hasEvaluation ? t.auditTrailBtn : '12/12 Validation'}</span>
+              <ClipboardCheck className="h-3.5 w-3.5 text-teal-700" aria-hidden="true" />
+              <span>{hasEvaluation ? t.auditTrailBtn : '12/12'}</span>
             </button>
             <button
               type="button"
               onClick={onOpenQrSettings}
-              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              className="inline-flex min-h-[40px] items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
               aria-label={t.qrSettingsBtn}
             >
               <QrCode className="h-4 w-4 text-teal-700" aria-hidden="true" />
@@ -172,6 +183,14 @@ export function HeaderBar({
 
           {/* Desktop Action Buttons */}
           <div className="hidden items-center gap-2 lg:flex">
+            <button
+              type="button"
+              onClick={onOpenDrugChecker}
+              className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-teal-700 px-3 text-xs font-bold text-white shadow-xs transition hover:bg-teal-800"
+            >
+              <Pill className="h-4 w-4" aria-hidden="true" />
+              <span>Drug Checker</span>
+            </button>
             <button
               type="button"
               onClick={onOpenAudit}
