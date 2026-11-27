@@ -1,0 +1,405 @@
+import { GoogleGenAI } from '@google/genai';
+import type {
+  PatientNarrative,
+  RawExtractedDocument,
+  SupportedLanguage,
+  VerifiedClinicalEvaluation,
+} from '@/lib/clinical/types';
+import { LANGUAGE_MAP } from '@/lib/i18n/uiStrings';
+
+const MODEL_FALLBACK_CHAIN = Array.from(
+  new Set([
+    process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-flash-lite',
+  ]),
+);
+const DEFAULT_TTS_MODEL = process.env.GEMINI_TTS_MODEL || 'gemini-3.8-flash-lite-tts';
+const MODEL_TIMEOUT_MS = 18000;
+
+async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+  });
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+async function runWithModelFallback<T>(
+  runner: (model: string) => Promise<T>,
+): Promise<{ result: T; modelUsed: string }> {
+  let lastError: unknown;
+  for (const model of MODEL_FALLBACK_CHAIN) {
+    try {
+      const result = await withTimeout(runner(model), MODEL_TIMEOUT_MS, model);
+      return { result, modelUsed: model };
+    } catch (err) {
+      lastError = err;
+      console.warn(`[ShifaClear Gemini] ${model} unavailable, trying next fallback:`, err instanceof Error ? err.message : err);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('All Gemini models are temporarily unavailable.');
+}
+
+export function resolveApiKey(overrideKey?: string | null): string | undefined {
+  const trimmed = overrideKey?.trim();
+  if (trimmed) return trimmed;
+  return process.env.GEMINI_API_KEY?.trim() || process.env.GOOGLE_API_KEY?.trim();
+}
+
+function createClient(apiKey: string): GoogleGenAI {
+  return new GoogleGenAI({ apiKey });
+}
+
+const EXTRACTION_SCHEMA = {
+  type: 'object',
+  properties: {
+    documentType: {
+      type: 'string',
+      enum: ['lab_report', 'prescription', 'mixed'],
+    },
+    reportDate: { type: 'string' },
+    facilityName: { type: 'string' },
+    biomarkers: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          value: { type: 'number' },
+          unit: { type: 'string' },
+          rawReferenceRange: { type: 'string' },
+        },
+        required: ['name', 'value', 'unit'],
+      },
+    },
+    medications: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          brandName: { type: 'string' },
+          genericName: { type: 'string' },
+          dose: { type: 'string' },
+          frequency: { type: 'string' },
+          timingNotes: { type: 'string' },
+          duration: { type: 'string' },
+        },
+        required: ['brandName', 'dose', 'frequency'],
+      },
+    },
+  },
+  required: ['documentType', 'biomarkers', 'medications'],
+};
+
+export async function extractClinicalDocumentWithGemini(params: {
+  apiKey: string;
+  rawText?: string;
+  fileBase64?: string;
+  mimeType?: string;
+}): Promise<RawExtractedDocument> {
+  const client = createClient(params.apiKey);
+
+  const instructionText = [
+    'You are a precision clinical document OCR & structured extraction engine for a UAE hospital app.',
+    'Extract EVERY numeric lab biomarker (name, numeric value, exact unit printed, raw reference range if printed) and EVERY medication (brandName, genericName if visible, dose, frequency shorthand like OD/BD/TDS, timingNotes, duration).',
+    'Never invent values not present in the source. If a value has a ">" or "<" sign (e.g. eGFR > 90), extract the numeric value cleanly.',
+    'Return strict JSON matching the schema.',
+  ].join(' ');
+
+  const inputParts: Array<Record<string, unknown>> = [
+    {
+      type: 'text',
+      text: params.rawText
+        ? `${instructionText}\n\nCLINICAL TEXT TO EXTRACT:\n${params.rawText}`
+        : `${instructionText}\n\nExtract all lab biomarkers and medications from the attached medical document or medication photo.`,
+    },
+  ];
+
+  if (params.fileBase64 && params.mimeType) {
+    const isPdf = params.mimeType === 'application/pdf';
+    inputParts.push({
+      type: isPdf ? 'document' : 'image',
+      data: params.fileBase64,
+      mime_type: params.mimeType,
+    });
+  }
+
+  const { result: interaction } = await runWithModelFallback((model) =>
+    client.interactions.create({
+      model,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      input: inputParts as any,
+      response_format: {
+        type: 'text',
+        mime_type: 'application/json',
+        schema: EXTRACTION_SCHEMA,
+      },
+    }),
+  );
+
+  const text = interaction.output_text;
+  if (!text) {
+    throw new Error('Gemini returned an empty extraction response.');
+  }
+
+  const cleanStr = (val?: string) => {
+    const s = val?.trim();
+    if (!s || s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined' || s.toLowerCase() === 'n/a') {
+      return undefined;
+    }
+    return s;
+  };
+
+  const parsed = JSON.parse(text) as RawExtractedDocument;
+  return {
+    documentType: parsed.documentType || 'lab_report',
+    reportDate: cleanStr(parsed.reportDate),
+    facilityName: cleanStr(parsed.facilityName),
+    biomarkers: Array.isArray(parsed.biomarkers) ? parsed.biomarkers : [],
+    medications: Array.isArray(parsed.medications) ? parsed.medications : [],
+  };
+}
+
+const NARRATIVE_SCHEMA = {
+  type: 'object',
+  properties: {
+    headline: { type: 'string' },
+    overallSummary: { type: 'string' },
+    biomarkerItems: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          canonicalId: { type: 'string' },
+          plainTitle: { type: 'string' },
+          whatItMeasures: { type: 'string' },
+          whatYourLevelMeans: { type: 'string' },
+          practicalTip: { type: 'string' },
+        },
+        required: ['canonicalId', 'plainTitle', 'whatItMeasures', 'whatYourLevelMeans', 'practicalTip'],
+      },
+    },
+    medicationItems: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          plainPurpose: { type: 'string' },
+          howToTake: { type: 'string' },
+          watchOutFor: { type: 'string' },
+        },
+        required: ['id', 'plainPurpose', 'howToTake', 'watchOutFor'],
+      },
+    },
+    alertItems: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          title: { type: 'string' },
+          explanation: { type: 'string' },
+          action: { type: 'string' },
+        },
+        required: ['id', 'title', 'explanation', 'action'],
+      },
+    },
+    doctorQuestions: {
+      type: 'array',
+      items: { type: 'string' },
+    },
+    caregiverWhatsappSummary: { type: 'string' },
+    spokenSummaryScript: { type: 'string' },
+  },
+  required: [
+    'headline',
+    'overallSummary',
+    'biomarkerItems',
+    'medicationItems',
+    'alertItems',
+    'doctorQuestions',
+    'caregiverWhatsappSummary',
+    'spokenSummaryScript',
+  ],
+};
+
+export async function generatePatientNarrativeWithGemini(params: {
+  apiKey: string;
+  evaluation: VerifiedClinicalEvaluation;
+  language: SupportedLanguage;
+}): Promise<PatientNarrative> {
+  const client = createClient(params.apiKey);
+  const langMeta = LANGUAGE_MAP[params.language];
+
+  const compactFacts = {
+    overallRisk: params.evaluation.overallRisk,
+    patient: params.evaluation.patientContext,
+    alerts: params.evaluation.alerts.map((a) => ({
+      id: a.id,
+      severity: a.severity,
+      title: a.title,
+      rationale: a.clinicalRationale,
+      action: a.recommendedAction,
+      emergencyNumber: a.emergencyNumber,
+    })),
+    biomarkers: params.evaluation.biomarkers.map((b) => ({
+      canonicalId: b.canonicalId,
+      name: b.displayName,
+      si: `${b.siValue} ${b.siUnit}`,
+      us: `${b.usValue} ${b.usUnit}`,
+      refSI: b.refLabelSI,
+      status: b.status,
+      trend: b.trendDeltaText,
+    })),
+    medications: params.evaluation.medications.map((m) => ({
+      id: m.id,
+      brand: m.brandName,
+      generic: m.genericName,
+      dose: m.dose,
+      slots: m.slots,
+      timing: m.timingInstruction,
+      safetyFlag: m.safetyFlagSummary,
+    })),
+  };
+
+  const prompt = [
+    `You are ShifaClear, a compassionate UAE clinical health communicator designed by an MD and Biomedical Engineer.`,
+    `Write ALL user-facing text strictly in ${langMeta.englishLabel} (${langMeta.nativeLabel}) at a warm, clear grade-6 reading level.`,
+    `CRITICAL SAFETY RULES:`,
+    `1. NEVER contradict or change the deterministic statuses, numbers, or alerts provided below.`,
+    `2. NEVER diagnose a disease or tell the patient to change/stop prescriptions on their own — always frame next steps as questions or prompts for their physician/pharmacist (or UAE 998 Emergency if an urgent alert is present).`,
+    `3. Provide exactly 3 specific, practical Doctor Visit Questions.`,
+    `4. Keep caregiverWhatsappSummary concise with clear bullet points.`,
+    `5. Keep spokenSummaryScript natural and ~45-65 words so it sounds warm when read aloud to an elder.`,
+    ``,
+    `VERIFIED CLINICAL FACTS (SOURCE OF TRUTH):`,
+    JSON.stringify(compactFacts),
+  ].join('\n');
+
+  const { result: interaction } = await runWithModelFallback((model) =>
+    client.interactions.create({
+      model,
+      input: prompt,
+      response_format: {
+        type: 'text',
+        mime_type: 'application/json',
+        schema: NARRATIVE_SCHEMA,
+      },
+    }),
+  );
+
+  const text = interaction.output_text;
+  if (!text) {
+    throw new Error('Gemini returned an empty narrative response.');
+  }
+
+  const parsed = JSON.parse(text) as {
+    headline: string;
+    overallSummary: string;
+    biomarkerItems: Array<{
+      canonicalId: string;
+      plainTitle: string;
+      whatItMeasures: string;
+      whatYourLevelMeans: string;
+      practicalTip: string;
+    }>;
+    medicationItems: Array<{
+      id: string;
+      plainPurpose: string;
+      howToTake: string;
+      watchOutFor: string;
+    }>;
+    alertItems: Array<{
+      id: string;
+      title: string;
+      explanation: string;
+      action: string;
+    }>;
+    doctorQuestions: string[];
+    caregiverWhatsappSummary: string;
+    spokenSummaryScript: string;
+  };
+
+  const biomarkerExplanations: PatientNarrative['biomarkerExplanations'] = {};
+  for (const item of parsed.biomarkerItems || []) {
+    biomarkerExplanations[item.canonicalId] = item;
+  }
+
+  const medicationExplanations: PatientNarrative['medicationExplanations'] = {};
+  for (const item of parsed.medicationItems || []) {
+    medicationExplanations[item.id] = item;
+  }
+
+  const alertTranslations: PatientNarrative['alertTranslations'] = {};
+  for (const item of parsed.alertItems || []) {
+    alertTranslations[item.id] = item;
+  }
+
+  return {
+    language: params.language,
+    headline: parsed.headline,
+    overallSummary: parsed.overallSummary,
+    biomarkerExplanations,
+    medicationExplanations,
+    alertTranslations,
+    doctorQuestions: (parsed.doctorQuestions || []).slice(0, 4),
+    caregiverWhatsappSummary: parsed.caregiverWhatsappSummary,
+    spokenSummaryScript: parsed.spokenSummaryScript,
+    source: 'gemini_live',
+  };
+}
+
+export async function synthesizeSpeechWithGemini(params: {
+  apiKey: string;
+  text: string;
+  language: SupportedLanguage;
+}): Promise<{ audioBase64: string; mimeType: string }> {
+  const client = new GoogleGenAI({
+    apiKey: params.apiKey,
+    httpOptions: { apiVersion: 'v1beta' },
+  });
+
+  const langMeta = LANGUAGE_MAP[params.language];
+  const interaction = await client.interactions.create({
+    model: DEFAULT_TTS_MODEL,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    input: [
+      {
+        type: 'user_input',
+        content: [
+          {
+            type: 'text',
+            text: params.text.slice(0, 900),
+            annotations: [
+              {
+                type: 'speech_metadata',
+                style: `calm, warm, reassuring clinical educator speaking clearly in ${langMeta.englishLabel}`,
+              },
+            ],
+          },
+        ],
+      },
+    ] as any,
+    response_format: { type: 'audio' },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    generation_config: {
+      speech_config: [{ voice: 'Kore' }],
+    } as any,
+  });
+
+  const audio = interaction.output_audio;
+  if (!audio?.data) {
+    throw new Error('Gemini TTS did not return audio data.');
+  }
+
+  return {
+    audioBase64: audio.data,
+    mimeType: audio.mime_type || 'audio/wav',
+  };
+}
