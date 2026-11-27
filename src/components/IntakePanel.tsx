@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
   Camera,
+  CheckCircle2,
   Download,
   FileText,
   HeartPulse,
+  Loader2,
   Pill,
   ShieldCheck,
   Sparkles,
@@ -50,7 +52,22 @@ export function IntakePanel({
   const [pastedText, setPastedText] = useState('');
   const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [pipelineStage, setPipelineStage] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setPipelineStage(0);
+      return;
+    }
+    setPipelineStage(0);
+    const t1 = window.setTimeout(() => setPipelineStage(1), 1250);
+    const t2 = window.setTimeout(() => setPipelineStage(2), 2850);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [isLoading]);
 
   const handleFilesAdded = (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
@@ -94,7 +111,7 @@ export function IntakePanel({
 
           <div className="flex flex-wrap gap-2 text-xs font-semibold">
             <span className="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/15">
-              141 Drugs / 600+ UAE Brands
+              77 Labs • 150 Drugs / 620+ Brands
             </span>
             <span className="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/15">
               Pediatric + CKD-EPI 2021
@@ -120,19 +137,75 @@ export function IntakePanel({
         </div>
       )}
 
-      {/* Loading progress indicator */}
+      {/* Live 3-Stage Clinical Pipeline Progress Indicator */}
       {isLoading && (
-        <div className="rounded-2xl border border-teal-200 bg-teal-50 p-5 shadow-xs">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-bold text-teal-900">{t.analyzingBtn}</p>
-            <span className="text-xs font-semibold text-teal-700">
+        <div
+          role="status"
+          aria-live="polite"
+          className="clinical-card-enter rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50 via-white to-emerald-50/70 p-5 shadow-sm"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <Loader2 className="h-4 w-4 animate-spin text-teal-700" aria-hidden="true" />
+              <p className="text-sm font-extrabold text-teal-950">{t.analyzingBtn}</p>
+            </div>
+            <span className="rounded-full bg-teal-100 px-2.5 py-0.5 text-[11px] font-bold text-teal-900">
               Gemini 3.8 Flash → Deterministic MD Engine
             </span>
           </div>
-          <progress
-            aria-label={t.analyzingBtn}
-            className="mt-3 h-2 w-full overflow-hidden rounded-full accent-teal-700"
-          />
+
+          {/* Smooth Indeterminate Progress Track */}
+          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-teal-100">
+            <div className="clinical-progress-bar h-full w-2/5 rounded-full bg-gradient-to-r from-teal-600 via-emerald-500 to-teal-600" />
+          </div>
+
+          {/* 3-Stage Hybrid Architecture Stepper */}
+          <ol className="mt-4 grid gap-2.5 sm:grid-cols-3">
+            {[
+              {
+                title: '1. Multimodal Extraction',
+                sub: 'Reading lab values, dates & UAE brands',
+              },
+              {
+                title: '2. MD Deterministic Guardrails',
+                sub: '77 LOINC ranges, CKD-EPI & 40 RxList rules',
+              },
+              {
+                title: '3. Grounded Translation',
+                sub: 'Plain-language guide & caregiver summary',
+              },
+            ].map((step, idx) => {
+              const done = pipelineStage > idx;
+              const active = pipelineStage === idx;
+              return (
+                <li
+                  key={step.title}
+                  className={`flex items-start gap-2.5 rounded-xl border px-3 py-2.5 transition-colors duration-300 ${
+                    done
+                      ? 'border-emerald-200 bg-emerald-50/80 text-emerald-950'
+                      : active
+                        ? 'border-teal-300 bg-white text-teal-950 shadow-xs'
+                        : 'border-slate-200/80 bg-slate-50/60 text-slate-400'
+                  }`}
+                >
+                  {done ? (
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
+                  ) : active ? (
+                    <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-teal-700" aria-hidden="true" />
+                  ) : (
+                    <span
+                      className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full border-2 border-slate-300"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-xs font-extrabold">{step.title}</p>
+                    <p className="text-[11px] font-medium opacity-80">{step.sub}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
         </div>
       )}
 

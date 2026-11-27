@@ -125,6 +125,15 @@ export function DoctorPrepAndVoice({
               <>
                 <VolumeX className="h-5 w-5" aria-hidden="true" />
                 <span>{t.stopAudioBtn}</span>
+                <span className="ms-1 inline-flex h-4 items-end gap-0.5" aria-hidden="true">
+                  {[0, 1, 2, 3].map((bar) => (
+                    <span
+                      key={bar}
+                      style={{ '--bar-index': bar } as React.CSSProperties}
+                      className="voice-eq-bar h-full w-1 rounded-full bg-white/90"
+                    />
+                  ))}
+                </span>
               </>
             ) : (
               <>

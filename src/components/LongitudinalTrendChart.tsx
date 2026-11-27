@@ -221,46 +221,54 @@ export function LongitudinalTrendChart({
             </g>
           )}
 
-          {/* Area & Line */}
-          <path d={areaPath} fill="url(#shifaTrendGrad)" />
-          <path
-            d={linePath}
-            fill="none"
-            stroke="#0F766E"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          {/* Area & Animated Trajectory Line */}
+          <g key={`${activeMarker.canonicalId}-${unitSystem}`}>
+            <path d={areaPath} fill="url(#shifaTrendGrad)" className="trend-area-fade" />
+            <path
+              d={linePath}
+              pathLength={100}
+              fill="none"
+              stroke="#0F766E"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="trend-line-draw"
+            />
 
-          {/* Data Points & Labels */}
-          {coords.map((pt, idx) => (
-            <g key={pt.date}>
-              <circle
-                cx={pt.x}
-                cy={pt.y}
-                r={idx === coords.length - 1 ? 7 : 5.5}
-                fill={idx === coords.length - 1 ? '#0F766E' : '#FFFFFF'}
-                stroke="#0F766E"
-                strokeWidth="3"
-              />
-              <text
-                x={pt.x}
-                y={pt.y - 12}
-                textAnchor="middle"
-                className="fill-slate-900 text-[12px] font-extrabold"
+            {/* Data Points & Labels */}
+            {coords.map((pt, idx) => (
+              <g
+                key={pt.date}
+                style={{ '--dot-index': idx } as React.CSSProperties}
+                className="trend-dot-pop"
               >
-                {pt.value} {unit}
-              </text>
-              <text
-                x={pt.x}
-                y={height - 10}
-                textAnchor="middle"
-                className="fill-slate-500 text-[11px] font-bold"
-              >
-                {pt.date}
-              </text>
-            </g>
-          ))}
+                <circle
+                  cx={pt.x}
+                  cy={pt.y}
+                  r={idx === coords.length - 1 ? 7 : 5.5}
+                  fill={idx === coords.length - 1 ? '#0F766E' : '#FFFFFF'}
+                  stroke="#0F766E"
+                  strokeWidth="3"
+                />
+                <text
+                  x={pt.x}
+                  y={pt.y - 12}
+                  textAnchor="middle"
+                  className="fill-slate-900 text-[12px] font-extrabold"
+                >
+                  {pt.value} {unit}
+                </text>
+                <text
+                  x={pt.x}
+                  y={height - 10}
+                  textAnchor="middle"
+                  className="fill-slate-500 text-[11px] font-bold"
+                >
+                  {pt.date}
+                </text>
+              </g>
+            ))}
+          </g>
         </svg>
       </div>
 

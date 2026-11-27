@@ -47,7 +47,7 @@ input[type="checkbox"][switch]:focus-visible {
   outline-offset: 4px;
 }
 
-/* Native <dialog> modal scroll containment & backdrop (per modern-web-guidance) */
+/* Native <dialog> modal scroll containment, backdrop & top-layer entry/exit transitions (per modern-web-guidance) */
 dialog:modal {
   overscroll-behavior: contain;
   margin: auto;
@@ -58,16 +58,191 @@ dialog:modal {
   max-height: 90dvh;
 }
 
-dialog::backdrop {
-  overflow: hidden;
-  overscroll-behavior: contain;
-  background: rgba(15, 23, 42, 0.56);
-  backdrop-filter: blur(4px);
+dialog {
+  opacity: 0;
+  transition-property: opacity, transform, display, overlay;
+  transition-duration: 0.22s;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  transition-behavior: allow-discrete;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-elder="true"]) dialog {
+    transform: translateY(10px) scale(0.97);
+  }
 }
 
 dialog[open] {
   display: flex;
   flex-direction: column;
+  opacity: 1;
+}
+
+@starting-style {
+  dialog[open] {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-elder="true"]) dialog[open] {
+    transform: translateY(0) scale(1);
+  }
+
+  @starting-style {
+    html:not([data-elder="true"]) dialog[open] {
+      transform: translateY(10px) scale(0.97);
+    }
+  }
+}
+
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background-color: rgba(15, 23, 42, 0);
+  backdrop-filter: blur(0px);
+  transition-property: background-color, backdrop-filter, display, overlay;
+  transition-duration: 0.22s;
+  transition-timing-function: ease-out;
+  transition-behavior: allow-discrete;
+}
+
+dialog[open]::backdrop {
+  background-color: rgba(15, 23, 42, 0.56);
+  backdrop-filter: blur(4px);
+}
+
+@starting-style {
+  dialog[open]::backdrop {
+    background-color: rgba(15, 23, 42, 0);
+    backdrop-filter: blur(0px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog,
+  dialog::backdrop {
+    transition-duration: 0.1s;
+  }
+}
+
+/* =========================================================================
+   Clinical Micro-Interactions (Compositor-Only, Reduced-Motion & Elder Safe)
+   ========================================================================= */
+@keyframes clinicalCardReveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes clinicalPinPop {
+  from {
+    opacity: 0.35;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes trendLineDraw {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes trendAreaFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes trendDotPop {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes voiceEqWave {
+  0%,
+  100% {
+    transform: scaleY(0.32);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes clinicalProgressSweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-elder="true"]) .clinical-card-enter {
+    animation: clinicalCardReveal 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(min(var(--stagger-index, 0), 8) * 32ms);
+  }
+
+  html:not([data-elder="true"]) .clinical-gauge-pin {
+    animation: clinicalPinPop 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(min(var(--stagger-index, 0), 8) * 32ms + 90ms);
+  }
+
+  .trend-line-draw {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
+    animation: trendLineDraw 680ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .trend-area-fade {
+    animation: trendAreaFade 560ms ease-out both;
+    animation-delay: 140ms;
+  }
+
+  .trend-dot-pop {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: trendDotPop 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--dot-index, 0) * 90ms + 220ms);
+  }
+
+  .voice-eq-bar {
+    transform-origin: bottom;
+    animation: voiceEqWave 780ms ease-in-out infinite;
+    animation-delay: calc(var(--bar-index, 0) * 140ms);
+  }
+}
+
+.clinical-progress-bar {
+  animation: clinicalProgressSweep 1.55s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clinical-progress-bar {
+    animation-duration: 6s;
+  }
 }
 
 /* Elder / Grandparent Mode: scale root html font-size so ALL Tailwind rem sizes jump unmistakably */

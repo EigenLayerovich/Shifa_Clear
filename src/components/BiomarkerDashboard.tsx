@@ -163,7 +163,7 @@ export function BiomarkerDashboard({
 
       {/* Biomarker Gauge Grid */}
       <div className={`grid gap-4 ${elderMode ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
-        {filteredBiomarkers.map((bio) => {
+        {filteredBiomarkers.map((bio, bioIdx) => {
           const colors = statusColors(bio.status);
           const exp = explanations[bio.canonicalId];
           const displayVal = unitSystem === 'SI' ? bio.siValue : bio.usValue;
@@ -175,7 +175,8 @@ export function BiomarkerDashboard({
           return (
             <article
               key={bio.id}
-              className={`elder-card print-break-avoid rounded-2xl border p-5 shadow-xs transition ${colors.cardBorder}`}
+              style={{ '--stagger-index': bioIdx } as React.CSSProperties}
+              className={`clinical-card-enter elder-card print-break-avoid rounded-2xl border p-5 shadow-xs transition ${colors.cardBorder}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
@@ -238,7 +239,7 @@ export function BiomarkerDashboard({
                   aria-hidden="true"
                 >
                   <div
-                    className={`absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-md ring-4 transition-all duration-500 ${colors.pin}`}
+                    className={`clinical-gauge-pin absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-md ring-4 transition-all duration-500 ${colors.pin}`}
                     style={{ left: `${bio.gaugePercent}%` }}
                   />
                 </div>
