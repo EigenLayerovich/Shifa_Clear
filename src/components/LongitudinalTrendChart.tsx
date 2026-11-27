@@ -95,17 +95,17 @@ export function LongitudinalTrendChart({
   return (
     <section
       aria-labelledby="longitudinal-trend-heading"
-      className="print-break-avoid rounded-3xl border border-slate-200 bg-white p-5 shadow-xs sm:p-6"
+      className="editorial-sheet print-break-avoid rounded-2xl p-6"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 id="longitudinal-trend-heading" className="text-base font-extrabold text-slate-900 sm:text-lg">
+          <h2 id="longitudinal-trend-heading" className="font-editorial text-2xl font-medium text-[#18181B]">
             {language === 'ar'
               ? 'مسار المؤشرات عبر الزيارات السابقة (12 شهراً)'
               : 'Longitudinal Clinical Trajectory (12-Month Multi-Visit Trend)'}
           </h2>
-          <p className="text-xs text-slate-500">
-            {activeMarker.displayName} • Target: <strong className="text-emerald-700">{targetLabel}</strong>
+          <p className="text-xs text-[#57534E]">
+            {activeMarker.displayName} · Target: <strong className="text-[#0D5C56]">{targetLabel}</strong>
           </p>
         </div>
 

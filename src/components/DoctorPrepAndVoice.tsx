@@ -94,17 +94,17 @@ export function DoctorPrepAndVoice({
       className="print-break-avoid grid gap-5 lg:grid-cols-12"
     >
       {/* Doctor Visit Prep Checklist */}
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs lg:col-span-7">
+      <div className="editorial-sheet rounded-2xl p-6 lg:col-span-7">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F2F7F5] text-[#0D5C56]">
               <Stethoscope className="h-5 w-5" aria-hidden="true" />
             </span>
             <div>
-              <h2 id="doctor-prep-heading" className="text-base font-extrabold text-slate-900 sm:text-lg">
+              <h2 id="doctor-prep-heading" className="font-editorial text-2xl font-medium text-[#18181B]">
                 {t.doctorPrepHeading}
               </h2>
-              <p className="text-xs text-slate-600">{t.doctorPrepSub}</p>
+              <p className="text-xs text-[#57534E]">{t.doctorPrepSub}</p>
             </div>
           </div>
 
@@ -236,10 +236,10 @@ export function DoctorPrepAndVoice({
       </div>
 
       {/* Voice Read-Aloud & Caregiver Handoff Card */}
-      <div className="flex flex-col justify-between gap-4 rounded-3xl border border-teal-200 bg-gradient-to-br from-teal-50/80 via-white to-emerald-50/50 p-6 shadow-xs lg:col-span-5">
+      <div className="flex flex-col justify-between gap-4 rounded-2xl border border-[#DCE5E2] bg-[#F5F8F7] p-6 lg:col-span-5">
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-base font-extrabold text-slate-900">
+            <h3 className="font-editorial text-xl font-medium text-[#18181B]">
               Voice &amp; Family Caregiver Card
             </h3>
             {audioProviderLabel && (

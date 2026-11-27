@@ -591,7 +591,7 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
         }}
       />
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-9">
         {analysis && (
           <BilingualPrintSheet
             evaluation={analysis.evaluation}
@@ -680,22 +680,22 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
             )}
 
             {/* Executive Clinical Summary Card */}
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+            <section className="editorial-sheet rounded-2xl p-6 sm:p-8">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-extrabold ${riskBadgeStyle}`}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${riskBadgeStyle}`}
                     >
                       {t.riskBadges[analysis.evaluation.overallRisk]}
                     </span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-bold text-teal-800 ring-1 ring-teal-200">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#DCE5E2] bg-[#F2F7F5] px-2.5 py-1 text-[11px] font-semibold text-[#0D5C56]">
                       <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
                       {analysis.evaluation.auditTrail.length} Deterministic Checks Verified
                     </span>
                     {analysis.aiPowered && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-bold text-sky-800 ring-1 ring-sky-200">
-                        <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                      <span className="inline-flex items-center gap-1 rounded-full border border-[#E7E3DA] bg-[#FAF9F6] px-2.5 py-1 text-[11px] font-medium text-[#57534E]">
+                        <Sparkles className="h-3 w-3 text-[#0D5C56]" aria-hidden="true" />
                         Gemini 3.8 Flash Live
                       </span>
                     )}
@@ -704,12 +704,12 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
                   <h1
                     id="main-heading"
                     tabIndex={-1}
-                    className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl"
+                    className="font-editorial text-2xl font-medium tracking-tight text-[#18181B] sm:text-3xl"
                   >
                     {analysis.narrative.headline}
                   </h1>
 
-                  <p className="max-w-4xl text-sm leading-relaxed text-slate-700 sm:text-base">
+                  <p className="max-w-3xl text-sm leading-relaxed text-[#57534E] sm:text-[15px]">
                     {analysis.narrative.overallSummary}
                   </p>
 
@@ -817,14 +817,14 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
       </main>
 
       {/* Persistent Clinical Safety Footer */}
-      <footer className="no-print mt-12 border-t border-slate-200 bg-white py-6">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <footer className="no-print mt-14 border-t border-[#E7E3DA] bg-[#FAF9F6] py-7">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 text-xs text-[#57534E] sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div className="max-w-3xl">
-            <p className="font-extrabold text-slate-800">{t.disclaimerTitle}</p>
+            <p className="font-semibold text-[#18181B]">{t.disclaimerTitle}</p>
             <p className="mt-0.5 leading-relaxed">{t.disclaimerText}</p>
           </div>
-          <div className="shrink-0 text-end text-[11px] font-semibold text-slate-500">
-            <p>ShifaClear • Built at Khalifa University (KUEC Sandbox 2026)</p>
+          <div className="shrink-0 text-end text-[11px] font-medium text-[#78716C]">
+            <p>ShifaClear · Khalifa University (KUEC Sandbox 2026)</p>
             <p>MD + Biomedical Engineering Clinical Safety Architecture</p>
           </div>
         </div>

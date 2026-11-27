@@ -2,16 +2,43 @@
 
 @theme inline {
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-serif), Georgia, 'Times New Roman', serif;
   --font-arabic: var(--font-arabic), var(--font-sans), sans-serif;
   --font-devanagari: var(--font-devanagari), var(--font-sans), sans-serif;
 }
 
 :root {
-  --clinical-teal: #0f766e;
-  --clinical-teal-dark: #115e59;
+  --clinical-teal: #0d5c56;
+  --clinical-teal-dark: #094742;
   --clinical-surface: #ffffff;
-  --clinical-bg: #f7f9f8;
-  --focus-color: #0f766e;
+  --clinical-bg: #faf9f6;
+  --clinical-limestone: #f3f1ec;
+  --clinical-border: #e7e3da;
+  --clinical-ink: #18181b;
+  --focus-color: #0d5c56;
+}
+
+/* Editorial serif headline utility (preserves crisp Arabic/Urdu/Hindi scripts in RTL/Devanagari) */
+.font-editorial {
+  font-family: var(--font-serif), Georgia, serif;
+}
+
+[lang="ar"] .font-editorial,
+[lang="ur"] .font-editorial {
+  font-family: var(--font-arabic), sans-serif;
+}
+
+[lang="hi"] .font-editorial {
+  font-family: var(--font-devanagari), sans-serif;
+}
+
+/* Elevated Boutique Clinic Paper Sheet */
+.editorial-sheet {
+  background-color: #ffffff;
+  border: 1px solid #e7e3da;
+  box-shadow:
+    0 1px 2px rgba(24, 24, 27, 0.03),
+    0 14px 36px -16px rgba(24, 24, 27, 0.08);
 }
 
 /* Visually hidden utility (accessible skip links & SR labels) */
@@ -388,48 +415,48 @@ input[type="range"].clinical-whatif-slider:focus-visible {
   min-width: 6.25rem;
   min-height: 36px;
   align-items: center;
-  border-radius: 0.75rem;
-  border: 1px solid #cbd5e1;
+  border-radius: 0.625rem;
+  border: 1px solid #e2ddd2;
   background-color: #ffffff;
-  color: #0f172a;
+  color: #18181b;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
   padding: 0.375rem 0.65rem;
   cursor: pointer;
 }
 
 .clinical-lang-select:hover {
-  border-color: #0f766e;
-  background-color: #f0fdfa;
+  border-color: #0d5c56;
+  background-color: #f4f7f6;
 }
 
 .clinical-lang-select::picker(select) {
-  border-radius: 0.875rem;
-  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  border: 1px solid #e2ddd2;
   background-color: #ffffff;
   padding: 0.35rem;
-  box-shadow: 0 12px 30px -6px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 12px 30px -8px rgba(24, 24, 27, 0.14);
 }
 
 .clinical-lang-select::picker-icon {
-  color: #0f766e;
+  color: #0d5c56;
 }
 
 .clinical-lang-select option {
   padding: 0.45rem 0.65rem;
   border-radius: 0.5rem;
   font-size: 0.8125rem;
-  font-weight: 700;
-  color: #0f172a;
+  font-weight: 600;
+  color: #18181b;
   cursor: pointer;
 }
 
 .clinical-lang-select option:hover {
-  background-color: #f0fdfa;
+  background-color: #f4f7f6;
 }
 
 .clinical-lang-select option::checkmark {
-  color: #0f766e;
+  color: #0d5c56;
 }
 
 /* Elder / Grandparent Mode: scale root html font-size so ALL Tailwind rem sizes jump unmistakably */
@@ -481,11 +508,10 @@ html[data-elder="true"] textarea {
   line-height: 1.1;
 }
 
-/* Subtle clinical background pattern */
+/* Warm editorial alabaster surface (no generic SaaS radial glow) */
 .clinical-grid-bg {
-  background-image:
-    radial-gradient(circle at 12% 10%, rgba(15, 118, 110, 0.07), transparent 36%),
-    radial-gradient(circle at 88% 4%, rgba(14, 165, 233, 0.06), transparent 32%);
+  background-color: #faf9f6;
+  background-image: linear-gradient(180deg, #faf9f6 0%, #f6f4ee 100%);
 }
 
 /* Clean printable clinical report */

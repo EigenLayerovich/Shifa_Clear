@@ -8,11 +8,9 @@ import {
   CheckCircle2,
   Download,
   FileText,
-  HeartPulse,
   Loader2,
   Pill,
   ShieldCheck,
-  Sparkles,
   UploadCloud,
   X,
 } from 'lucide-react';
@@ -92,55 +90,82 @@ export function IntakePanel({
   };
 
   return (
-    <div className="space-y-8">
-      {/* Hero Banner */}
-      <section className="rounded-3xl border border-teal-900/10 bg-gradient-to-br from-teal-900 via-teal-800 to-emerald-800 p-6 text-white shadow-lg sm:p-8">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl space-y-3">
-            <div className="inline-flex flex-wrap items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-teal-50 ring-1 ring-white/20">
-              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>KUEC Sandbox Hackathon • Health &amp; Wellbeing • MD + BME PhD Clinical Safety Engine</span>
-            </div>
-            <h1
-              id="main-heading"
-              tabIndex={-1}
-              className="text-2xl font-extrabold tracking-tight sm:text-4xl"
-            >
-              {t.tagline}
-            </h1>
-            <p className="text-sm leading-relaxed text-teal-100 sm:text-base">
-              {t.subtitle}
-            </p>
-          </div>
+    <div className="space-y-10">
+      {/* Editorial 2-Column Boutique Clinical Hero (Zero AI-SaaS dark rectangle or sparkles) */}
+      <section className="grid items-center gap-8 pt-2 lg:grid-cols-12 lg:gap-10">
+        <div className="space-y-5 lg:col-span-7">
+          <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#57534E]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#0D5C56]" aria-hidden="true" />
+            <span>Khalifa University · Physician-Validated Clinical Clarity</span>
+          </p>
 
-          <div className="flex flex-wrap gap-2 text-xs font-semibold">
-            <span className="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/15">
-              77 Labs • 150 Drugs / 620+ Brands
+          <h1
+            id="main-heading"
+            tabIndex={-1}
+            className="font-editorial text-4xl font-normal leading-[1.06] tracking-[-0.02em] text-[#18181B] sm:text-[52px]"
+          >
+            {language === 'en' ? (
+              <>
+                Every lab &amp; prescription,{' '}
+                <em className="italic text-[#0D5C56]">clearly</em> understood.
+              </>
+            ) : (
+              t.tagline
+            )}
+          </h1>
+
+          <p className="max-w-xl text-[15px] leading-relaxed text-[#57534E] sm:text-base">
+            {t.subtitle}
+          </p>
+
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[#E7E3DA] pt-4 text-xs text-[#57534E]">
+            <span>
+              <strong className="font-semibold text-[#18181B] tabular-nums">77</strong> LOINC Biomarkers
             </span>
-            <span className="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/15">
-              Pediatric + CKD-EPI 2021
+            <span aria-hidden="true" className="text-[#CBC4B6]">·</span>
+            <span>
+              <strong className="font-semibold text-[#18181B] tabular-nums">150</strong> Drugs /{' '}
+              <strong className="font-semibold text-[#18181B] tabular-nums">620+</strong> UAE Brands
             </span>
-            <span className="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/15">
-              5 UAE Languages + Voice
+            <span aria-hidden="true" className="text-[#CBC4B6]">·</span>
+            <span>
+              <strong className="font-semibold text-[#18181B]">Pediatric</strong> &amp; CKD-EPI 2021
+            </span>
+            <span aria-hidden="true" className="text-[#CBC4B6]">·</span>
+            <span>
+              <strong className="font-semibold text-[#18181B]">5</strong> UAE Languages + Voice
             </span>
           </div>
+        </div>
+
+        <div className="lg:col-span-5">
+          <figure className="overflow-hidden rounded-2xl border border-[#E7E3DA] bg-[#F5F2EB] shadow-[0_18px_42px_-22px_rgba(24,24,27,0.16)]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/hero-editorial.jpg"
+              alt="Minimalist botanical and clinical pulse waveform artwork representing clear medical guidance"
+              width={800}
+              height={600}
+              className="aspect-[4/3] w-full object-cover"
+            />
+          </figure>
         </div>
       </section>
 
       {/* Offline Cached Report Resume Banner */}
       {savedOfflineHeadline && onRestoreOfflineReport && !isLoading && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#DCE5E2] bg-[#F2F7F5] px-4 py-2.5">
           <div className="flex items-center gap-2.5 text-xs">
-            <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true" />
-            <span className="font-bold text-emerald-950">
-              Saved Offline Report Available:{' '}
-              <span className="font-semibold text-emerald-800">{savedOfflineHeadline}</span>
+            <span className="inline-flex h-2 w-2 rounded-full bg-[#0D5C56]" aria-hidden="true" />
+            <span className="font-medium text-[#18181B]">
+              Saved offline report:{' '}
+              <span className="font-semibold text-[#0D5C56]">{savedOfflineHeadline}</span>
             </span>
           </div>
           <button
             type="button"
             onClick={onRestoreOfflineReport}
-            className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl bg-emerald-700 px-3.5 text-xs font-extrabold text-white shadow-xs transition hover:bg-emerald-800"
+            className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg bg-[#0D5C56] px-3.5 text-xs font-semibold text-white transition hover:bg-[#094742]"
           >
             <span>Resume Report</span>
             <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
@@ -152,11 +177,11 @@ export function IntakePanel({
       {errorMessage && (
         <div
           role="alert"
-          className="flex items-start gap-3 rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm text-rose-900 shadow-xs"
+          className="flex items-start gap-3 rounded-2xl border border-rose-300 bg-rose-50/90 p-4 text-sm text-rose-900"
         >
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" aria-hidden="true" />
           <div>
-            <p className="font-bold">Analysis Notice</p>
+            <p className="font-semibold">Analysis Notice</p>
             <p className="mt-0.5 text-rose-800">{errorMessage}</p>
           </div>
         </div>
@@ -167,21 +192,21 @@ export function IntakePanel({
         <div
           role="status"
           aria-live="polite"
-          className="clinical-card-enter rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50 via-white to-emerald-50/70 p-5 shadow-sm"
+          className="clinical-card-enter editorial-sheet rounded-2xl p-5"
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2.5">
-              <Loader2 className="h-4 w-4 animate-spin text-teal-700" aria-hidden="true" />
-              <p className="text-sm font-extrabold text-teal-950">{t.analyzingBtn}</p>
+              <Loader2 className="h-4 w-4 animate-spin text-[#0D5C56]" aria-hidden="true" />
+              <p className="text-sm font-semibold text-[#18181B]">{t.analyzingBtn}</p>
             </div>
-            <span className="rounded-full bg-teal-100 px-2.5 py-0.5 text-[11px] font-bold text-teal-900">
+            <span className="rounded-md bg-[#F3F1EC] px-2.5 py-1 text-[11px] font-medium text-[#57534E]">
               Gemini 3.8 Flash → Deterministic MD Engine
             </span>
           </div>
 
           {/* Smooth Indeterminate Progress Track */}
-          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-teal-100">
-            <div className="clinical-progress-bar h-full w-2/5 rounded-full bg-gradient-to-r from-teal-600 via-emerald-500 to-teal-600" />
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[#EFECE5]">
+            <div className="clinical-progress-bar h-full w-2/5 rounded-full bg-[#0D5C56]" />
           </div>
 
           {/* 3-Stage Hybrid Architecture Stepper */}
@@ -207,25 +232,25 @@ export function IntakePanel({
                   key={step.title}
                   className={`flex items-start gap-2.5 rounded-xl border px-3 py-2.5 transition-colors duration-300 ${
                     done
-                      ? 'border-emerald-200 bg-emerald-50/80 text-emerald-950'
+                      ? 'border-[#C6DDD7] bg-[#F2F7F5] text-[#0D5C56]'
                       : active
-                        ? 'border-teal-300 bg-white text-teal-950 shadow-xs'
-                        : 'border-slate-200/80 bg-slate-50/60 text-slate-400'
+                        ? 'border-[#0D5C56]/40 bg-white text-[#18181B]'
+                        : 'border-[#EFECE5] bg-[#FAF9F6] text-[#A8A29E]'
                   }`}
                 >
                   {done ? (
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#0D5C56]" aria-hidden="true" />
                   ) : active ? (
-                    <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-teal-700" aria-hidden="true" />
+                    <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-[#0D5C56]" aria-hidden="true" />
                   ) : (
                     <span
-                      className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full border-2 border-slate-300"
+                      className="mt-1.5 h-2 w-2 shrink-0 rounded-full border border-[#D6D0C4]"
                       aria-hidden="true"
                     />
                   )}
                   <div className="min-w-0">
-                    <p className="text-xs font-extrabold">{step.title}</p>
-                    <p className="text-[11px] font-medium opacity-80">{step.sub}</p>
+                    <p className="text-xs font-semibold">{step.title}</p>
+                    <p className="text-[11px] opacity-80">{step.sub}</p>
                   </div>
                 </li>
               );
@@ -234,18 +259,20 @@ export function IntakePanel({
         </div>
       )}
 
-      {/* Main Lab / Report Intake Card */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-        {/* Patient Context Row */}
-        <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2.5">
-            <ShieldCheck className="h-5 w-5 text-teal-700" aria-hidden="true" />
-            <h2 className="text-sm font-bold text-slate-800">{t.patientContextTitle}</h2>
+      {/* Un-nested Single Elevated Clinical Intake Sheet */}
+      <section className="editorial-sheet overflow-hidden rounded-2xl">
+        {/* Clean Inline Patient Context Strip (Hairline Divider — No Box-in-Box) */}
+        <div className="flex flex-col gap-3 border-b border-[#EFECE5] bg-[#FCFBF9] px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-[#0D5C56]" aria-hidden="true" />
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-[#57534E]">
+              {t.patientContextTitle}
+            </h2>
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <label htmlFor="patient-age" className="text-xs font-bold text-slate-600">
+              <label htmlFor="patient-age" className="text-xs font-medium text-[#57534E]">
                 {t.ageLabel}
               </label>
               <input
@@ -255,19 +282,21 @@ export function IntakePanel({
                 max={115}
                 value={age}
                 onChange={(e) => onAgeChange(Math.max(0, Math.min(115, Number(e.target.value) || 0)))}
-                className="min-h-[40px] w-20 rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900"
+                className="min-h-[36px] w-16 rounded-lg border border-[#DDD8CE] bg-white px-2.5 text-sm font-semibold text-[#18181B] tabular-nums"
               />
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-600">{t.sexLabel}</span>
-              <div className="inline-flex rounded-xl border border-slate-300 bg-white p-0.5 text-xs font-bold">
+              <span className="text-xs font-medium text-[#57534E]">{t.sexLabel}</span>
+              <div className="inline-flex rounded-lg border border-[#DDD8CE] bg-[#F3F1EC] p-0.5 text-xs font-semibold">
                 <button
                   type="button"
                   aria-pressed={sex === 'male'}
                   onClick={() => onSexChange('male')}
-                  className={`min-h-[36px] rounded-lg px-3 transition ${
-                    sex === 'male' ? 'bg-teal-700 text-white' : 'text-slate-600 hover:bg-slate-100'
+                  className={`min-h-[32px] rounded-md px-3 transition ${
+                    sex === 'male'
+                      ? 'bg-[#18181B] text-[#FAF9F6] shadow-2xs'
+                      : 'text-[#57534E] hover:text-[#18181B]'
                   }`}
                 >
                   {t.male}
@@ -276,8 +305,10 @@ export function IntakePanel({
                   type="button"
                   aria-pressed={sex === 'female'}
                   onClick={() => onSexChange('female')}
-                  className={`min-h-[36px] rounded-lg px-3 transition ${
-                    sex === 'female' ? 'bg-teal-700 text-white' : 'text-slate-600 hover:bg-slate-100'
+                  className={`min-h-[32px] rounded-md px-3 transition ${
+                    sex === 'female'
+                      ? 'bg-[#18181B] text-[#FAF9F6] shadow-2xs'
+                      : 'text-[#57534E] hover:text-[#18181B]'
                   }`}
                 >
                   {t.female}
@@ -287,17 +318,17 @@ export function IntakePanel({
           </div>
         </div>
 
-        {/* Upload vs Paste Tabs + Separate Quick Drug Checker Button */}
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
-          <div className="flex flex-wrap gap-2">
+        {/* Workspace Controls: Clean Underline Tabs + Separate Quick Drug Checker Button */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EFECE5] px-6 py-3">
+          <div className="flex flex-wrap gap-1.5">
             <button
               type="button"
               aria-pressed={activeTab === 'upload'}
               onClick={() => setActiveTab('upload')}
-              className={`inline-flex min-h-[42px] items-center gap-2 rounded-xl px-4 text-sm font-bold transition ${
+              className={`inline-flex min-h-[38px] items-center gap-2 rounded-lg px-3.5 text-xs font-semibold transition sm:text-sm ${
                 activeTab === 'upload'
-                  ? 'bg-teal-700 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  ? 'bg-[#18181B] text-[#FAF9F6]'
+                  : 'text-[#57534E] hover:bg-[#F3F1EC] hover:text-[#18181B]'
               }`}
             >
               <Camera className="h-4 w-4" aria-hidden="true" />
@@ -307,10 +338,10 @@ export function IntakePanel({
               type="button"
               aria-pressed={activeTab === 'paste'}
               onClick={() => setActiveTab('paste')}
-              className={`inline-flex min-h-[42px] items-center gap-2 rounded-xl px-4 text-sm font-bold transition ${
+              className={`inline-flex min-h-[38px] items-center gap-2 rounded-lg px-3.5 text-xs font-semibold transition sm:text-sm ${
                 activeTab === 'paste'
-                  ? 'bg-teal-700 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  ? 'bg-[#18181B] text-[#FAF9F6]'
+                  : 'text-[#57534E] hover:bg-[#F3F1EC] hover:text-[#18181B]'
               }`}
             >
               <FileText className="h-4 w-4" aria-hidden="true" />
@@ -321,14 +352,15 @@ export function IntakePanel({
           <button
             type="button"
             onClick={onOpenDrugChecker}
-            className="inline-flex min-h-[42px] items-center gap-2 rounded-xl border-2 border-teal-600 bg-teal-50/80 px-4 text-sm font-extrabold text-teal-900 shadow-xs transition hover:bg-teal-100"
+            className="inline-flex min-h-[38px] items-center gap-2 rounded-lg border border-[#0D5C56]/30 bg-[#F2F7F5] px-3.5 text-xs font-semibold text-[#0D5C56] transition hover:border-[#0D5C56] hover:bg-[#0D5C56] hover:text-white sm:text-sm"
           >
-            <Pill className="h-4 w-4 text-teal-700" aria-hidden="true" />
-            <span>Quick Drug Checker (600+ Brands)</span>
-            <ArrowRight className="h-4 w-4 text-teal-700 rtl:rotate-180" aria-hidden="true" />
+            <Pill className="h-4 w-4" aria-hidden="true" />
+            <span>Quick Drug Checker (620+ Brands)</span>
+            <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
           </button>
         </div>
 
+        <div className="p-6">
         {activeTab === 'upload' ? (
           <div className="space-y-4">
             <div
@@ -342,18 +374,18 @@ export function IntakePanel({
                 setIsDragging(false);
                 handleFilesAdded(e.dataTransfer.files);
               }}
-              className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-8 text-center transition ${
+              className={`flex flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 text-center transition ${
                 isDragging
-                  ? 'border-teal-600 bg-teal-50/70'
-                  : 'border-slate-300 bg-slate-50/50 hover:border-teal-500/70'
+                  ? 'border-[#0D5C56] bg-[#F2F7F5]'
+                  : 'border-[#D6D0C4] bg-[#FAF9F6]/70 hover:border-[#0D5C56]/60'
               }`}
             >
-              <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-100 text-teal-800">
-                <UploadCloud className="h-7 w-7" aria-hidden="true" />
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-[#E7E3DA] bg-white text-[#0D5C56] shadow-2xs">
+                <UploadCloud className="h-5 w-5" aria-hidden="true" />
               </div>
-              <p className="text-base font-bold text-slate-900">{t.dropzoneTitle}</p>
-              <p className="mt-1 max-w-xl text-xs text-slate-600 sm:text-sm">
-                Upload <strong>1 to 6 files together</strong> (e.g., Hematology PDF + Biochemistry PDF + Prescription photo) — merged into one verified report.
+              <p className="font-editorial text-xl font-medium text-[#18181B]">{t.dropzoneTitle}</p>
+              <p className="mt-1.5 max-w-lg text-xs leading-relaxed text-[#57534E] sm:text-sm">
+                Upload <strong className="font-semibold text-[#18181B]">1 to 6 files together</strong> (Hematology PDF, Biochemistry PDF, or Prescription photo) — automatically merged into one verified report.
               </p>
 
               <input
@@ -367,12 +399,12 @@ export function IntakePanel({
                 disabled={isLoading}
               />
 
-              <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                 <button
                   type="button"
                   disabled={isLoading}
                   onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex min-h-[46px] items-center gap-2 rounded-xl bg-teal-700 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-teal-800 disabled:opacity-60"
+                  className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[#0D5C56] px-6 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#094742] disabled:opacity-60"
                 >
                   <Camera className="h-4 w-4" aria-hidden="true" />
                   <span>{queuedFiles.length > 0 ? 'Add More Files / Photos' : t.chooseFileBtn}</span>
@@ -381,24 +413,24 @@ export function IntakePanel({
                 <a
                   href="/samples/abu-dhabi-sample-lab-report.pdf"
                   download="abu-dhabi-sample-lab-report.pdf"
-                  className="inline-flex min-h-[46px] items-center gap-2 rounded-xl border border-teal-200 bg-white px-4 py-2.5 text-xs font-bold text-teal-900 shadow-xs transition hover:bg-teal-50"
+                  className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[#DDD8CE] bg-white px-4 py-2.5 text-xs font-semibold text-[#18181B] transition hover:bg-[#F3F1EC]"
                 >
-                  <Download className="h-4 w-4 text-teal-700" aria-hidden="true" />
+                  <Download className="h-4 w-4 text-[#0D5C56]" aria-hidden="true" />
                   <span>Download Sample UAE Lab PDF</span>
                 </a>
               </div>
             </div>
 
             {queuedFiles.length > 0 && (
-              <div className="rounded-2xl border border-teal-200 bg-teal-50/50 p-4 space-y-3">
+              <div className="space-y-3 rounded-xl border border-[#DCE5E2] bg-[#F2F7F5]/70 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs font-extrabold text-teal-950">
+                  <p className="text-xs font-semibold text-[#18181B]">
                     Ready to Analyze Together ({queuedFiles.length} {queuedFiles.length === 1 ? 'document' : 'documents'})
                   </p>
                   <button
                     type="button"
                     onClick={() => setQueuedFiles([])}
-                    className="text-xs font-bold text-slate-500 hover:text-rose-700"
+                    className="text-xs font-medium text-[#57534E] hover:text-rose-700"
                   >
                     Clear all
                   </button>
@@ -408,11 +440,11 @@ export function IntakePanel({
                   {queuedFiles.map((file, idx) => (
                     <li
                       key={`${file.name}-${file.size}-${idx}`}
-                      className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-800 shadow-xs ring-1 ring-teal-200"
+                      className="inline-flex items-center gap-2 rounded-lg border border-[#E2DDD2] bg-white px-3 py-1.5 text-xs font-medium text-[#18181B]"
                     >
-                      <FileText className="h-3.5 w-3.5 shrink-0 text-teal-700" aria-hidden="true" />
+                      <FileText className="h-3.5 w-3.5 shrink-0 text-[#0D5C56]" aria-hidden="true" />
                       <span className="max-w-[200px] truncate">{file.name}</span>
-                      <span className="text-[10px] font-semibold text-slate-400">
+                      <span className="text-[10px] text-[#78716C] tabular-nums">
                         {Math.max(1, Math.round(file.size / 1024))} KB
                       </span>
                       <button
@@ -421,7 +453,7 @@ export function IntakePanel({
                         onClick={() =>
                           setQueuedFiles((prev) => prev.filter((_, i) => i !== idx))
                         }
-                        className="rounded-full p-0.5 text-slate-400 hover:bg-slate-100 hover:text-rose-600"
+                        className="rounded-full p-0.5 text-[#78716C] hover:bg-[#F3F1EC] hover:text-rose-600"
                       >
                         <X className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
@@ -434,12 +466,12 @@ export function IntakePanel({
                     type="button"
                     disabled={isLoading}
                     onClick={() => onAnalyzeFiles(queuedFiles)}
-                    className="inline-flex min-h-[46px] items-center gap-2 rounded-xl bg-teal-700 px-6 text-sm font-extrabold text-white shadow-sm transition hover:bg-teal-800 disabled:opacity-50"
+                    className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[#0D5C56] px-6 text-sm font-semibold text-white shadow-xs transition hover:bg-[#094742] disabled:opacity-50"
                   >
-                    <Sparkles className="h-4 w-4" aria-hidden="true" />
                     <span>
                       {t.analyzeBtn} ({queuedFiles.length} {queuedFiles.length === 1 ? 'File' : 'Files'})
                     </span>
+                    <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -447,7 +479,7 @@ export function IntakePanel({
           </div>
         ) : (
           <div className="space-y-4">
-            <label htmlFor="clinical-paste-box" className="block text-sm font-bold text-slate-800">
+            <label htmlFor="clinical-paste-box" className="block text-sm font-semibold text-[#18181B]">
               {t.pasteTab}
             </label>
             <textarea
@@ -456,7 +488,7 @@ export function IntakePanel({
               value={pastedText}
               onChange={(e) => setPastedText(e.target.value)}
               placeholder={t.pastePlaceholder}
-              className="w-full rounded-2xl border border-slate-300 bg-slate-50/50 p-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-600 focus:bg-white"
+              className="w-full rounded-xl border border-[#DDD8CE] bg-[#FAF9F6] p-4 text-sm text-[#18181B] placeholder:text-[#A8A29E] focus:border-[#0D5C56] focus:bg-white"
             />
             <div className="flex flex-wrap items-center justify-between gap-3">
               <button
@@ -466,7 +498,7 @@ export function IntakePanel({
                     'SEHA Lab Result: HbA1c 7.6%, Fasting Glucose 156 mg/dL, LDL 4.1 mmol/L, Potassium 5.8 mmol/L, Creatinine 148 umol/L, eGFR 44 mL/min. Medications: Cozaar 50mg OD, Lasix 40mg OD, Voltaren 50mg BD, Glucophage 1000mg BD.',
                   )
                 }
-                className="text-xs font-bold text-teal-700 underline decoration-teal-300 underline-offset-4 hover:text-teal-900"
+                className="text-xs font-semibold text-[#0D5C56] underline decoration-[#0D5C56]/30 underline-offset-4 hover:text-[#094742]"
               >
                 Insert realistic mixed UAE lab + Rx snippet
               </button>
@@ -474,84 +506,74 @@ export function IntakePanel({
                 type="button"
                 disabled={isLoading || pastedText.trim().length < 5}
                 onClick={() => onAnalyzeText(pastedText)}
-                className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-teal-700 px-6 text-sm font-bold text-white shadow-sm transition hover:bg-teal-800 disabled:opacity-50"
+                className="inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-[#0D5C56] px-6 text-sm font-semibold text-white transition hover:bg-[#094742] disabled:opacity-50"
               >
-                <Sparkles className="h-4 w-4" aria-hidden="true" />
                 <span>{t.analyzeBtn}</span>
+                <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
               </button>
             </div>
           </div>
         )}
+        </div>
       </section>
 
-      {/* 3 UAE Flagship Clinical Cases */}
-      <section aria-labelledby="demo-cases-heading" className="space-y-4">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+      {/* 3 Cohesive Editorial Clinical Walkthroughs (Zero Rainbow Buttons or Floating Corner Squares) */}
+      <section aria-labelledby="demo-cases-heading" className="space-y-5">
+        <div className="flex flex-col gap-1 border-b border-[#E7E3DA] pb-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 id="demo-cases-heading" className="text-lg font-extrabold text-slate-900 sm:text-xl">
+            <h2 id="demo-cases-heading" className="font-editorial text-2xl font-normal tracking-tight text-[#18181B] sm:text-3xl">
               {t.demoCasesHeading}
             </h2>
-            <p className="text-xs text-slate-600 sm:text-sm">{t.demoCasesSub}</p>
+            <p className="mt-0.5 text-xs text-[#57534E] sm:text-sm">{t.demoCasesSub}</p>
           </div>
+          <span className="text-[11px] font-medium text-[#78716C]">
+            Runs live through deterministic clinical rules
+          </span>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          {DEMO_CASES.map((demo) => {
-            const accentStyles =
+        <div className="grid gap-5 md:grid-cols-3">
+          {DEMO_CASES.map((demo, idx) => {
+            const dotColor =
               demo.accent === 'crimson'
-                ? {
-                    border: 'border-rose-200 hover:border-rose-400',
-                    badge: 'bg-rose-100 text-rose-900',
-                    iconBg: 'bg-rose-50 text-rose-700',
-                    btn: 'bg-rose-700 hover:bg-rose-800 text-white',
-                    Icon: AlertTriangle,
-                  }
+                ? 'bg-rose-600'
                 : demo.accent === 'amber'
-                  ? {
-                      border: 'border-amber-200 hover:border-amber-400',
-                      badge: 'bg-amber-100 text-amber-950',
-                      iconBg: 'bg-amber-50 text-amber-700',
-                      btn: 'bg-amber-700 hover:bg-amber-800 text-white',
-                      Icon: Pill,
-                    }
-                  : {
-                      border: 'border-teal-200 hover:border-teal-400',
-                      badge: 'bg-teal-100 text-teal-900',
-                      iconBg: 'bg-teal-50 text-teal-700',
-                      btn: 'bg-teal-700 hover:bg-teal-800 text-white',
-                      Icon: HeartPulse,
-                    };
+                  ? 'bg-amber-600'
+                  : 'bg-[#0D5C56]';
 
-            const CaseIcon = accentStyles.Icon;
+            const tagColor =
+              demo.accent === 'crimson'
+                ? 'text-rose-800'
+                : demo.accent === 'amber'
+                  ? 'text-amber-800'
+                  : 'text-[#0D5C56]';
 
             return (
               <article
                 key={demo.id}
-                className={`flex flex-col justify-between rounded-3xl border bg-white p-5 shadow-xs transition hover:shadow-md ${accentStyles.border}`}
+                className="editorial-sheet group flex flex-col justify-between rounded-2xl p-6 transition hover:border-[#CBC4B6]"
               >
-                <div className="space-y-3">
+                <div className="space-y-3.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold ${accentStyles.badge}`}
-                    >
+                    <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider ${tagColor}`}>
+                      <span className={`h-2 w-2 rounded-full ${dotColor}`} aria-hidden="true" />
                       {demo.badge}
                     </span>
-                    <span
-                      className={`flex h-9 w-9 items-center justify-center rounded-xl ${accentStyles.iconBg}`}
-                    >
-                      <CaseIcon className="h-5 w-5" aria-hidden="true" />
+                    <span className="font-mono text-[11px] font-medium text-[#A8A29E]">
+                      0{idx + 1}
                     </span>
                   </div>
 
                   <div>
-                    <h3 className="text-base font-extrabold text-slate-900">{demo.title}</h3>
-                    <p className="mt-1 text-xs font-medium text-slate-500">{demo.subtitle}</p>
+                    <h3 className="font-editorial text-[21px] font-medium leading-snug text-[#18181B]">
+                      {demo.title}
+                    </h3>
+                    <p className="mt-1 text-xs text-[#78716C]">{demo.subtitle}</p>
                   </div>
 
-                  <ul className="space-y-1.5 text-xs text-slate-700">
+                  <ul className="space-y-2 border-t border-[#F0EDE6] pt-3.5 text-xs leading-relaxed text-[#57534E]">
                     {demo.highlights.map((hl, i) => (
                       <li key={i} className="flex items-start gap-2">
-                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-600" />
+                        <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#A8A29E]" />
                         <span>{hl}</span>
                       </li>
                     ))}
@@ -562,7 +584,7 @@ export function IntakePanel({
                   type="button"
                   disabled={isLoading}
                   onClick={() => onSelectDemoCase(demo.id)}
-                  className={`mt-5 inline-flex min-h-[42px] w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold shadow-xs transition disabled:opacity-50 ${accentStyles.btn}`}
+                  className="mt-6 inline-flex min-h-[42px] w-full items-center justify-between rounded-xl border border-[#E2DDD2] bg-[#FAF9F6] px-4 text-xs font-semibold text-[#18181B] transition group-hover:border-[#0D5C56] group-hover:bg-[#0D5C56] group-hover:text-white disabled:opacity-50"
                 >
                   <span>{t.openCaseBtn}</span>
                   <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />

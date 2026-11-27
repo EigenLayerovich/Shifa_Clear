@@ -1,10 +1,19 @@
 import type { Metadata, Viewport } from 'next';
 import {
+  Newsreader,
   Noto_Sans_Arabic,
   Noto_Sans_Devanagari,
   Plus_Jakarta_Sans,
 } from 'next/font/google';
 import './globals.css';
+
+const newsreader = Newsreader({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  style: ['normal', 'italic'],
+  variable: '--font-serif',
+  display: 'swap',
+});
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -28,7 +37,7 @@ const notoDevanagari = Noto_Sans_Devanagari({
 });
 
 export const viewport: Viewport = {
-  themeColor: '#0F766E',
+  themeColor: '#0D5C56',
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
@@ -59,9 +68,9 @@ export default function RootLayout({
     <html
       lang="en"
       dir="ltr"
-      className={`${plusJakarta.variable} ${notoArabic.variable} ${notoDevanagari.variable}`}
+      className={`${newsreader.variable} ${plusJakarta.variable} ${notoArabic.variable} ${notoDevanagari.variable}`}
     >
-      <body className="min-h-screen bg-[#F7F9F8] text-slate-900 antialiased selection:bg-teal-100 selection:text-teal-900">
+      <body className="min-h-screen bg-[#FAF9F6] text-[#18181B] antialiased selection:bg-[#0D5C56]/15 selection:text-[#0D5C56]">
         {children}
       </body>
     </html>

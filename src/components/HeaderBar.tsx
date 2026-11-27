@@ -3,14 +3,11 @@
 import React from 'react';
 import {
   Activity,
-  Baby,
   ClipboardCheck,
   Globe,
   Pill,
   QrCode,
   ShieldCheck,
-  User,
-  Users,
 } from 'lucide-react';
 import type { SupportedLanguage, UnitSystem } from '@/lib/clinical/types';
 import { LANGUAGES, UI_STRINGS } from '@/lib/i18n/uiStrings';
@@ -51,37 +48,34 @@ export function HeaderBar({
   const t = UI_STRINGS[language];
 
   return (
-    <header className="no-print sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-md">
+    <header className="no-print sticky top-0 z-30 border-b border-[#E7E3DA] bg-[#FAF9F6]/92 backdrop-blur-md">
       <a
         href="#main-heading"
-        className="visually-hidden fixed top-2 start-2 z-50 rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-lg"
+        className="visually-hidden fixed top-2 start-2 z-50 rounded-lg bg-[#0D5C56] px-4 py-2 text-sm font-semibold text-white shadow-lg"
       >
         {t.skipToMain}
       </a>
 
-      <div className="mx-auto flex max-w-7xl flex-col gap-2.5 px-4 py-2.5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mx-auto flex max-w-6xl flex-col gap-2.5 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
         {/* Brand lockup */}
         <div className="flex shrink-0 items-center justify-between gap-3">
           <button
             type="button"
             onClick={onResetHome}
-            className="group flex items-center gap-2.5 rounded-xl text-start transition hover:opacity-95"
+            className="group flex items-center gap-2.5 rounded-xl text-start transition hover:opacity-90"
           >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-700 to-emerald-600 text-white shadow-sm ring-1 ring-teal-800/10">
-              <Activity className="h-5 w-5" aria-hidden="true" />
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#0D5C56] text-[#FAF9F6] shadow-xs">
+              <Activity className="h-[18px] w-[18px]" aria-hidden="true" />
             </span>
             <span>
-              <span className="flex items-center gap-1.5">
-                <span className="text-lg font-extrabold tracking-tight text-slate-900">
+              <span className="flex items-baseline gap-2">
+                <span className="font-editorial text-[22px] font-medium leading-none tracking-tight text-[#18181B]">
                   ShifaClear
                 </span>
-                <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-800 ring-1 ring-teal-200">
+                <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap border-s border-[#DDD8CE] ps-2 text-[10px] font-semibold uppercase tracking-wider text-[#0D5C56]">
                   <ShieldCheck className="h-3 w-3 shrink-0" aria-hidden="true" />
                   MD Guardrails
                 </span>
-              </span>
-              <span className="hidden text-[11px] font-medium text-slate-500 xl:block">
-                {t.tagline}
               </span>
             </span>
           </button>
@@ -91,38 +85,38 @@ export function HeaderBar({
             <button
               type="button"
               onClick={onOpenDrugChecker}
-              className="inline-flex min-h-[40px] items-center gap-1 rounded-lg border border-teal-200 bg-teal-50 px-2.5 text-xs font-bold text-teal-900 hover:bg-teal-100"
+              className="inline-flex min-h-[38px] items-center gap-1 rounded-lg bg-[#0D5C56] px-2.5 text-xs font-semibold text-white hover:bg-[#094742]"
             >
-              <Pill className="h-3.5 w-3.5 text-teal-700" aria-hidden="true" />
+              <Pill className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Drugs</span>
             </button>
             <button
               type="button"
               onClick={onOpenAudit}
-              className="inline-flex min-h-[40px] items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+              className="inline-flex min-h-[38px] items-center gap-1 rounded-lg border border-[#E2DDD2] bg-white px-2.5 text-xs font-medium text-[#18181B] hover:bg-[#F3F1EC]"
             >
-              <ClipboardCheck className="h-3.5 w-3.5 text-teal-700" aria-hidden="true" />
+              <ClipboardCheck className="h-3.5 w-3.5 text-[#0D5C56]" aria-hidden="true" />
               <span>{hasEvaluation ? t.auditTrailBtn : '12/12'}</span>
             </button>
             <button
               type="button"
               onClick={onOpenQrSettings}
-              className="inline-flex min-h-[40px] items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              className="inline-flex min-h-[38px] items-center gap-1 rounded-lg border border-[#E2DDD2] bg-white px-2.5 text-xs font-medium text-[#18181B] hover:bg-[#F3F1EC]"
               aria-label={t.qrSettingsBtn}
             >
-              <QrCode className="h-4 w-4 text-teal-700" aria-hidden="true" />
+              <QrCode className="h-4 w-4 text-[#0D5C56]" aria-hidden="true" />
             </button>
           </div>
         </div>
 
         {/* Single-Row Compact Controls Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-1.5 lg:flex-nowrap lg:justify-end">
+        <div className="flex flex-wrap items-center justify-between gap-2 lg:flex-nowrap lg:justify-end">
           {/* Compact Script Language Dropdown */}
           <div className="inline-flex items-center gap-1.5">
             <label htmlFor="language-select" className="visually-hidden">
               Select Language
             </label>
-            <Globe className="hidden h-4 w-4 shrink-0 text-teal-700 sm:block" aria-hidden="true" />
+            <Globe className="hidden h-3.5 w-3.5 shrink-0 text-[#57534E] sm:block" aria-hidden="true" />
             <select
               id="language-select"
               name="language"
@@ -142,16 +136,16 @@ export function HeaderBar({
           <div
             role="group"
             aria-label={t.unitsLabel}
-            className="inline-flex shrink-0 items-center rounded-xl border border-slate-200 bg-slate-50 p-0.5 text-[11px] font-bold"
+            className="inline-flex shrink-0 items-center rounded-lg border border-[#E2DDD2] bg-[#F3F1EC] p-0.5 text-[11px] font-semibold"
           >
             <button
               type="button"
               aria-pressed={unitSystem === 'SI'}
               onClick={() => onUnitSystemChange('SI')}
-              className={`min-h-[32px] whitespace-nowrap rounded-lg px-2 transition ${
+              className={`min-h-[30px] whitespace-nowrap rounded-md px-2 transition ${
                 unitSystem === 'SI'
-                  ? 'bg-white text-teal-800 shadow-xs ring-1 ring-slate-200'
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'bg-white text-[#18181B] shadow-2xs ring-1 ring-[#E2DDD2]'
+                  : 'text-[#57534E] hover:text-[#18181B]'
               }`}
             >
               SI
@@ -160,10 +154,10 @@ export function HeaderBar({
               type="button"
               aria-pressed={unitSystem === 'US'}
               onClick={() => onUnitSystemChange('US')}
-              className={`min-h-[32px] whitespace-nowrap rounded-lg px-2 transition ${
+              className={`min-h-[30px] whitespace-nowrap rounded-md px-2 transition ${
                 unitSystem === 'US'
-                  ? 'bg-white text-teal-800 shadow-xs ring-1 ring-slate-200'
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'bg-white text-[#18181B] shadow-2xs ring-1 ring-[#E2DDD2]'
+                  : 'text-[#57534E] hover:text-[#18181B]'
               }`}
             >
               US
@@ -174,15 +168,15 @@ export function HeaderBar({
           <div
             role="group"
             aria-label="Family Profile"
-            className="inline-flex shrink-0 items-center rounded-xl border border-slate-200 bg-slate-50 p-0.5 text-[11px] font-bold"
+            className="inline-flex shrink-0 items-center rounded-lg border border-[#E2DDD2] bg-[#F3F1EC] p-0.5 text-[11px] font-semibold"
           >
             {(
               [
-                { id: 'self', label: 'Self', Icon: User },
-                { id: 'parent', label: 'Parent', Icon: Users },
-                { id: 'child', label: 'Child', Icon: Baby },
+                { id: 'self', label: 'Self' },
+                { id: 'parent', label: 'Parent' },
+                { id: 'child', label: 'Child' },
               ] as const
-            ).map(({ id, label, Icon }) => {
+            ).map(({ id, label }) => {
               const active = familyProfile === id;
               return (
                 <button
@@ -190,13 +184,12 @@ export function HeaderBar({
                   type="button"
                   aria-pressed={active}
                   onClick={() => onSelectFamilyProfile(id)}
-                  className={`inline-flex min-h-[32px] items-center gap-1 whitespace-nowrap rounded-lg px-2 transition ${
+                  className={`inline-flex min-h-[30px] items-center whitespace-nowrap rounded-md px-2.5 transition ${
                     active
-                      ? 'bg-teal-700 text-white shadow-xs'
-                      : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                      ? 'bg-[#18181B] text-[#FAF9F6] shadow-2xs'
+                      : 'text-[#57534E] hover:bg-white/70 hover:text-[#18181B]'
                   }`}
                 >
-                  <Icon className="h-3 w-3" aria-hidden="true" />
                   <span>{label}</span>
                 </button>
               );
@@ -206,10 +199,10 @@ export function HeaderBar({
           {/* Native HTML Switch for Elder Mode */}
           <label
             htmlFor="elder-mode-switch"
-            className={`inline-flex min-h-[36px] shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-xl border px-2.5 py-1 text-[11px] font-bold transition ${
+            className={`inline-flex min-h-[34px] shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition ${
               elderMode
-                ? 'border-teal-700 bg-teal-50 text-teal-900'
-                : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                ? 'border-[#0D5C56] bg-[#EDF5F4] text-[#0D5C56]'
+                : 'border-[#E2DDD2] bg-white text-[#57534E] hover:border-[#CBC4B6] hover:text-[#18181B]'
             }`}
           >
             <span>{t.elderMode}</span>
@@ -227,7 +220,7 @@ export function HeaderBar({
             <button
               type="button"
               onClick={onOpenDrugChecker}
-              className="inline-flex min-h-[36px] items-center gap-1.5 whitespace-nowrap rounded-xl bg-teal-700 px-2.5 text-[11px] font-bold text-white shadow-xs transition hover:bg-teal-800"
+              className="inline-flex min-h-[34px] items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#0D5C56] px-3 text-[11px] font-semibold text-white transition hover:bg-[#094742]"
             >
               <Pill className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Drug Checker</span>
@@ -235,9 +228,9 @@ export function HeaderBar({
             <button
               type="button"
               onClick={onOpenAudit}
-              className="inline-flex min-h-[36px] items-center gap-1.5 whitespace-nowrap rounded-xl border border-teal-200 bg-teal-50/70 px-2.5 text-[11px] font-bold text-teal-900 transition hover:bg-teal-100"
+              className="inline-flex min-h-[34px] items-center gap-1.5 whitespace-nowrap rounded-lg border border-[#E2DDD2] bg-white px-2.5 text-[11px] font-semibold text-[#18181B] transition hover:bg-[#F3F1EC]"
             >
-              <ClipboardCheck className="h-3.5 w-3.5 text-teal-700" aria-hidden="true" />
+              <ClipboardCheck className="h-3.5 w-3.5 text-[#0D5C56]" aria-hidden="true" />
               <span>{hasEvaluation ? t.auditTrailBtn : '12/12'}</span>
             </button>
             <button
@@ -245,9 +238,9 @@ export function HeaderBar({
               onClick={onOpenQrSettings}
               aria-label={t.qrSettingsBtn}
               title={t.qrSettingsBtn}
-              className="inline-flex min-h-[36px] items-center gap-1 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-2.5 text-[11px] font-bold text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex min-h-[34px] items-center gap-1 whitespace-nowrap rounded-lg border border-[#E2DDD2] bg-white px-2.5 text-[11px] font-semibold text-[#57534E] transition hover:bg-[#F3F1EC] hover:text-[#18181B]"
             >
-              <QrCode className="h-3.5 w-3.5 text-teal-700" aria-hidden="true" />
+              <QrCode className="h-3.5 w-3.5 text-[#0D5C56]" aria-hidden="true" />
               <span>QR</span>
             </button>
           </div>

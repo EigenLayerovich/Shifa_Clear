@@ -117,11 +117,11 @@ export function BiomarkerDashboard({
     <section aria-labelledby="biomarkers-heading" className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
-          <Activity className="h-5 w-5 text-teal-700" aria-hidden="true" />
-          <h2 id="biomarkers-heading" className="text-lg font-extrabold text-slate-900 sm:text-xl">
+          <Activity className="h-5 w-5 text-[#0D5C56]" aria-hidden="true" />
+          <h2 id="biomarkers-heading" className="font-editorial text-2xl font-medium text-[#18181B]">
             {t.biomarkersHeading}
           </h2>
-          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-700">
+          <span className="rounded-full border border-[#E7E3DA] bg-[#F3F1EC] px-2.5 py-0.5 text-xs font-semibold text-[#57534E] tabular-nums">
             {biomarkers.length}
           </span>
         </div>
