@@ -60,16 +60,19 @@ export function LongitudinalTrendChart({
   const yMax = maxVal + pad;
 
   const width = 640;
-  const height = 210;
-  const padL = 56;
+  const height = 220;
+  const padL = 64;
   const padR = 32;
-  const padT = 26;
+  const padT = 32;
   const padB = 38;
   const plotW = width - padL - padR;
   const plotH = height - padT - padB;
+  const xInset = 44;
 
   const xAt = (idx: number) =>
-    padL + (points.length === 1 ? plotW / 2 : (idx / (points.length - 1)) * plotW);
+    points.length === 1
+      ? padL + plotW / 2
+      : padL + xInset + (idx / (points.length - 1)) * (plotW - xInset * 2);
   const yAt = (val: number) =>
     padT + plotH - ((val - yMin) / Math.max(yMax - yMin, 0.001)) * plotH;
 
