@@ -326,6 +326,15 @@ export function BiomarkerDashboard({
                     style={{ left: `${effectiveGaugePct}%` }}
                   />
                 </div>
+                <div
+                  dir="ltr"
+                  aria-hidden="true"
+                  className="flex items-center justify-between px-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400"
+                >
+                  <span className="text-amber-700/80">Low</span>
+                  <span className="text-emerald-700/90">Normal / Target</span>
+                  <span className="text-rose-700/80">High / Risk</span>
+                </div>
 
                 {/* Interactive What-If Biomarker Risk Simulator */}
                 {isSimActive && bounds && (

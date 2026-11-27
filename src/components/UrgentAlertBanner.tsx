@@ -5,6 +5,7 @@ import {
   AlertOctagon,
   AlertTriangle,
   Clock,
+  Cpu,
   PhoneCall,
   ShieldAlert,
 } from 'lucide-react';
@@ -54,10 +55,10 @@ export function UrgentAlertBanner({
               role={isCritical ? 'alert' : undefined}
               className={`print-break-avoid rounded-2xl border-2 p-5 shadow-sm ${
                 isCritical
-                  ? 'border-rose-600 bg-rose-50 text-rose-950'
+                  ? 'border-rose-600 border-s-[6px] border-s-rose-700 bg-rose-50 text-rose-950 shadow-md shadow-rose-900/10'
                   : isMajor
-                    ? 'border-amber-500 bg-amber-50 text-amber-950'
-                    : 'border-sky-400 bg-sky-50 text-sky-950'
+                    ? 'border-amber-500 border-s-[6px] border-s-amber-600 bg-amber-50 text-amber-950'
+                    : 'border-sky-400 border-s-[6px] border-s-sky-600 bg-sky-50 text-sky-950'
               }`}
             >
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -92,6 +93,10 @@ export function UrgentAlertBanner({
                         }`}
                       >
                         {alert.severity} • {alert.ruleId}
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-md bg-slate-900 px-2 py-0.5 text-[10px] font-extrabold text-emerald-300 shadow-xs">
+                        <Cpu className="h-3 w-3 shrink-0" aria-hidden="true" />
+                        Verified by Rule Engine (Non-LLM)
                       </span>
                       {alert.involvedItems.map((item) => (
                         <span

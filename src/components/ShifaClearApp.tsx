@@ -794,8 +794,10 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
 
             {/* Doctor Visit Prep & Voice Handoff */}
             <DoctorPrepAndVoice
+              evaluation={analysis.evaluation}
               narrative={analysis.narrative}
               language={language}
+              unitSystem={unitSystem}
               isSpeaking={isSpeaking}
               isLoadingAudio={isLoadingAudio}
               audioProgress={audioProgress}

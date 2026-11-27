@@ -6,17 +6,26 @@ import {
   CheckSquare,
   Copy,
   FileDown,
+  Languages,
+  ShieldCheck,
   Square,
   Stethoscope,
   Volume2,
   VolumeX,
 } from 'lucide-react';
-import type { PatientNarrative, SupportedLanguage } from '@/lib/clinical/types';
-import { UI_STRINGS } from '@/lib/i18n/uiStrings';
+import type {
+  PatientNarrative,
+  SupportedLanguage,
+  UnitSystem,
+  VerifiedClinicalEvaluation,
+} from '@/lib/clinical/types';
+import { LANGUAGE_MAP, UI_STRINGS } from '@/lib/i18n/uiStrings';
 
 interface DoctorPrepAndVoiceProps {
+  evaluation: VerifiedClinicalEvaluation;
   narrative: PatientNarrative;
   language: SupportedLanguage;
+  unitSystem: UnitSystem;
   isSpeaking: boolean;
   isLoadingAudio: boolean;
   audioProgress: number;
@@ -25,8 +34,10 @@ interface DoctorPrepAndVoiceProps {
 }
 
 export function DoctorPrepAndVoice({
+  evaluation,
   narrative,
   language,
+  unitSystem,
   isSpeaking,
   isLoadingAudio,
   audioProgress,
@@ -34,8 +45,15 @@ export function DoctorPrepAndVoice({
   onToggleSpeak,
 }: DoctorPrepAndVoiceProps) {
   const t = UI_STRINGS[language];
+  const langMeta = LANGUAGE_MAP[language];
   const [checkedQuestions, setCheckedQuestions] = useState<Record<number, boolean>>({});
+  const [showDoctorCard, setShowDoctorCard] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const flaggedBiomarkers = useMemo(
+    () => evaluation.biomarkers.filter((b) => b.status !== 'normal' && b.status !== 'unknown'),
+    [evaluation.biomarkers],
+  );
 
   const spokenSentences = useMemo(() => {
     const raw = (narrative.spokenSummaryScript || '').trim();
@@ -77,7 +95,7 @@ export function DoctorPrepAndVoice({
     >
       {/* Doctor Visit Prep Checklist */}
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs lg:col-span-7">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
               <Stethoscope className="h-5 w-5" aria-hidden="true" />
@@ -89,7 +107,103 @@ export function DoctorPrepAndVoice({
               <p className="text-xs text-slate-600">{t.doctorPrepSub}</p>
             </div>
           </div>
+
+          {/* 1-Click "Show My Doctor" Bilingual Handoff Toggle */}
+          <button
+            type="button"
+            aria-pressed={showDoctorCard}
+            onClick={() => setShowDoctorCard((prev) => !prev)}
+            className={`no-print inline-flex min-h-[38px] items-center gap-1.5 rounded-xl px-3 text-xs font-extrabold shadow-xs transition ${
+              showDoctorCard
+                ? 'bg-slate-900 text-white hover:bg-slate-800'
+                : 'border border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100'
+            }`}
+          >
+            <Languages className="h-4 w-4" aria-hidden="true" />
+            <span>
+              {showDoctorCard
+                ? 'Hide Clinician English Card'
+                : 'Show My Doctor (English)'}
+            </span>
+          </button>
         </div>
+
+        {/* Interactive Bilingual "Show My Doctor" Clinician Card (Always Clinical English LTR) */}
+        {showDoctorCard && (
+          <div
+            dir="ltr"
+            lang="en"
+            className="clinical-card-enter mt-4 space-y-3 rounded-2xl border-2 border-slate-900 bg-slate-950 p-4 text-white shadow-md"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/15 pb-2.5">
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-teal-300">
+                  Clinician-Facing Handoff Card (English) • Patient Reading in {langMeta.nativeLabel}
+                </p>
+                <p className="mt-0.5 text-sm font-extrabold">
+                  {evaluation.patientContext.sex === 'female' ? 'Female' : 'Male'},{' '}
+                  {evaluation.patientContext.ageLabel || `${evaluation.patientContext.age}y`} •{' '}
+                  {evaluation.facilityName || 'Outpatient Review'}
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-300 ring-1 ring-emerald-400/30">
+                <ShieldCheck className="h-3 w-3" aria-hidden="true" />
+                Rule Engine Verified
+              </span>
+            </div>
+
+            {evaluation.alerts.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-rose-300">
+                  Active Deterministic Safety Alerts ({evaluation.alerts.length})
+                </p>
+                <ul className="space-y-1 text-xs">
+                  {evaluation.alerts.map((a) => (
+                    <li key={a.id} className="rounded-lg bg-rose-950/70 px-2.5 py-1.5 text-rose-100 ring-1 ring-rose-500/30">
+                      <strong className="text-rose-300">[{a.severity.toUpperCase()} • {a.ruleId}]</strong>{' '}
+                      {a.title}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {flaggedBiomarkers.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-amber-300">
+                  Out-of-Range Labs ({flaggedBiomarkers.length})
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {flaggedBiomarkers.slice(0, 8).map((b) => (
+                    <span
+                      key={b.id}
+                      className="rounded-lg bg-white/10 px-2.5 py-1 text-[11px] font-bold text-slate-100 ring-1 ring-white/15"
+                    >
+                      {b.displayName.split(' (')[0]}:{' '}
+                      <strong className="text-amber-200 tabular-nums">
+                        {unitSystem === 'SI' ? `${b.siValue} ${b.siUnit}` : `${b.usValue} ${b.usUnit}`}
+                      </strong>{' '}
+                      ({b.status.replace('_', ' ')})
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {evaluation.medications.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-sky-300">
+                  Active Medications (UAE Brand → Generic)
+                </p>
+                <p className="text-xs leading-relaxed text-slate-200">
+                  {evaluation.medications
+                    .map((m) => `${m.brandName} (${m.genericName} ${m.dose})`)
+                    .join(' • ')}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <ul className="mt-4 space-y-2.5">
           {narrative.doctorQuestions.map((question, idx) => {
