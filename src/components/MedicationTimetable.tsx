@@ -2,13 +2,10 @@
 
 import React from 'react';
 import {
-  AlertTriangle,
   CloudSun,
   Moon,
-  Pill,
   Sun,
   Sunset,
-  Utensils,
   Volume2,
 } from 'lucide-react';
 import type {
@@ -41,59 +38,38 @@ export function MedicationTimetable({
 
   const slotMeta: Record<
     TimeSlot,
-    { label: string; timeHint: string; bg: string; iconColor: string; Icon: typeof Sun }
+    { label: string; timeHint: string; Icon: typeof Sun }
   > = {
-    morning: {
-      label: t.morningSlot,
-      timeHint: '07:00 – 09:00',
-      bg: 'bg-amber-50 border-amber-200',
-      iconColor: 'text-amber-600 bg-amber-100',
-      Icon: Sun,
-    },
-    afternoon: {
-      label: t.afternoonSlot,
-      timeHint: '12:30 – 14:30',
-      bg: 'bg-sky-50 border-sky-200',
-      iconColor: 'text-sky-700 bg-sky-100',
-      Icon: CloudSun,
-    },
-    evening: {
-      label: t.eveningSlot,
-      timeHint: '18:30 – 20:30',
-      bg: 'bg-orange-50 border-orange-200',
-      iconColor: 'text-orange-700 bg-orange-100',
-      Icon: Sunset,
-    },
-    bedtime: {
-      label: t.bedtimeSlot,
-      timeHint: '21:30 – 23:00',
-      bg: 'bg-indigo-50 border-indigo-200',
-      iconColor: 'text-indigo-700 bg-indigo-100',
-      Icon: Moon,
-    },
+    morning: { label: t.morningSlot, timeHint: '07:00 – 09:00', Icon: Sun },
+    afternoon: { label: t.afternoonSlot, timeHint: '12:30 – 14:30', Icon: CloudSun },
+    evening: { label: t.eveningSlot, timeHint: '18:30 – 20:30', Icon: Sunset },
+    bedtime: { label: t.bedtimeSlot, timeHint: '21:30 – 23:00', Icon: Moon },
   };
 
   return (
-    <section aria-labelledby="medications-heading" className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5">
-          <Pill className="h-5 w-5 text-teal-700" aria-hidden="true" />
-          <h2 id="medications-heading" className="text-lg font-extrabold text-slate-900 sm:text-xl">
+    <section aria-labelledby="medications-heading" className="space-y-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="flex items-baseline gap-2.5">
+          <h2 id="medications-heading" className="text-base font-medium text-[#171717]">
             {t.medicationsHeading}
           </h2>
-          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-700">
-            {medications.length}
+          <span className="font-mono text-xs text-[#737373]">
+            <bdi dir="ltr">{medications.length}</bdi>
           </span>
         </div>
         {elderMode && (
-          <span className="rounded-full bg-teal-100 px-3 py-1 text-xs font-extrabold text-teal-900">
-            Grandparent / Caregiver Large-Print Schedule Active
+          <span className="text-xs font-medium text-[#0f766e]">
+            Large-print caregiver schedule active
           </span>
         )}
       </div>
 
-      {/* 4-Slot Visual Daily Grid */}
-      <div className={`grid gap-4 ${elderMode ? 'grid-cols-1' : 'md:grid-cols-2 xl:grid-cols-4'}`}>
+      {/* Quiet Clinical 4-Period Grid */}
+      <div
+        className={`grid gap-4 ${
+          elderMode ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-4'
+        }`}
+      >
         {SLOT_ORDER.map((slot) => {
           const slotMeds = medications.filter((m) => m.slots.includes(slot));
           const meta = slotMeta[slot];
@@ -102,47 +78,47 @@ export function MedicationTimetable({
           return (
             <div
               key={slot}
-              className={`print-break-avoid rounded-2xl border p-4 ${meta.bg}`}
+              className="print-break-avoid flex flex-col rounded-xl border border-neutral-900/8 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
             >
-              <div className="mb-3 flex items-center justify-between">
+              <div className="mb-3 flex items-center justify-between border-b border-neutral-900/8 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <span
-                    className={`flex h-9 w-9 items-center justify-center rounded-xl ${meta.iconColor}`}
-                  >
-                    <SlotIcon className="h-5 w-5" aria-hidden="true" />
+                  <span className="flex w-4 shrink-0 justify-center text-[#737373]">
+                    <SlotIcon className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
                   </span>
                   <div>
-                    <h3 className="text-sm font-extrabold text-slate-900">{meta.label}</h3>
-                    <p className="text-[11px] font-semibold text-slate-500">{meta.timeHint}</p>
+                    <h3 className="text-sm font-medium text-[#171717]">{meta.label}</h3>
+                    <p className="font-mono text-[11px] text-[#737373]">
+                      <bdi dir="ltr">{meta.timeHint}</bdi>
+                    </p>
                   </div>
                 </div>
-                <span className="rounded-full bg-white/80 px-2 py-0.5 text-xs font-extrabold text-slate-700">
-                  {slotMeds.length}
+                <span className="font-mono text-xs tabular-nums text-[#737373]">
+                  <bdi dir="ltr">{slotMeds.length}</bdi>
                 </span>
               </div>
 
               {slotMeds.length === 0 ? (
-                <p className="rounded-xl bg-white/60 px-3 py-4 text-center text-xs font-medium text-slate-400">
-                  —
-                </p>
+                <p className="py-6 text-center text-xs text-[#737373]">No scheduled doses</p>
               ) : (
-                <ul className="space-y-2.5">
+                <ul className="space-y-3">
                   {slotMeds.map((med) => {
                     const exp = explanations[med.id];
                     return (
                       <li
                         key={`${slot}-${med.id}`}
-                        className={`elder-card rounded-xl border bg-white p-3.5 shadow-xs ${
-                          med.hasSafetyFlag ? 'border-amber-400 ring-1 ring-amber-200' : 'border-slate-200'
+                        className={`elder-card rounded-lg border border-neutral-900/8 bg-[#fafafa] p-3.5 ${
+                          med.hasSafetyFlag ? 'border-s-[3px] border-s-[#b45309]' : ''
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="text-sm font-extrabold text-slate-900 sm:text-base">
-                              {med.brandName}
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-[#171717]">
+                              <bdi>{med.brandName}</bdi>
                             </p>
-                            <p className="text-xs font-semibold text-teal-800">
-                              {med.genericName} • {med.dose}
+                            <p className="font-mono text-xs text-[#525252]">
+                              <bdi dir="ltr">
+                                {med.genericName} · {med.dose}
+                              </bdi>
                             </p>
                           </div>
                           <button
@@ -155,32 +131,25 @@ export function MedicationTimetable({
                               )
                             }
                             aria-label={`Read instructions for ${med.brandName}`}
-                            className="no-print flex min-h-[34px] min-w-[34px] items-center justify-center rounded-lg bg-teal-50 text-teal-700 hover:bg-teal-100"
+                            className="no-print flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-neutral-900/8 bg-white text-[#525252] transition-colors duration-150 hover:text-[#171717]"
                           >
-                            <Volume2 className="h-4 w-4" aria-hidden="true" />
+                            <Volume2 className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
                           </button>
                         </div>
 
-                        <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-700">
-                          <Utensils className="h-3 w-3 shrink-0 text-slate-500" aria-hidden="true" />
-                          <span>{t.foodLabels[med.foodRule] || med.foodRule}</span>
-                        </div>
+                        <p className="mt-2 text-xs text-[#737373]">
+                          {t.foodLabels[med.foodRule] || med.foodRule}
+                        </p>
 
                         {med.hasSafetyFlag && med.safetyFlagSummary && (
-                          <div className="mt-2 flex items-start gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[11px] font-extrabold text-amber-900 ring-1 ring-amber-200">
-                            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden="true" />
-                            <span>{med.safetyFlagSummary}</span>
-                          </div>
-                        )}
-
-                        <p className="mt-2 text-xs leading-relaxed text-slate-700">
-                          {exp?.howToTake || med.timingInstruction}
-                        </p>
-                        {exp?.plainPurpose && (
-                          <p className="mt-1 text-[11px] font-medium text-slate-500">
-                            {exp.plainPurpose}
+                          <p className="mt-2 text-xs font-medium text-[#b45309]">
+                            {med.safetyFlagSummary}
                           </p>
                         )}
+
+                        <p className="mt-2 text-xs leading-relaxed text-[#525252]">
+                          {exp?.howToTake || med.timingInstruction}
+                        </p>
                       </li>
                     );
                   })}

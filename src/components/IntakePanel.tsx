@@ -4,13 +4,8 @@ import React, { useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
-  Camera,
   FileText,
-  HeartPulse,
-  Pill,
-  ShieldCheck,
-  Sparkles,
-  UploadCloud,
+  Upload,
 } from 'lucide-react';
 import type { BiologicalSex, SupportedLanguage } from '@/lib/clinical/types';
 import { DEMO_CASES } from '@/lib/demo/cases';
@@ -53,105 +48,110 @@ export function IntakePanel({
   };
 
   return (
-    <div className="space-y-8">
-      {/* Hero Banner */}
-      <section className="rounded-3xl border border-teal-900/10 bg-gradient-to-br from-teal-900 via-teal-800 to-emerald-800 p-6 text-white shadow-lg sm:p-8">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl space-y-3">
-            <div className="inline-flex flex-wrap items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-teal-50 ring-1 ring-white/20">
-              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>KUEC Sandbox Hackathon • Health &amp; Wellbeing • MD + BME PhD Clinical Safety Engine</span>
-            </div>
-            <h1
-              id="main-heading"
-              tabIndex={-1}
-              className="text-2xl font-extrabold tracking-tight sm:text-4xl"
-            >
-              {t.tagline}
-            </h1>
-            <p className="text-sm leading-relaxed text-teal-100 sm:text-base">
-              {t.subtitle}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2 text-xs font-semibold">
-            <span className="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/15">
-              SI ↔ US Auto-Units
-            </span>
-            <span className="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/15">
-              UAE 998 Panic Guardrails
-            </span>
-            <span className="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/15">
-              5 UAE Languages + Voice
-            </span>
-          </div>
-        </div>
+    <div className="clinical-enter space-y-8">
+      {/* Calm editorial title block — no gradient hero, no hype pills */}
+      <section className="max-w-3xl space-y-3 pt-4">
+        <h1
+          id="main-heading"
+          tabIndex={-1}
+          className="text-3xl font-medium tracking-[-0.02em] text-[#171717] sm:text-4xl sm:leading-[1.15]"
+        >
+          {t.tagline}
+        </h1>
+        <p className="max-w-2xl text-[15px] leading-relaxed text-[#525252] sm:text-base">
+          {t.subtitle}
+        </p>
       </section>
 
-      {/* Error alert if any */}
+      {/* Error banner */}
       {errorMessage && (
         <div
           role="alert"
-          className="flex items-start gap-3 rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm text-rose-900 shadow-xs"
+          className="flex items-start gap-3 rounded-xl border border-red-200 bg-white p-4 text-sm text-[#171717] shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
         >
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" aria-hidden="true" />
-          <div>
-            <p className="font-bold">Analysis Notice</p>
-            <p className="mt-0.5 text-rose-800">{errorMessage}</p>
-          </div>
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#b91c1c]" strokeWidth={1.5} aria-hidden="true" />
+          <p className="text-[#525252]">{errorMessage}</p>
         </div>
       )}
 
-      {/* Loading progress indicator */}
+      {/* Loading progress */}
       {isLoading && (
-        <div className="rounded-2xl border border-teal-200 bg-teal-50 p-5 shadow-xs">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-bold text-teal-900">{t.analyzingBtn}</p>
-            <span className="text-xs font-semibold text-teal-700">
-              Gemini 3.8 Flash → Deterministic MD Engine
+        <div className="rounded-xl border border-neutral-900/8 bg-white p-5">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="font-medium text-[#171717]">{t.analyzingBtn}</span>
+            <span className="font-mono text-xs text-[#737373]">
+              Extraction · Unit check · Safety rules
             </span>
           </div>
           <progress
             aria-label={t.analyzingBtn}
-            className="mt-3 h-2 w-full overflow-hidden rounded-full accent-teal-700"
+            className="mt-3 h-1.5 w-full overflow-hidden rounded-full accent-[#0f766e]"
           />
         </div>
       )}
 
-      {/* Main Intake Card */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-        {/* Patient Context Row */}
-        <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2.5">
-            <ShieldCheck className="h-5 w-5 text-teal-700" aria-hidden="true" />
-            <h2 className="text-sm font-bold text-slate-800">{t.patientContextTitle}</h2>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <label htmlFor="patient-age" className="text-xs font-bold text-slate-600">
-                {t.ageLabel}
-              </label>
-              <input
-                id="patient-age"
-                type="number"
-                min={1}
-                max={115}
-                value={age}
-                onChange={(e) => onAgeChange(Math.max(1, Math.min(115, Number(e.target.value) || 45)))}
-                className="min-h-[40px] w-20 rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900"
-              />
+      {/* Asymmetric 7/5 Split Workspace */}
+      <div className="grid items-start gap-6 lg:grid-cols-12">
+        {/* Left 7 columns: Primary Document Intake Workspace */}
+        <section className="rounded-2xl border border-neutral-900/8 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] lg:col-span-7">
+          {/* Patient Context + Mode Row */}
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-neutral-900/8 pb-4">
+            <div className="inline-flex rounded-lg bg-[#f4f4f5] p-1">
+              <button
+                type="button"
+                aria-pressed={activeTab === 'upload'}
+                onClick={() => setActiveTab('upload')}
+                className={`inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium transition-colors duration-150 ${
+                  activeTab === 'upload'
+                    ? 'bg-white text-[#171717] shadow-[0_1px_2px_rgba(0,0,0,0.06)] ring-1 ring-neutral-900/8'
+                    : 'text-[#525252] hover:text-[#171717]'
+                }`}
+              >
+                <Upload className="h-4 w-4 shrink-0 text-[#737373]" strokeWidth={1.5} aria-hidden="true" />
+                <span>{t.uploadTab}</span>
+              </button>
+              <button
+                type="button"
+                aria-pressed={activeTab === 'paste'}
+                onClick={() => setActiveTab('paste')}
+                className={`inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium transition-colors duration-150 ${
+                  activeTab === 'paste'
+                    ? 'bg-white text-[#171717] shadow-[0_1px_2px_rgba(0,0,0,0.06)] ring-1 ring-neutral-900/8'
+                    : 'text-[#525252] hover:text-[#171717]'
+                }`}
+              >
+                <FileText className="h-4 w-4 shrink-0 text-[#737373]" strokeWidth={1.5} aria-hidden="true" />
+                <span>{t.pasteTab}</span>
+              </button>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-600">{t.sexLabel}</span>
-              <div className="inline-flex rounded-xl border border-slate-300 bg-white p-0.5 text-xs font-bold">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <label htmlFor="patient-age" className="text-xs text-[#737373]">
+                  {t.ageLabel}
+                </label>
+                <input
+                  id="patient-age"
+                  type="number"
+                  min={1}
+                  max={115}
+                  value={age}
+                  onChange={(e) =>
+                    onAgeChange(Math.max(1, Math.min(115, Number(e.target.value) || 45)))
+                  }
+                  className="h-9 w-16 rounded-lg border border-neutral-900/12 bg-[#fafafa] px-2.5 font-mono text-sm tabular-nums text-[#171717]"
+                />
+              </div>
+
+              <div className="inline-flex rounded-lg bg-[#f4f4f5] p-1 text-xs font-medium">
                 <button
                   type="button"
                   aria-pressed={sex === 'male'}
                   onClick={() => onSexChange('male')}
-                  className={`min-h-[36px] rounded-lg px-3 transition ${
-                    sex === 'male' ? 'bg-teal-700 text-white' : 'text-slate-600 hover:bg-slate-100'
+                  className={`h-7 rounded-md px-2.5 transition-colors duration-150 ${
+                    sex === 'male'
+                      ? 'bg-white text-[#171717] shadow-[0_1px_2px_rgba(0,0,0,0.06)] ring-1 ring-neutral-900/8'
+                      : 'text-[#525252] hover:text-[#171717]'
                   }`}
                 >
                   {t.male}
@@ -160,8 +160,10 @@ export function IntakePanel({
                   type="button"
                   aria-pressed={sex === 'female'}
                   onClick={() => onSexChange('female')}
-                  className={`min-h-[36px] rounded-lg px-3 transition ${
-                    sex === 'female' ? 'bg-teal-700 text-white' : 'text-slate-600 hover:bg-slate-100'
+                  className={`h-7 rounded-md px-2.5 transition-colors duration-150 ${
+                    sex === 'female'
+                      ? 'bg-white text-[#171717] shadow-[0_1px_2px_rgba(0,0,0,0.06)] ring-1 ring-neutral-900/8'
+                      : 'text-[#525252] hover:text-[#171717]'
                   }`}
                 >
                   {t.female}
@@ -169,212 +171,166 @@ export function IntakePanel({
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Upload vs Paste Tabs */}
-        <div className="mb-5 flex gap-2 border-b border-slate-200 pb-3">
-          <button
-            type="button"
-            aria-pressed={activeTab === 'upload'}
-            onClick={() => setActiveTab('upload')}
-            className={`inline-flex min-h-[42px] items-center gap-2 rounded-xl px-4 text-sm font-bold transition ${
-              activeTab === 'upload'
-                ? 'bg-teal-700 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            <Camera className="h-4 w-4" aria-hidden="true" />
-            <span>{t.uploadTab}</span>
-          </button>
-          <button
-            type="button"
-            aria-pressed={activeTab === 'paste'}
-            onClick={() => setActiveTab('paste')}
-            className={`inline-flex min-h-[42px] items-center gap-2 rounded-xl px-4 text-sm font-bold transition ${
-              activeTab === 'paste'
-                ? 'bg-teal-700 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            <FileText className="h-4 w-4" aria-hidden="true" />
-            <span>{t.pasteTab}</span>
-          </button>
-        </div>
-
-        {activeTab === 'upload' ? (
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setIsDragging(true);
-            }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setIsDragging(false);
-              const file = e.dataTransfer.files?.[0];
-              handleFilePicked(file);
-            }}
-            className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-10 text-center transition ${
-              isDragging
-                ? 'border-teal-600 bg-teal-50/70'
-                : 'border-slate-300 bg-slate-50/50 hover:border-teal-500/70'
-            }`}
-          >
-            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-100 text-teal-800">
-              <UploadCloud className="h-7 w-7" aria-hidden="true" />
-            </div>
-            <p className="text-base font-bold text-slate-900">{t.dropzoneTitle}</p>
-            <p className="mt-1 max-w-xl text-xs text-slate-600 sm:text-sm">
-              {t.dropzoneSubtitle}
-            </p>
-
-            <input
-              ref={fileInputRef}
-              id="clinical-file-upload"
-              type="file"
-              accept="image/*,application/pdf"
-              className="visually-hidden"
-              onChange={(e) => handleFilePicked(e.target.files?.[0])}
-              disabled={isLoading}
-            />
-
-            <button
-              type="button"
-              disabled={isLoading}
-              onClick={() => fileInputRef.current?.click()}
-              className="mt-5 inline-flex min-h-[46px] items-center gap-2 rounded-xl bg-teal-700 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-teal-800 disabled:opacity-60"
-            >
-              <Camera className="h-4 w-4" aria-hidden="true" />
-              <span>{t.chooseFileBtn}</span>
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <label htmlFor="clinical-paste-box" className="block text-sm font-bold text-slate-800">
-              {t.pasteTab}
-            </label>
-            <textarea
-              id="clinical-paste-box"
-              rows={5}
-              value={pastedText}
-              onChange={(e) => setPastedText(e.target.value)}
-              placeholder={t.pastePlaceholder}
-              className="w-full rounded-2xl border border-slate-300 bg-slate-50/50 p-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-600 focus:bg-white"
-            />
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() =>
-                  setPastedText(
-                    'SEHA Lab Result: HbA1c 7.6%, Fasting Glucose 156 mg/dL, LDL 4.1 mmol/L, Potassium 5.8 mmol/L, Creatinine 148 umol/L, eGFR 44 mL/min. Medications: Cozaar 50mg OD, Lasix 40mg OD, Voltaren 50mg BD, Glucophage 1000mg BD.',
-                  )
-                }
-                className="text-xs font-bold text-teal-700 underline decoration-teal-300 underline-offset-4 hover:text-teal-900"
+          {/* Intake Body */}
+          <div className="pt-5">
+            {activeTab === 'upload' ? (
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  handleFilePicked(e.dataTransfer.files?.[0]);
+                }}
+                className={`flex flex-col items-start justify-between gap-5 rounded-xl border border-dashed p-6 transition-colors duration-150 sm:flex-row sm:items-center ${
+                  isDragging
+                    ? 'border-[#0f766e] bg-[#f4f4f5]'
+                    : 'border-neutral-900/18 bg-[#fafafa]'
+                }`}
               >
-                Insert realistic mixed UAE lab + Rx snippet
-              </button>
-              <button
-                type="button"
-                disabled={isLoading || pastedText.trim().length < 5}
-                onClick={() => onAnalyzeText(pastedText)}
-                className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-teal-700 px-6 text-sm font-bold text-white shadow-sm transition hover:bg-teal-800 disabled:opacity-50"
-              >
-                <Sparkles className="h-4 w-4" aria-hidden="true" />
-                <span>{t.analyzeBtn}</span>
-              </button>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* 3 UAE Flagship Clinical Cases */}
-      <section aria-labelledby="demo-cases-heading" className="space-y-4">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 id="demo-cases-heading" className="text-lg font-extrabold text-slate-900 sm:text-xl">
-              {t.demoCasesHeading}
-            </h2>
-            <p className="text-xs text-slate-600 sm:text-sm">{t.demoCasesSub}</p>
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          {DEMO_CASES.map((demo) => {
-            const accentStyles =
-              demo.accent === 'crimson'
-                ? {
-                    border: 'border-rose-200 hover:border-rose-400',
-                    badge: 'bg-rose-100 text-rose-900',
-                    iconBg: 'bg-rose-50 text-rose-700',
-                    btn: 'bg-rose-700 hover:bg-rose-800 text-white',
-                    Icon: AlertTriangle,
-                  }
-                : demo.accent === 'amber'
-                  ? {
-                      border: 'border-amber-200 hover:border-amber-400',
-                      badge: 'bg-amber-100 text-amber-950',
-                      iconBg: 'bg-amber-50 text-amber-700',
-                      btn: 'bg-amber-700 hover:bg-amber-800 text-white',
-                      Icon: Pill,
-                    }
-                  : {
-                      border: 'border-teal-200 hover:border-teal-400',
-                      badge: 'bg-teal-100 text-teal-900',
-                      iconBg: 'bg-teal-50 text-teal-700',
-                      btn: 'bg-teal-700 hover:bg-teal-800 text-white',
-                      Icon: HeartPulse,
-                    };
-
-            const CaseIcon = accentStyles.Icon;
-
-            return (
-              <article
-                key={demo.id}
-                className={`flex flex-col justify-between rounded-3xl border bg-white p-5 shadow-xs transition hover:shadow-md ${accentStyles.border}`}
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold ${accentStyles.badge}`}
-                    >
-                      {demo.badge}
-                    </span>
-                    <span
-                      className={`flex h-9 w-9 items-center justify-center rounded-xl ${accentStyles.iconBg}`}
-                    >
-                      <CaseIcon className="h-5 w-5" aria-hidden="true" />
-                    </span>
-                  </div>
-
-                  <div>
-                    <h3 className="text-base font-extrabold text-slate-900">{demo.title}</h3>
-                    <p className="mt-1 text-xs font-medium text-slate-500">{demo.subtitle}</p>
-                  </div>
-
-                  <ul className="space-y-1.5 text-xs text-slate-700">
-                    {demo.highlights.map((hl, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-600" />
-                        <span>{hl}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-[#171717]">{t.dropzoneTitle}</p>
+                  <p className="text-xs text-[#737373]">{t.dropzoneSubtitle}</p>
                 </div>
+
+                <input
+                  ref={fileInputRef}
+                  id="clinical-file-upload"
+                  type="file"
+                  accept="image/*,application/pdf"
+                  className="visually-hidden"
+                  onChange={(e) => handleFilePicked(e.target.files?.[0])}
+                  disabled={isLoading}
+                />
 
                 <button
                   type="button"
                   disabled={isLoading}
-                  onClick={() => onSelectDemoCase(demo.id)}
-                  className={`mt-5 inline-flex min-h-[42px] w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold shadow-xs transition disabled:opacity-50 ${accentStyles.btn}`}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-[#0f766e] px-4 text-sm font-medium text-white transition-colors duration-150 hover:bg-[#115e59] active:scale-[0.98] disabled:opacity-50"
                 >
-                  <span>{t.openCaseBtn}</span>
-                  <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+                  <Upload className="h-4 w-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
+                  <span>{t.chooseFileBtn}</span>
                 </button>
-              </article>
-            );
-          })}
-        </div>
-      </section>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <label htmlFor="clinical-paste-box" className="visually-hidden">
+                  {t.pasteTab}
+                </label>
+                <textarea
+                  id="clinical-paste-box"
+                  rows={5}
+                  value={pastedText}
+                  onChange={(e) => setPastedText(e.target.value)}
+                  placeholder={t.pastePlaceholder}
+                  className="w-full rounded-xl border border-neutral-900/12 bg-[#fafafa] p-4 font-mono text-xs leading-relaxed text-[#171717] placeholder:font-sans placeholder:text-[#737373] focus:border-[#0f766e] focus:bg-white"
+                />
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPastedText(
+                        'SEHA Lab Result: HbA1c 7.6%, Fasting Glucose 156 mg/dL, LDL 4.1 mmol/L, Potassium 5.8 mmol/L, Creatinine 148 umol/L, eGFR 44 mL/min. Medications: Cozaar 50mg OD, Lasix 40mg OD, Voltaren 50mg BD, Glucophage 1000mg BD.',
+                      )
+                    }
+                    className="text-xs font-medium text-[#525252] underline decoration-neutral-300 underline-offset-4 transition-colors duration-150 hover:text-[#171717]"
+                  >
+                    Insert sample UAE lab + prescription
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isLoading || pastedText.trim().length < 5}
+                    onClick={() => onAnalyzeText(pastedText)}
+                    className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#0f766e] px-5 text-sm font-medium text-white transition-colors duration-150 hover:bg-[#115e59] active:scale-[0.98] disabled:opacity-50"
+                  >
+                    <span>{t.analyzeBtn}</span>
+                    <ArrowRight className="h-4 w-4 shrink-0 rtl:rotate-180" strokeWidth={1.5} aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Quiet clinical verification specification strip */}
+            <div className="mt-6 grid grid-cols-3 gap-4 border-t border-neutral-900/8 pt-5 text-xs">
+              <div>
+                <p className="font-mono text-[#737373]">01 · Units</p>
+                <p className="mt-1 font-medium text-[#171717]">SI and US auto-normalized</p>
+              </div>
+              <div>
+                <p className="font-mono text-[#737373]">02 · Guardrails</p>
+                <p className="mt-1 font-medium text-[#171717]">25+ biomarkers, 998 panic rules</p>
+              </div>
+              <div>
+                <p className="font-mono text-[#737373]">03 · Pharmacy</p>
+                <p className="mt-1 font-medium text-[#171717]">UAE brand and interaction matrix</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Right 5 columns: Clinical Specimen Case List */}
+        <section
+          aria-labelledby="demo-cases-heading"
+          className="rounded-2xl border border-neutral-900/8 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] lg:col-span-5"
+        >
+          <div className="mb-4 flex items-baseline justify-between gap-2 border-b border-neutral-900/8 pb-3">
+            <div>
+              <h2 id="demo-cases-heading" className="text-sm font-medium text-[#171717]">
+                {t.demoCasesHeading}
+              </h2>
+              <p className="mt-0.5 text-xs text-[#737373]">{t.demoCasesSub}</p>
+            </div>
+            <span className="font-mono text-xs text-[#737373]">03</span>
+          </div>
+
+          <ul className="divide-y divide-neutral-900/8">
+            {DEMO_CASES.map((demo, idx) => {
+              const dotColor =
+                demo.accent === 'crimson'
+                  ? 'bg-[#b91c1c]'
+                  : demo.accent === 'amber'
+                    ? 'bg-[#b45309]'
+                    : 'bg-[#0f766e]';
+
+              return (
+                <li key={demo.id} className="py-3.5 first:pt-1 last:pb-0">
+                  <button
+                    type="button"
+                    disabled={isLoading}
+                    onClick={() => onSelectDemoCase(demo.id)}
+                    className="group flex w-full items-start justify-between gap-3 rounded-lg p-2 -mx-2 text-start transition-colors duration-150 hover:bg-[#fafafa] disabled:opacity-50"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`h-2 w-2 shrink-0 rounded-full ${dotColor}`} aria-hidden="true" />
+                        <span className="font-mono text-xs text-[#737373]">
+                          <bdi dir="ltr">0{idx + 1}</bdi> · {demo.badge}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium text-[#171717] group-hover:text-[#0f766e]">
+                        {demo.title.replace(/^Case \d+:\s*/, '')}
+                      </p>
+                      <p className="text-xs leading-relaxed text-[#525252]">
+                        {demo.highlights[0]}
+                      </p>
+                    </div>
+                    <ArrowRight
+                      className="mt-1 h-4 w-4 shrink-0 text-[#737373] transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-[#171717] rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
+                      strokeWidth={1.5}
+                      aria-hidden="true"
+                    />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      </div>
     </div>
   );
 }

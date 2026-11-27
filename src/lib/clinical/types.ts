@@ -90,6 +90,9 @@ export interface EvaluatedBiomarker {
   status: BiomarkerStatus;
   isCritical: boolean;
   gaugePercent: number;
+  refRangeStartPct?: number;
+  refRangeEndPct?: number;
+  priorGaugePercent?: number;
   priorSiValue?: number;
   priorUsValue?: number;
   trendDirection?: 'improving' | 'worsening' | 'stable';

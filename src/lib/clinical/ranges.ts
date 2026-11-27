@@ -459,22 +459,32 @@ export function evaluateBiomarker(
   const converted = convertToSIAndUS(canonicalId, raw.value, raw.unit);
   let status: BiomarkerStatus = 'unknown';
   let gaugePercent = 50;
+  let refRangeStartPct: number | undefined;
+  let refRangeEndPct: number | undefined;
+  let priorGaugePercent: number | undefined;
   let refLowSI: number | undefined;
   let refHighSI: number | undefined;
   let refLowUS: number | undefined;
   let refHighUS: number | undefined;
   let refLabelSI = raw.rawReferenceRange || 'See lab sheet';
   let refLabelUS = raw.rawReferenceRange || 'See lab sheet';
+  let scaleMin = 0;
+  let scaleSpan = 100;
 
   if (rule) {
     const b = rule.bounds(context.sex, context.age);
     status = classifyStatus(converted.siValue, b);
-    const span = Math.max(b.scaleMax - b.scaleMin, 0.001);
-    const rawPct = ((converted.siValue - b.scaleMin) / span) * 100;
-    gaugePercent = Math.max(4, Math.min(96, Math.round(rawPct)));
+    scaleMin = b.scaleMin;
+    scaleSpan = Math.max(b.scaleMax - b.scaleMin, 0.001);
+    const toPct = (v: number) =>
+      Math.max(4, Math.min(96, Math.round(((v - scaleMin) / scaleSpan) * 100)));
+
+    gaugePercent = toPct(converted.siValue);
 
     refLowSI = b.borderlineLow ?? b.low;
     refHighSI = b.borderlineHigh ?? b.high;
+    refRangeStartPct = refLowSI !== undefined ? toPct(refLowSI) : 0;
+    refRangeEndPct = refHighSI !== undefined ? toPct(refHighSI) : 100;
     const factor = unitDef?.siToUsFactor ?? 1;
     const decSI = unitDef?.decimalsSI ?? 1;
     const decUS = unitDef?.decimalsUS ?? 1;
@@ -502,6 +512,12 @@ export function evaluateBiomarker(
     const priorConverted = convertToSIAndUS(canonicalId, priorRaw.value, priorRaw.unit);
     priorSiValue = priorConverted.siValue;
     priorUsValue = priorConverted.usValue;
+    if (rule) {
+      priorGaugePercent = Math.max(
+        4,
+        Math.min(96, Math.round(((priorConverted.siValue - scaleMin) / scaleSpan) * 100)),
+      );
+    }
     const diff = converted.siValue - priorConverted.siValue;
     const relChange = priorConverted.siValue !== 0 ? Math.abs(diff / priorConverted.siValue) : 0;
 
@@ -542,6 +558,9 @@ export function evaluateBiomarker(
     status,
     isCritical: status === 'critical_low' || status === 'critical_high',
     gaugePercent,
+    refRangeStartPct,
+    refRangeEndPct,
+    priorGaugePercent,
     priorSiValue,
     priorUsValue,
     trendDirection,

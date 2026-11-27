@@ -1,12 +1,7 @@
 'use client';
 
 import React from 'react';
-import {
-  Activity,
-  ClipboardCheck,
-  QrCode,
-  ShieldCheck,
-} from 'lucide-react';
+import { ClipboardCheck, QrCode } from 'lucide-react';
 import type { SupportedLanguage, UnitSystem } from '@/lib/clinical/types';
 import { LANGUAGES, UI_STRINGS } from '@/lib/i18n/uiStrings';
 
@@ -38,68 +33,49 @@ export function HeaderBar({
   const t = UI_STRINGS[language];
 
   return (
-    <header className="no-print sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-md">
+    <header className="no-print sticky top-0 z-30 border-b border-neutral-900/8 bg-white/95 backdrop-blur-sm">
       <a
         href="#main-heading"
-        className="visually-hidden fixed top-2 start-2 z-50 rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-lg"
+        className="visually-hidden fixed top-2 start-2 z-50 rounded-lg bg-[#0f766e] px-4 py-2 text-sm font-medium text-white"
       >
         {t.skipToMain}
       </a>
 
-      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-        {/* Brand lockup */}
-        <div className="flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={onResetHome}
-            className="group flex items-center gap-3 rounded-xl text-start transition hover:opacity-95"
+      <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:flex-nowrap lg:px-8">
+        {/* Flat clinical brand mark + wordmark */}
+        <button
+          type="button"
+          onClick={onResetHome}
+          className="inline-flex h-9 shrink-0 items-center gap-2.5 rounded-lg text-start transition-opacity duration-150 hover:opacity-80"
+        >
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+            className="shrink-0"
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-700 to-emerald-600 text-white shadow-sm ring-1 ring-teal-800/10">
-              <Activity className="h-6 w-6" aria-hidden="true" />
-            </span>
-            <span>
-              <span className="flex items-center gap-2">
-                <span className="text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">
-                  ShifaClear
-                </span>
-                <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-teal-50 px-2.5 py-0.5 text-[11px] font-bold text-teal-800 ring-1 ring-teal-200">
-                  <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  MD Guardrails
-                </span>
-              </span>
-              <span className="block text-xs font-medium text-slate-500">
-                {t.tagline}
-              </span>
-            </span>
-          </button>
+            <rect width="24" height="24" rx="6" fill="#0f766e" />
+            <path
+              d="M12 6.5V17.5M6.5 12H17.5"
+              stroke="#ffffff"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+          <span className="text-[17px] font-semibold leading-none text-[#171717]">
+            ShifaClear
+          </span>
+        </button>
 
-          {/* Compact mobile action buttons */}
-          <div className="flex items-center gap-2 lg:hidden">
-            {hasEvaluation && (
-              <button
-                type="button"
-                onClick={onOpenAudit}
-                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-              >
-                <ClipboardCheck className="h-4 w-4 text-teal-700" aria-hidden="true" />
-                <span>{t.auditTrailBtn}</span>
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={onOpenQrSettings}
-              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-              aria-label={t.qrSettingsBtn}
-            >
-              <QrCode className="h-4 w-4 text-teal-700" aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-
-        {/* Language bar + Controls */}
-        <div className="flex flex-wrap items-center justify-between gap-2.5 lg:justify-end">
-          {/* 5-Language Pill Bar */}
-          <nav aria-label="Language" className="flex flex-wrap items-center gap-1 rounded-xl bg-slate-100 p-1">
+        {/* Quiet single-row utility controls */}
+        <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
+          {/* 5-Language Segmented Bar */}
+          <nav
+            aria-label="Language"
+            className="inline-flex items-center gap-0.5 rounded-lg bg-[#f4f4f5] p-1"
+          >
             {LANGUAGES.map((lang) => {
               const active = lang.code === language;
               return (
@@ -109,10 +85,10 @@ export function HeaderBar({
                   lang={lang.code}
                   aria-pressed={active}
                   onClick={() => onLanguageChange(lang.code)}
-                  className={`min-h-[36px] rounded-lg px-2.5 py-1 text-xs font-bold transition sm:px-3 ${
+                  className={`h-7 rounded-md px-2.5 text-xs font-medium transition-colors duration-150 ${
                     active
-                      ? 'bg-teal-700 text-white shadow-sm'
-                      : 'text-slate-700 hover:bg-white hover:text-slate-900'
+                      ? 'bg-white text-[#171717] shadow-[0_1px_2px_rgba(0,0,0,0.06)] ring-1 ring-neutral-900/8'
+                      : 'text-[#525252] hover:text-[#171717]'
                   }`}
                 >
                   {lang.nativeLabel}
@@ -121,48 +97,44 @@ export function HeaderBar({
             })}
           </nav>
 
-          {/* SI / US Units Switcher */}
+          {/* SI / US Unit Switcher */}
           <div
             role="group"
             aria-label={t.unitsLabel}
-            className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold"
+            className="inline-flex items-center gap-0.5 rounded-lg bg-[#f4f4f5] p-1 text-xs font-medium"
           >
             <button
               type="button"
               aria-pressed={unitSystem === 'SI'}
               onClick={() => onUnitSystemChange('SI')}
-              className={`min-h-[34px] rounded-lg px-2.5 transition ${
+              className={`h-7 rounded-md px-2 font-mono transition-colors duration-150 ${
                 unitSystem === 'SI'
-                  ? 'bg-white text-teal-800 shadow-xs ring-1 ring-slate-200'
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'bg-white text-[#171717] shadow-[0_1px_2px_rgba(0,0,0,0.06)] ring-1 ring-neutral-900/8'
+                  : 'text-[#737373] hover:text-[#171717]'
               }`}
             >
-              SI (UAE)
+              SI
             </button>
             <button
               type="button"
               aria-pressed={unitSystem === 'US'}
               onClick={() => onUnitSystemChange('US')}
-              className={`min-h-[34px] rounded-lg px-2.5 transition ${
+              className={`h-7 rounded-md px-2 font-mono transition-colors duration-150 ${
                 unitSystem === 'US'
-                  ? 'bg-white text-teal-800 shadow-xs ring-1 ring-slate-200'
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'bg-white text-[#171717] shadow-[0_1px_2px_rgba(0,0,0,0.06)] ring-1 ring-neutral-900/8'
+                  : 'text-[#737373] hover:text-[#171717]'
               }`}
             >
-              US (mg/dL)
+              US
             </button>
           </div>
 
-          {/* Native HTML Switch for Elder Mode */}
+          {/* Native HTML Switch for Large Print / Elder Mode */}
           <label
             htmlFor="elder-mode-switch"
-            className={`inline-flex min-h-[38px] cursor-pointer items-center gap-2 rounded-xl border px-3 py-1 text-xs font-bold transition ${
-              elderMode
-                ? 'border-teal-700 bg-teal-50 text-teal-900'
-                : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-            }`}
+            className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-neutral-900/10 bg-white px-3 text-xs font-medium text-[#525252] transition-colors duration-150 hover:text-[#171717]"
           >
-            <span>{t.elderMode}</span>
+            <span className="whitespace-nowrap">{t.elderMode}</span>
             <input
               id="elder-mode-switch"
               type="checkbox"
@@ -172,27 +144,25 @@ export function HeaderBar({
             />
           </label>
 
-          {/* Desktop Action Buttons */}
-          <div className="hidden items-center gap-2 lg:flex">
-            {hasEvaluation && (
-              <button
-                type="button"
-                onClick={onOpenAudit}
-                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50/70 px-3 text-xs font-bold text-teal-900 transition hover:bg-teal-100"
-              >
-                <ClipboardCheck className="h-4 w-4 text-teal-700" aria-hidden="true" />
-                <span>{t.auditTrailBtn}</span>
-              </button>
-            )}
+          {hasEvaluation && (
             <button
               type="button"
-              onClick={onOpenQrSettings}
-              className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+              onClick={onOpenAudit}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-900/10 bg-white px-3 text-xs font-medium text-[#171717] transition-colors duration-150 hover:bg-[#f4f4f5] active:scale-[0.98]"
             >
-              <QrCode className="h-4 w-4 text-teal-700" aria-hidden="true" />
-              <span>{t.qrSettingsBtn}</span>
+              <ClipboardCheck className="h-4 w-4 shrink-0 text-[#525252]" strokeWidth={1.5} aria-hidden="true" />
+              <span className="whitespace-nowrap">{t.auditTrailBtn}</span>
             </button>
-          </div>
+          )}
+
+          <button
+            type="button"
+            onClick={onOpenQrSettings}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-900/10 bg-white px-3 text-xs font-medium text-[#171717] transition-colors duration-150 hover:bg-[#f4f4f5] active:scale-[0.98]"
+          >
+            <QrCode className="h-4 w-4 shrink-0 text-[#525252]" strokeWidth={1.5} aria-hidden="true" />
+            <span className="whitespace-nowrap">{t.qrSettingsBtn}</span>
+          </button>
         </div>
       </div>
     </header>

@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   AlertOctagon,
   CheckCircle2,
-  ClipboardCheck,
   Code2,
   RefreshCw,
   ShieldAlert,
@@ -37,7 +36,6 @@ export function ClinicalAuditDrawer({
     }
   }, [open]);
 
-  // Progressive fallback for closedby="any" where native support is absent
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -80,93 +78,84 @@ export function ClinicalAuditDrawer({
       aria-labelledby="audit-dialog-title"
       {...({ closedby: 'any' } as React.DialogHTMLAttributes<HTMLDialogElement>)}
     >
-      <div className="flex max-h-[86dvh] w-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between gap-4 border-b border-slate-200 bg-slate-50 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-700 text-white">
-              <ClipboardCheck className="h-5 w-5" aria-hidden="true" />
-            </span>
-            <div>
-              <h1 id="audit-dialog-title" className="text-base font-extrabold text-slate-900 sm:text-lg">
-                Deterministic Clinical Safety Audit Trail
-              </h1>
-              <p className="text-xs text-slate-600">
-                Inspect every MD rule fired before patient explanation — zero black-box diagnosis
-              </p>
-            </div>
+      <div className="flex max-h-[86dvh] w-full flex-col overflow-hidden rounded-2xl border border-neutral-900/10 bg-white shadow-[0_12px_36px_rgba(0,0,0,0.12)]">
+        <div className="flex items-center justify-between gap-4 border-b border-neutral-900/8 bg-[#fafafa] px-6 py-4">
+          <div>
+            <h1 id="audit-dialog-title" className="text-base font-medium text-[#171717]">
+              Deterministic clinical audit trail
+            </h1>
+            <p className="mt-0.5 text-xs text-[#737373]">
+              Every rule evaluated before patient explanation is generated
+            </p>
           </div>
 
           <form method="dialog">
             <button
               type="submit"
               aria-label="Close Clinical Audit dialog"
-              className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-900/10 bg-white text-[#525252] transition-colors duration-150 hover:bg-[#f4f4f5] hover:text-[#171717]"
             >
-              <X className="h-5 w-5" aria-hidden="true" />
+              <X className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
             </button>
           </form>
         </div>
 
-        {/* Body */}
         <div className="overflow-y-auto p-6">
           {!evaluation ? (
-            <p className="text-sm text-slate-500">Run a scan or select a UAE clinical case to inspect the audit trail.</p>
+            <p className="text-sm text-[#737373]">
+              Open a clinical case or scan a report to inspect the verification pipeline.
+            </p>
           ) : (
-            <div className="space-y-5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap gap-2 text-xs font-bold">
-                  <span className="rounded-lg bg-teal-50 px-2.5 py-1 text-teal-900 ring-1 ring-teal-200">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex flex-wrap items-center gap-3 font-mono text-[#525252]">
+                  <span>
                     Context: {evaluation.patientContext.sex}, {evaluation.patientContext.age}y ({evaluation.patientContext.unitSystem})
                   </span>
-                  <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-slate-800">
-                    Overall Risk: {evaluation.overallRisk.toUpperCase()}
-                  </span>
+                  <span>·</span>
+                  <span>Risk: {evaluation.overallRisk}</span>
                 </div>
 
                 <button
                   type="button"
                   aria-pressed={showRawJson}
                   onClick={() => setShowRawJson((v) => !v)}
-                  className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-neutral-900/10 bg-white px-3 text-xs font-medium text-[#171717] transition-colors duration-150 hover:bg-[#f4f4f5]"
                 >
-                  <Code2 className="h-3.5 w-3.5 text-teal-700" aria-hidden="true" />
-                  <span>{showRawJson ? 'Show Pipeline Steps' : 'Inspect Verified JSON'}</span>
+                  <Code2 className="h-4 w-4 text-[#737373]" strokeWidth={1.5} aria-hidden="true" />
+                  <span>{showRawJson ? 'Pipeline steps' : 'Verified JSON'}</span>
                 </button>
               </div>
 
               {showRawJson ? (
-                <pre className="max-h-[50dvh] overflow-auto rounded-2xl bg-slate-950 p-4 font-mono text-xs text-emerald-300">
+                <pre className="max-h-[50dvh] overflow-auto rounded-xl bg-[#171717] p-4 font-mono text-xs leading-relaxed text-[#e5e5e5]">
                   {JSON.stringify(evaluation, null, 2)}
                 </pre>
               ) : (
-                <ol className="space-y-3">
+                <ol className="divide-y divide-neutral-900/8 rounded-xl border border-neutral-900/8 bg-[#fafafa]">
                   {evaluation.auditTrail.map((step) => {
                     const icon =
                       step.status === 'critical' ? (
-                        <AlertOctagon className="h-5 w-5 text-rose-600" aria-hidden="true" />
+                        <AlertOctagon className="h-4 w-4 text-[#b91c1c]" strokeWidth={1.5} aria-hidden="true" />
                       ) : step.status === 'flagged' ? (
-                        <ShieldAlert className="h-5 w-5 text-amber-600" aria-hidden="true" />
+                        <ShieldAlert className="h-4 w-4 text-[#b45309]" strokeWidth={1.5} aria-hidden="true" />
                       ) : step.status === 'converted' ? (
-                        <RefreshCw className="h-5 w-5 text-sky-600" aria-hidden="true" />
+                        <RefreshCw className="h-4 w-4 text-[#0f766e]" strokeWidth={1.5} aria-hidden="true" />
                       ) : (
-                        <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden="true" />
+                        <CheckCircle2 className="h-4 w-4 text-[#15803d]" strokeWidth={1.5} aria-hidden="true" />
                       );
 
                     return (
-                      <li
-                        key={step.stepNumber}
-                        className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
-                      >
-                        <span className="mt-0.5 shrink-0">{icon}</span>
+                      <li key={step.stepNumber} className="flex items-start gap-3 p-4">
+                        <span className="mt-0.5 flex w-4 shrink-0 justify-center">{icon}</span>
                         <div className="space-y-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded bg-slate-200 px-1.5 py-0.5 font-mono text-[10px] font-bold text-slate-700">
-                              STEP {step.stepNumber} • {step.stage.toUpperCase()}
+                          <div className="flex flex-wrap items-baseline gap-2">
+                            <span className="font-mono text-xs text-[#737373]">
+                              0{step.stepNumber} · {step.stage}
                             </span>
-                            <h2 className="text-sm font-extrabold text-slate-900">{step.title}</h2>
+                            <h2 className="text-sm font-medium text-[#171717]">{step.title}</h2>
                           </div>
-                          <p className="text-xs leading-relaxed text-slate-700">{step.detail}</p>
+                          <p className="text-xs leading-relaxed text-[#525252]">{step.detail}</p>
                         </div>
                       </li>
                     );

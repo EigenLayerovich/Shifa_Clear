@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
-import { Check, KeyRound, QrCode, ShieldCheck, X } from 'lucide-react';
+import { Check, KeyRound, X } from 'lucide-react';
 
 interface QrSettingsModalProps {
   open: boolean;
@@ -41,7 +41,7 @@ export function QrSettingsModal({
         QRCode.toDataURL(url, {
           width: 240,
           margin: 2,
-          color: { dark: '#0F172A', light: '#FFFFFF' },
+          color: { dark: '#171717', light: '#FFFFFF' },
         })
           .then(setQrDataUrl)
           .catch(() => setQrDataUrl(''));
@@ -51,7 +51,6 @@ export function QrSettingsModal({
     }
   }, [open]);
 
-  // Progressive fallback for closedby="any" where native support is absent
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -101,100 +100,92 @@ export function QrSettingsModal({
       aria-labelledby="qr-dialog-title"
       {...({ closedby: 'any' } as React.DialogHTMLAttributes<HTMLDialogElement>)}
     >
-      <div className="flex max-h-[88dvh] w-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
-        <div className="flex items-center justify-between gap-4 border-b border-slate-200 bg-slate-50 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-700 text-white">
-              <QrCode className="h-5 w-5" aria-hidden="true" />
-            </span>
-            <div>
-              <h1 id="qr-dialog-title" className="text-base font-extrabold text-slate-900">
-                Judge Live QR &amp; Gemini API Settings
-              </h1>
-              <p className="text-xs text-slate-600">
-                Scan on mobile during your KUEC pitch or configure a session API key
-              </p>
-            </div>
+      <div className="flex max-h-[88dvh] w-full flex-col overflow-hidden rounded-2xl border border-neutral-900/10 bg-white shadow-[0_12px_36px_rgba(0,0,0,0.12)]">
+        <div className="flex items-center justify-between gap-4 border-b border-neutral-900/8 bg-[#fafafa] px-6 py-4">
+          <div>
+            <h1 id="qr-dialog-title" className="text-base font-medium text-[#171717]">
+              Mobile QR and API settings
+            </h1>
+            <p className="mt-0.5 text-xs text-[#737373]">
+              Open this session on a phone or set a temporary Gemini key
+            </p>
           </div>
 
           <form method="dialog">
             <button
               type="submit"
               aria-label="Close QR and API settings dialog"
-              className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-900/10 bg-white text-[#525252] transition-colors duration-150 hover:bg-[#f4f4f5] hover:text-[#171717]"
             >
-              <X className="h-5 w-5" aria-hidden="true" />
+              <X className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
             </button>
           </form>
         </div>
 
         <div className="grid gap-6 overflow-y-auto p-6 sm:grid-cols-2">
-          {/* Live Demo QR Code */}
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center">
-            <p className="text-xs font-extrabold uppercase tracking-wider text-teal-800">
-              Try ShifaClear on Your Phone
-            </p>
+          <div className="flex flex-col items-center justify-center rounded-xl border border-neutral-900/8 bg-[#fafafa] p-5 text-center">
+            <p className="text-xs font-medium text-[#525252]">Open on mobile</p>
             {qrDataUrl ? (
               <img
                 src={qrDataUrl}
-                alt="QR code to open ShifaClear live demo on a mobile phone"
-                className="my-3 h-44 w-44 rounded-xl border border-slate-200 bg-white p-2 shadow-xs"
+                alt="QR code to open ShifaClear on a mobile phone"
+                className="my-3 h-44 w-44 rounded-lg border border-neutral-900/8 bg-white p-2"
               />
             ) : (
-              <div className="my-3 flex h-44 w-44 items-center justify-center rounded-xl bg-white text-xs text-slate-400">
-                Generating QR…
+              <div className="my-3 flex h-44 w-44 items-center justify-center rounded-lg bg-white text-xs text-[#737373]">
+                Generating QR
               </div>
             )}
-            <p className="max-w-full truncate font-mono text-[11px] font-semibold text-slate-600">
-              {liveUrl}
-            </p>
-            <p className="mt-1 text-[11px] text-slate-500">
-              Deploy to Vercel to share a public HTTPS QR code with KUEC judges.
+            <p className="max-w-full truncate font-mono text-[11px] text-[#525252]">
+              <bdi dir="ltr">{liveUrl}</bdi>
             </p>
           </div>
 
-          {/* Gemini API Status & Session Key */}
           <div className="flex flex-col justify-between space-y-4">
-            <div className="rounded-2xl border border-teal-200 bg-teal-50/70 p-4">
-              <div className="flex items-center gap-2 text-xs font-extrabold text-teal-900">
-                <ShieldCheck className="h-4 w-4 text-teal-700" aria-hidden="true" />
-                <span>Server Gemini API Status</span>
+            <div className="rounded-xl border border-neutral-900/8 bg-[#fafafa] p-4">
+              <div className="flex items-center gap-2 text-xs font-medium text-[#171717]">
+                <span
+                  className={`h-2 w-2 rounded-full ${hasServerApiKey ? 'bg-[#15803d]' : 'bg-[#b45309]'}`}
+                  aria-hidden="true"
+                />
+                <span>Server Gemini API status</span>
               </div>
-              <p className="mt-1 text-xs leading-relaxed text-teal-800">
+              <p className="mt-1.5 text-xs leading-relaxed text-[#525252]">
                 {hasServerApiKey
-                  ? 'GEMINI_API_KEY is active on the server (.env.local / Vercel Env). Live photo/PDF scanning and Gemini 3.8 TTS are ready.'
-                  : 'No server key detected. Add GEMINI_API_KEY in Vercel Environment Variables or enter a temporary session key below.'}
+                  ? 'GEMINI_API_KEY is active on the server. Live photo/PDF extraction and voice synthesis are enabled.'
+                  : 'No server key detected. Add GEMINI_API_KEY in Vercel Environment Variables or enter a session key below.'}
               </p>
             </div>
 
             <form onSubmit={handleSaveKey} className="space-y-3">
               <label
                 htmlFor="session-gemini-key"
-                className="flex items-center gap-1.5 text-xs font-bold text-slate-700"
+                className="flex items-center gap-1.5 text-xs font-medium text-[#525252]"
               >
-                <KeyRound className="h-3.5 w-3.5 text-teal-700" aria-hidden="true" />
-                <span>Optional Session Key Override (memory only)</span>
+                <KeyRound className="h-4 w-4 text-[#737373]" strokeWidth={1.5} aria-hidden="true" />
+                <span>Session API key override (memory only)</span>
               </label>
               <input
                 id="session-gemini-key"
                 type="password"
+                dir="ltr"
                 value={draftKey}
                 onChange={(e) => setDraftKey(e.target.value)}
-                placeholder="Paste Google AI Studio key..."
+                placeholder="Google AI Studio key"
                 autoComplete="off"
-                className="min-h-[42px] w-full rounded-xl border border-slate-300 px-3 text-xs font-mono text-slate-900"
+                className="h-10 w-full rounded-lg border border-neutral-900/12 bg-[#fafafa] px-3 font-mono text-xs text-[#171717] focus:border-[#0f766e] focus:bg-white"
               />
               <button
                 type="submit"
-                className="inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 text-xs font-bold text-white hover:bg-teal-800"
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#0f766e] px-4 text-xs font-medium text-white transition-colors duration-150 hover:bg-[#115e59] active:scale-[0.98]"
               >
                 {savedNotice ? (
                   <>
-                    <Check className="h-4 w-4" aria-hidden="true" />
-                    <span>Saved for This Session</span>
+                    <Check className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
+                    <span>Saved for this session</span>
                   </>
                 ) : (
-                  <span>Save Session Override</span>
+                  <span>Save session key</span>
                 )}
               </button>
             </form>
