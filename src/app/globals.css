@@ -70,21 +70,53 @@ dialog[open] {
   flex-direction: column;
 }
 
-/* Elder / Grandparent Mode high-contrast accessible scaling */
-[data-elder="true"] {
-  font-size: 1.16rem;
-  line-height: 1.65;
+/* Elder / Grandparent Mode: scale root html font-size so ALL Tailwind rem sizes jump unmistakably */
+html[data-elder="true"] {
+  font-size: 125%; /* 20px root (up from 16px) — scales all rem typography & controls cleanly */
+}
+
+@media (max-width: 640px) {
+  html[data-elder="true"] {
+    font-size: 122%;
+  }
+}
+
+html[data-elder="true"] body {
+  background-color: #fffef7;
+  color: #020617;
+  line-height: 1.7;
+}
+
+/* Guarantee no tiny sub-16px labels remain in Elder Mode */
+html[data-elder="true"] .text-xs,
+html[data-elder="true"] .text-\[11px\],
+html[data-elder="true"] .text-\[10px\] {
+  font-size: 0.92rem !important;
+  line-height: 1.45 !important;
+}
+
+html[data-elder="true"] .text-sm {
+  font-size: 1.05rem !important;
+  line-height: 1.55 !important;
+}
+
+html[data-elder="true"] button,
+html[data-elder="true"] a[href],
+html[data-elder="true"] input,
+html[data-elder="true"] textarea {
+  min-height: 48px;
 }
 
 [data-elder="true"] .elder-card {
-  border-width: 2px;
+  border-width: 2.5px;
   border-color: #0f766e;
-  box-shadow: 0 6px 20px -4px rgba(15, 118, 110, 0.14);
+  background-color: #ffffff;
+  box-shadow: 0 8px 24px -4px rgba(15, 118, 110, 0.18);
 }
 
 [data-elder="true"] .elder-value {
-  font-size: 2rem;
-  line-height: 1.15;
+  font-size: 2.35rem;
+  line-height: 1.1;
 }
 
 /* Subtle clinical background pattern */

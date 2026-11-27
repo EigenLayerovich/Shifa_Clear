@@ -58,11 +58,18 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
   const langMeta = LANGUAGE_MAP[language];
   const t = UI_STRINGS[language];
 
-  // Sync document language and RTL/LTR direction dynamically
+  // Sync document language, RTL/LTR direction, and Elder Mode root scaling dynamically
   useEffect(() => {
     document.documentElement.lang = langMeta.code;
     document.documentElement.dir = langMeta.dir;
   }, [langMeta]);
+
+  useEffect(() => {
+    document.documentElement.dataset.elder = elderMode ? 'true' : 'false';
+    return () => {
+      document.documentElement.dataset.elder = 'false';
+    };
+  }, [elderMode]);
 
   const stopAnyAudio = () => {
     if (audioRef.current) {
