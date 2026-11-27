@@ -159,4 +159,87 @@ describe('ShifaClear Deterministic Clinical Engine', () => {
     expect(types).toContain('MedicationStatement');
     expect(types).toContain('DetectedIssue');
   });
+
+  it('catches expanded RxList critical & major interactions across UAE brands', () => {
+    // 1. Nitroglycerin + Tadalafil (Snafi) -> CRITICAL + 998
+    const nitrateDoc: RawExtractedDocument = {
+      documentType: 'prescription',
+      biomarkers: [],
+      medications: [
+        { brandName: 'Imdur', dose: '60 mg', frequency: 'OD' },
+        { brandName: 'Cialis', dose: '20 mg', frequency: 'PRN' },
+      ],
+    };
+    const nitrateRes = evaluateClinicalDocument(nitrateDoc, defaultMale);
+    expect(nitrateRes.overallRisk).toBe('urgent');
+    expect(nitrateRes.alerts.some((a) => a.ruleId === 'RX_NITRATE_PDE5_CONTRAINDICATED' && a.emergencyNumber === '998')).toBe(true);
+
+    // 2. Clopidogrel (Plavix) + Omeprazole (Losec) -> CYP2C19 interaction
+    const plavixDoc: RawExtractedDocument = {
+      documentType: 'prescription',
+      biomarkers: [],
+      medications: [
+        { brandName: 'Plavix', dose: '75 mg', frequency: 'OD' },
+        { brandName: 'Losec', dose: '20 mg', frequency: 'OD' },
+      ],
+    };
+    const plavixRes = evaluateClinicalDocument(plavixDoc, defaultMale);
+    expect(plavixRes.alerts.some((a) => a.ruleId === 'RX_CLOPIDOGREL_CYP2C19_PPI')).toBe(true);
+
+    // 3. Warfarin + Metronidazole (Flagyl) -> Major INR bleed risk
+    const warfDoc: RawExtractedDocument = {
+      documentType: 'prescription',
+      biomarkers: [],
+      medications: [
+        { brandName: 'Marevan', dose: '5 mg', frequency: 'OD evening' },
+        { brandName: 'Flagyl', dose: '500 mg', frequency: 'TDS' },
+      ],
+    };
+    const warfRes = evaluateClinicalDocument(warfDoc, defaultMale);
+    expect(warfRes.alerts.some((a) => a.ruleId === 'RX_WARFARIN_CYP2C9_BLEED')).toBe(true);
+
+    // 4. Clarithromycin (Klacid) + Colchicine -> CRITICAL toxicity
+    const colcDoc: RawExtractedDocument = {
+      documentType: 'prescription',
+      biomarkers: [],
+      medications: [
+        { brandName: 'Klacid', dose: '500 mg', frequency: 'BD' },
+        { brandName: 'Colchicine', dose: '0.5 mg', frequency: 'BD' },
+      ],
+    };
+    const colcRes = evaluateClinicalDocument(colcDoc, defaultMale);
+    expect(colcRes.overallRisk).toBe('urgent');
+    expect(colcRes.alerts.some((a) => a.ruleId === 'RX_CYP3A4_COLCHICINE_TOXICITY')).toBe(true);
+
+    // 5. Verapamil (Isoptin) + Bisoprolol (Concor) + Ciprobay + Calcium + Escitalopram (Cipralex) + Tramal
+    const polyDoc: RawExtractedDocument = {
+      documentType: 'prescription',
+      biomarkers: [],
+      medications: [
+        { brandName: 'Isoptin', dose: '120 mg', frequency: 'OD' },
+        { brandName: 'Concor', dose: '5 mg', frequency: 'OD' },
+        { brandName: 'Ciprobay', dose: '500 mg', frequency: 'BD' },
+        { brandName: 'Caltrate', dose: '600 mg', frequency: 'OD' },
+        { brandName: 'Cipralex', dose: '10 mg', frequency: 'OD' },
+        { brandName: 'Tramal', dose: '50 mg', frequency: 'BD' },
+      ],
+    };
+    const polyRes = evaluateClinicalDocument(polyDoc, defaultMale);
+    expect(polyRes.alerts.some((a) => a.ruleId === 'RX_NONDHP_CCB_BETABLOCKER')).toBe(true);
+    expect(polyRes.alerts.some((a) => a.ruleId === 'RX_ANTIBIOTIC_CATION_CHELATION')).toBe(true);
+    expect(polyRes.alerts.some((a) => a.ruleId === 'RX_SEROTONIN_TRAMADOL')).toBe(true);
+    expect(polyRes.alerts.some((a) => a.ruleId === 'RX_QT_PROLONGATION_STACK')).toBe(true);
+
+    // 6. Lisinopril (Zestril) + Spironolactone (Aldactone) -> Hyperkalemia stack
+    const kDoc: RawExtractedDocument = {
+      documentType: 'prescription',
+      biomarkers: [],
+      medications: [
+        { brandName: 'Zestril', dose: '10 mg', frequency: 'OD' },
+        { brandName: 'Aldactone', dose: '25 mg', frequency: 'OD' },
+      ],
+    };
+    const kRes = evaluateClinicalDocument(kDoc, defaultMale);
+    expect(kRes.alerts.some((a) => a.ruleId === 'RX_RAAS_HYPERKALEMIA_STACK')).toBe(true);
+  });
 });
