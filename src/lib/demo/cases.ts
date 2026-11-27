@@ -436,7 +436,7 @@ export const DEMO_CASES: DemoCaseDefinition[] = [
           'Is moving Calcium-D3 to lunch (4+ hours after Euthyrox) ideal for her thyroid levels?',
         ],
         caregiverWhatsappSummary:
-          'ShifaClear Family Pill Schedule (71F)\nALERT 1: Ask doctor before giving Voltaren (Triple Whammy kidney risk with Cozaar + Lasix).\nALERT 2: Keep Euthyrox (early morning, empty stomach) 4 hours away from Calcium-D3 (moved to Lunch).\nMorning: Euthyrox (empty stomach), then Cozaar, Lasix, Glucophage (with breakfast)\nLunch: Calcium-D3 (with food)\nDinner: Glucophage (with meal)',
+          'ShifaClear Family Pill Schedule (71F)\n⚠️ ALERT 1: Ask doctor before giving Voltaren (Triple Whammy kidney risk with Cozaar + Lasix).\n⏰ ALERT 2: Keep Euthyrox (early morning, empty stomach) 4 hours away from Calcium-D3 (moved to Lunch).\n☀️ Morning: Euthyrox (empty stomach), then Cozaar, Lasix, Glucophage (with breakfast)\n🌤️ Lunch: Calcium-D3 (with food)\n🌇 Dinner: Glucophage (with meal)',
         spokenSummaryScript:
           'Hello family caregiver. Here is the safe medication plan. Important safety check first: please ask the doctor or pharmacist before giving Voltaren, because combining it with Cozaar and Lasix can stress the kidneys. Second, give Euthyrox early in the morning with plain water before breakfast, and move Calcium D3 to lunchtime, at least four hours later. Give Cozaar, Lasix, and the first Glucophage in the morning, and the second Glucophage with dinner.',
       },
@@ -499,7 +499,7 @@ export const DEMO_CASES: DemoCaseDefinition[] = [
           'هل نقل حبة الكالسيوم لوقت الغداء بعد 4 ساعات من يوثايروكس مناسب لثبات هرمون الغدة؟',
         ],
         caregiverWhatsappSummary:
-          'جدول أدوية الوالدة (شفاء كلير):\nتنبيه 1: استشارة الطبيب قبل إعطاء فولتارين (خطر على الكلى مع كوزار ولازيكس).\nتنبيه 2: فصل يوثايروكس صباحاً 4 ساعات عن الكالسيوم (تم نقله للغداء).\nالصباح: يوثايروكس على الريق، ثم كوزار ولازيكس وجلوكوفاج مع الفطور\nالغداء: كالسيوم د3 مع الأكل\nالعشاء: جلوكوفاج مع الأكل',
+          'جدول أدوية الوالدة (شفاء كلير):\n⚠️ تنبيه 1: استشارة الطبيب قبل إعطاء فولتارين (خطر على الكلى مع كوزار ولازيكس).\n⏰ تنبيه 2: فصل يوثايروكس صباحاً 4 ساعات عن الكالسيوم (تم نقله للغداء).\n☀️ الصباح: يوثايروكس على الريق، ثم كوزار ولازيكس وجلوكوفاج مع الفطور\n🌤️ الغداء: كالسيوم د3 مع الأكل\n🌇 العشاء: جلوكوفاج مع الأكل',
         spokenSummaryScript:
           'مرحباً. إليكم جدول الأدوية الآمن للوالدة. تنبيه مهم أولاً: يُرجى سؤال الطبيب أو الصيدلي قبل إعطاء حبوب فولتارين لأن جمعها مع كوزار ولازيكس قد يرهق الكلى. ثانياً: يُعطى دواء الغدة يوثايروكس صباحاً على معدة فارغة مع الماء فقط، وتم نقل حبة الكالسيوم إلى وقت الغداء بفارق أربع ساعات لضمان الامتصاص السليم.',
       },
@@ -691,7 +691,7 @@ export const DEMO_CASES: DemoCaseDefinition[] = [
           'Which of my current medicines or dehydration caused this acute kidney injury?',
         ],
         caregiverWhatsappSummary:
-          'URGENT ShifaClear Alert (62M):\n- CRITICAL Potassium: 6.3 mmol/L — GO TO EMERGENCY / CALL 998 NOW\n- Acute kidney drop: Creatinine 228 µmol/L, eGFR 27\n- Med Alert: Takes Glucophage (Metformin) — inform ER doctor immediately (eGFR < 30).',
+          '🚨 URGENT ShifaClear Alert (62M):\n• CRITICAL Potassium: 6.3 mmol/L — GO TO EMERGENCY / CALL 998 NOW\n• Acute kidney drop: Creatinine 228 µmol/L, eGFR 27\n• Med Alert: Takes Glucophage (Metformin) — inform ER doctor immediately (eGFR < 30).',
         spokenSummaryScript:
           'Urgent medical alert from ShifaClear. Your blood potassium is critically high at 6.3, and your kidney filtration has dropped sharply to 27. Because high potassium can affect heart rhythm, please go to the nearest Emergency Department immediately or call 998 in the UAE. Bring your Glucophage medication list so the emergency doctor can safely pause Metformin while treating your potassium.',
       },

@@ -2,29 +2,19 @@
 
 @theme inline {
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
   --font-arabic: var(--font-arabic), var(--font-sans), sans-serif;
   --font-devanagari: var(--font-devanagari), var(--font-sans), sans-serif;
 }
 
 :root {
-  --surface-page: #fafafa;
-  --surface-card: #ffffff;
-  --surface-raised: #f4f4f5;
-  --hairline: rgba(23, 23, 23, 0.08);
-  --hairline-strong: rgba(23, 23, 23, 0.14);
-  --ink-primary: #171717;
-  --ink-secondary: #525252;
-  --ink-muted: #737373;
-  --accent: #0f766e;
-  --accent-hover: #115e59;
-  --semantic-ok: #15803d;
-  --semantic-warn: #b45309;
-  --semantic-alert: #b91c1c;
-  --ease-clinical: cubic-bezier(0.22, 1, 0.36, 1);
+  --clinical-teal: #0f766e;
+  --clinical-teal-dark: #115e59;
+  --clinical-surface: #ffffff;
+  --clinical-bg: #f7f9f8;
+  --focus-color: #0f766e;
 }
 
-/* Visually hidden utility for skip links and screen-reader labels */
+/* Visually hidden utility (accessible skip links & SR labels) */
 .visually-hidden:where(:not(:focus-within, :active)) {
   position: absolute !important;
   clip-path: inset(50%) !important;
@@ -37,41 +27,42 @@
   white-space: nowrap !important;
 }
 
-/* Visible high-contrast keyboard focus rings */
+/* High-contrast focus rings across interactive controls */
 :where(a:any-link, button, input, select, textarea, summary):focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* Native HTML switch control */
-input[type="checkbox"][switch] {
-  accent-color: var(--accent);
-  margin: 0;
-  cursor: pointer;
-  inline-size: 2rem;
-  block-size: 1.25rem;
-}
-
-input[type="checkbox"][switch]:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 3px solid var(--focus-color);
   outline-offset: 3px;
 }
 
-/* Native <dialog> modal scroll containment & calm backdrop */
+/* Native HTML switch control styling (progressive enhancement) */
+input[type="checkbox"][switch] {
+  accent-color: var(--clinical-teal);
+  margin: 0;
+  cursor: pointer;
+  inline-size: 2.25rem;
+  block-size: 1.35rem;
+}
+
+input[type="checkbox"][switch]:focus-visible {
+  outline: 3px solid var(--focus-color);
+  outline-offset: 4px;
+}
+
+/* Native <dialog> modal scroll containment & backdrop (per modern-web-guidance) */
 dialog:modal {
   overscroll-behavior: contain;
   margin: auto;
   padding: 0;
   border: none;
   background: transparent;
-  max-width: min(94vw, 46rem);
+  max-width: min(94vw, 48rem);
   max-height: 90dvh;
 }
 
 dialog::backdrop {
   overflow: hidden;
   overscroll-behavior: contain;
-  background: rgba(23, 23, 23, 0.45);
+  background: rgba(15, 23, 42, 0.56);
+  backdrop-filter: blur(4px);
 }
 
 dialog[open] {
@@ -79,60 +70,31 @@ dialog[open] {
   flex-direction: column;
 }
 
-/* Right-to-left typography discipline (Arabic & Urdu) */
-[dir="rtl"],
-[dir="rtl"] * {
-  letter-spacing: 0 !important;
-}
-
-[dir="rtl"] {
-  line-height: 1.7;
-}
-
-[dir="rtl"] h1,
-[dir="rtl"] h2,
-[dir="rtl"] h3 {
-  line-height: 1.35;
-}
-
-/* Elder / Grandparent large-print mode */
+/* Elder / Grandparent Mode high-contrast accessible scaling */
 [data-elder="true"] {
-  font-size: 1.125rem;
+  font-size: 1.16rem;
   line-height: 1.65;
 }
 
 [data-elder="true"] .elder-card {
-  border-color: rgba(23, 23, 23, 0.22);
+  border-width: 2px;
+  border-color: #0f766e;
+  box-shadow: 0 6px 20px -4px rgba(15, 118, 110, 0.14);
 }
 
 [data-elder="true"] .elder-value {
   font-size: 2rem;
-  line-height: 1.1;
+  line-height: 1.15;
 }
 
-/* Single calm entrance animation on content reveal */
-@keyframes clinicalFadeRise {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Subtle clinical background pattern */
+.clinical-grid-bg {
+  background-image:
+    radial-gradient(circle at 12% 10%, rgba(15, 118, 110, 0.07), transparent 36%),
+    radial-gradient(circle at 88% 4%, rgba(14, 165, 233, 0.06), transparent 32%);
 }
 
-.clinical-enter {
-  animation: clinicalFadeRise 340ms var(--ease-clinical) both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .clinical-enter {
-    animation: none;
-  }
-}
-
-/* Clean printable clinical summary */
+/* Clean printable clinical report */
 @media print {
   .no-print {
     display: none !important;
