@@ -330,4 +330,45 @@ describe('ShifaClear Deterministic Clinical Engine', () => {
     expect(byId('lymphocytes_abs')?.status).toBe('low');
     expect(byId('monocytes_pct')?.status).toBe('high');
   });
+
+  it('applies pediatric ALP range and pediatric medication guardrails (Reye syndrome, Doxycycline <8y, Fluoroquinolones)', () => {
+    const childDoc: RawExtractedDocument = {
+      documentType: 'mixed',
+      reportDate: '2026-11-27',
+      priorReportDate: '2026-05-15',
+      biomarkers: [
+        { name: 'Alkaline Phosphatase (ALP)', value: 310, unit: 'U/L' },
+        { name: 'HbA1c', value: 6.8, unit: '%' },
+      ],
+      priorBiomarkers: [{ name: 'HbA1c', value: 7.9, unit: '%' }],
+      medications: [
+        { brandName: 'Aspirin', dose: '81 mg', frequency: 'OD' },
+        { brandName: 'Vibramycin', dose: '100 mg', frequency: 'BD' },
+        { brandName: 'Ciprobay', dose: '250 mg', frequency: 'BD' },
+      ],
+    };
+
+    const childRes = evaluateClinicalDocument(childDoc, {
+      age: 5,
+      isPediatric: true,
+      sex: 'female',
+      unitSystem: 'SI',
+      language: 'en',
+    });
+
+    // ALP 310 is NORMAL for a 5-year-old child, whereas HIGH for an adult!
+    expect(childRes.biomarkers.find((b) => b.canonicalId === 'alp')?.status).toBe('normal');
+    const adultRes = evaluateClinicalDocument(childDoc, defaultMale);
+    expect(adultRes.biomarkers.find((b) => b.canonicalId === 'alp')?.status).toBe('high');
+
+    // All 3 pediatric medication guardrails must fire
+    expect(childRes.alerts.some((a) => a.ruleId === 'PED_ASPIRIN_REYES' && a.severity === 'critical')).toBe(true);
+    expect(childRes.alerts.some((a) => a.ruleId === 'PED_TETRACYCLINE_UNDER8')).toBe(true);
+    expect(childRes.alerts.some((a) => a.ruleId === 'PED_FLUOROQUINOLONE')).toBe(true);
+
+    // Multi-date priorBiomarkers automatically builds 2-visit chart history & improving trend
+    const hba1c = childRes.biomarkers.find((b) => b.canonicalId === 'hba1c');
+    expect(hba1c?.historySI?.length).toBe(2);
+    expect(hba1c?.trendDirection).toBe('improving');
+  });
 });

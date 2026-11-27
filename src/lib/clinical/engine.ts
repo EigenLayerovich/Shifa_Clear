@@ -189,6 +189,7 @@ export function evaluateClinicalDocument(
   const { medications, alerts: medAlerts } = evaluateMedications(
     rawDoc.medications,
     evaluatedBiomarkers,
+    context.age,
   );
 
   if (medications.length > 0) {

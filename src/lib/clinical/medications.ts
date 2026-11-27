@@ -87,6 +87,7 @@ function inferFoodRule(timingNotes = '', defaultRule: FoodRule = 'any'): FoodRul
 export function evaluateMedications(
   rawMeds: RawMedication[],
   evaluatedBiomarkers: EvaluatedBiomarker[] = [],
+  patientAge = 45,
 ): { medications: EvaluatedMedication[]; alerts: ClinicalAlert[] } {
   const entries: ResolvedMedEntry[] = rawMeds.map((med, idx) => {
     const profile = resolveDrugProfile(med.brandName, med.genericName);
@@ -656,6 +657,62 @@ export function evaluateMedications(
       involvedItems: [...hypoMeds.map((m) => m.evaluated.brandName), `Glucose (${glucose.siValue} mmol/L)`],
       ruleId: 'CROSS_HYPOGLYCEMIA_MEDS',
     });
+  }
+
+  // =========================================================================
+  // 6. PEDIATRIC MEDICATION SAFETY GUARDRAILS (age < 18)
+  // =========================================================================
+  if (patientAge < 18) {
+    // 6A: Aspirin in children/adolescents < 16y -> Reye's Syndrome
+    const aspirin = entries.filter((e) => e.evaluated.genericName.toLowerCase().includes('aspirin'));
+    if (patientAge < 16 && aspirin.length > 0) {
+      markFlag(aspirin, "PEDIATRIC: Reye's syndrome risk");
+      alerts.push({
+        id: 'alert-ped-aspirin-reyes',
+        severity: 'critical',
+        category: 'drug_interaction',
+        title: "PEDIATRIC SAFETY ALERT: Aspirin & Reye's Syndrome Risk (< 16y)",
+        clinicalRationale: `${names(aspirin)} should generally NOT be given to children or adolescents under 16 for fever or viral illness because of rare but life-threatening Reye's syndrome (brain and liver swelling).`,
+        recommendedAction:
+          'Confirm immediately with a pediatrician before giving Aspirin — only use if specifically prescribed by a pediatric specialist (e.g., Kawasaki disease).',
+        involvedItems: involvedLabels(aspirin),
+        ruleId: 'PED_ASPIRIN_REYES',
+      });
+    }
+
+    // 6B: Doxycycline / Tetracyclines in young children < 8y -> Tooth enamel staining
+    const tetracyclines = byClass('tetracycline');
+    if (patientAge < 8 && tetracyclines.length > 0) {
+      markFlag(tetracyclines, 'PEDIATRIC (<8y): Enamel staining caution');
+      alerts.push({
+        id: 'alert-ped-tetracycline',
+        severity: 'major',
+        category: 'drug_interaction',
+        title: 'Pediatric Dental Caution: Tetracycline / Doxycycline Under Age 8',
+        clinicalRationale: `${names(tetracyclines)} can bind developing teeth in children under 8 years old and cause permanent enamel discoloration unless clinically essential.`,
+        recommendedAction:
+          'Confirm with your pediatrician or pharmacist whether a pediatric-preferred antibiotic alternative is available.',
+        involvedItems: involvedLabels(tetracyclines),
+        ruleId: 'PED_TETRACYCLINE_UNDER8',
+      });
+    }
+
+    // 6C: Fluoroquinolones in < 18y -> Pediatric cartilage/tendon caution
+    const fluoroquinolones = byClass('fluoroquinolone');
+    if (fluoroquinolones.length > 0) {
+      markFlag(fluoroquinolones, 'PEDIATRIC (<18y): Joint/tendon caution');
+      alerts.push({
+        id: 'alert-ped-fluoroquinolone',
+        severity: 'major',
+        category: 'drug_interaction',
+        title: 'Pediatric Caution: Fluoroquinolone Antibiotic (< 18y)',
+        clinicalRationale: `${names(fluoroquinolones)} carries a pediatric musculoskeletal (cartilage/tendon) precaution and is typically reserved only when no safer pediatric antibiotic exists.`,
+        recommendedAction:
+          'Verify this prescription directly with your pediatrician before starting.',
+        involvedItems: involvedLabels(fluoroquinolones),
+        ruleId: 'PED_FLUOROQUINOLONE',
+      });
+    }
   }
 
   return {

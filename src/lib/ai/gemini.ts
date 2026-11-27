@@ -63,6 +63,10 @@ const EXTRACTION_SCHEMA = {
       enum: ['lab_report', 'prescription', 'mixed'],
     },
     reportDate: { type: 'string' },
+    priorReportDate: {
+      type: 'string',
+      description: 'If multiple attached reports have DIFFERENT collection dates, put the older report date here.',
+    },
     facilityName: { type: 'string' },
     patientAgeYears: {
       type: 'number',
@@ -86,6 +90,19 @@ const EXTRACTION_SCHEMA = {
           value: { type: 'number' },
           unit: { type: 'string' },
           rawReferenceRange: { type: 'string' },
+        },
+        required: ['name', 'value', 'unit'],
+      },
+    },
+    priorBiomarkers: {
+      type: 'array',
+      description: 'ONLY populate when multiple uploaded reports come from DIFFERENT dates (older visit values for longitudinal trend chart).',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          value: { type: 'number' },
+          unit: { type: 'string' },
         },
         required: ['name', 'value', 'unit'],
       },
@@ -128,7 +145,7 @@ export async function extractClinicalDocumentWithGemini(params: {
   const instructionText = [
     'You are a precision clinical document OCR & structured extraction engine for a UAE hospital app.',
     allFiles.length > 1
-      ? `You are given ${allFiles.length} separate pages/documents belonging to the SAME patient visit (for example, Hematology PDF + Biochemistry PDF + Prescription photo). Merge ALL biomarkers and medications across ALL attached documents into one unified clinical JSON response without duplicating identical rows.`
+      ? `You are given ${allFiles.length} separate pages/documents. If they share the SAME visit date (e.g., Hematology PDF + Biochemistry PDF + Prescription photo), merge ALL biomarkers and medications into biomarkers/medications without duplicates. If they have DIFFERENT collection dates (e.g., an older May lab and a newer Nov lab), put the MOST RECENT date & results into reportDate/biomarkers and the OLDER date & results into priorReportDate/priorBiomarkers for longitudinal trend tracking.`
       : 'Extract all lab biomarkers and medications from the attached medical document or medication photo.',
     '1. Extract patient demographics from the header if printed: patientAgeYears (numeric years — use decimals for infants/babies, e.g. "11 Mth 11 Days" -> 0.95, "6 Months" -> 0.5), patientAgeLabel (exact text like "11 Mth 11 Days"), and patientSex ("male" or "female").',
     '2. Extract EVERY numeric lab biomarker (name, numeric value, exact unit printed, exact rawReferenceRange printed on the report) and EVERY medication (brandName, genericName if visible, dose, frequency shorthand like OD/BD/TDS, timingNotes, duration).',
@@ -191,11 +208,15 @@ export async function extractClinicalDocumentWithGemini(params: {
   return {
     documentType: parsed.documentType || 'lab_report',
     reportDate: cleanStr(parsed.reportDate),
+    priorReportDate: cleanStr(parsed.priorReportDate),
     facilityName: cleanStr(parsed.facilityName),
     patientAgeYears: rawAge,
     patientAgeLabel: cleanStr(parsed.patientAgeLabel),
     patientSex: rawSex,
     biomarkers: Array.isArray(parsed.biomarkers) ? parsed.biomarkers : [],
+    priorBiomarkers: Array.isArray(parsed.priorBiomarkers) && parsed.priorBiomarkers.length > 0
+      ? parsed.priorBiomarkers
+      : undefined,
     medications: Array.isArray(parsed.medications) ? parsed.medications : [],
   };
 }

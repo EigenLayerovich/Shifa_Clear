@@ -511,6 +511,92 @@ export const BIOMARKER_RULES: Record<string, BiomarkerRule> = {
       scaleMax: 120,
     }),
   },
+  alp: {
+    canonicalId: 'alp',
+    displayName: 'Alkaline Phosphatase (ALP)',
+    loincCode: '6768-6',
+    organSystem: 'Liver',
+    bounds: (_sex, age) => {
+      // Pediatric bone growth physiologically elevates ALP (avoiding false adult liver alarms!)
+      if (age < 1) return { low: 110, high: 421, scaleMin: 50, scaleMax: 520 };
+      if (age < 6) return { low: 100, high: 351, scaleMin: 50, scaleMax: 450 };
+      if (age < 16) return { low: 100, high: 391, scaleMin: 50, scaleMax: 480 };
+      return { low: 40, high: 131, scaleMin: 20, scaleMax: 240 };
+    },
+  },
+  ggt: {
+    canonicalId: 'ggt',
+    displayName: 'GGT (Biliary / Liver Enzyme)',
+    loincCode: '2324-2',
+    organSystem: 'Liver',
+    bounds: (sex) => ({
+      high: sex === 'female' ? 41 : 61,
+      scaleMin: 5,
+      scaleMax: 140,
+    }),
+  },
+  albumin: {
+    canonicalId: 'albumin',
+    displayName: 'Serum Albumin',
+    loincCode: '1751-7',
+    organSystem: 'Liver',
+    bounds: () => ({ low: 35, high: 53, scaleMin: 20, scaleMax: 60 }),
+  },
+  free_t4: {
+    canonicalId: 'free_t4',
+    displayName: 'Free T4 (Thyroxine)',
+    loincCode: '3024-7',
+    organSystem: 'Endocrine & Vitamins',
+    bounds: () => ({ low: 12.0, high: 22.1, scaleMin: 5, scaleMax: 35 }),
+  },
+  iron: {
+    canonicalId: 'iron',
+    displayName: 'Serum Iron',
+    loincCode: '2498-4',
+    organSystem: 'Hematology (CBC)',
+    bounds: (sex, age) => {
+      if (age < 12) return { low: 9.0, high: 21.6, scaleMin: 2, scaleMax: 32 };
+      return {
+        low: sex === 'female' ? 6.6 : 10.6,
+        high: sex === 'female' ? 26.1 : 28.4,
+        scaleMin: 2,
+        scaleMax: 38,
+      };
+    },
+  },
+  folate: {
+    canonicalId: 'folate',
+    displayName: 'Serum Folate (Vitamin B9)',
+    loincCode: '2284-8',
+    organSystem: 'Endocrine & Vitamins',
+    higherIsBetter: true,
+    bounds: () => ({ low: 7.0, borderlineLow: 10.0, scaleMin: 2, scaleMax: 45 }),
+  },
+  magnesium: {
+    canonicalId: 'magnesium',
+    displayName: 'Serum Magnesium',
+    loincCode: '19123-9',
+    organSystem: 'Renal & Electrolytes',
+    bounds: () => ({
+      criticalLow: 0.45,
+      low: 0.7,
+      high: 1.06,
+      criticalHigh: 2.0,
+      scaleMin: 0.4,
+      scaleMax: 1.5,
+    }),
+  },
+  phosphorus: {
+    canonicalId: 'phosphorus',
+    displayName: 'Serum Phosphorus',
+    loincCode: '2777-1',
+    organSystem: 'Renal & Electrolytes',
+    bounds: (_sex, age) => {
+      if (age < 2) return { low: 1.3, high: 2.31, scaleMin: 0.7, scaleMax: 2.8 };
+      if (age < 13) return { low: 1.15, high: 1.91, scaleMin: 0.6, scaleMax: 2.4 };
+      return { low: 0.81, high: 1.46, scaleMin: 0.4, scaleMax: 2.0 };
+    },
+  },
   bilirubin_total: {
     canonicalId: 'bilirubin_total',
     displayName: 'Total Bilirubin',
