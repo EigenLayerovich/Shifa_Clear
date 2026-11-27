@@ -1,6 +1,7 @@
 import { evaluateMedications } from './medications';
 import { evaluateBiomarker } from './ranges';
 import type {
+  BiologicalSex,
   ClinicalAlert,
   ClinicalAuditStep,
   EvaluatedBiomarker,
@@ -11,6 +12,30 @@ import type {
   VerifiedClinicalEvaluation,
 } from './types';
 import { normalizeBiomarkerKey } from './units';
+
+/**
+ * Official CKD-EPI 2021 (Race-Free) Creatinine Equation (Inker et al., NEJM 2021)
+ * Input: Serum Creatinine in mg/dL, Age in years, Biological Sex
+ * Output: Estimated GFR in mL/min/1.73m² (rounded integer)
+ */
+export function calculateCkdEpi2021Egfr(
+  creatinineMgDl: number,
+  age: number,
+  sex: BiologicalSex,
+): number {
+  const scr = Math.max(0.1, creatinineMgDl);
+  const kappa = sex === 'female' ? 0.7 : 0.9;
+  const alpha = sex === 'female' ? -0.241 : -0.302;
+  const sexMultiplier = sex === 'female' ? 1.012 : 1.0;
+
+  const ratio = scr / kappa;
+  const minPart = Math.min(ratio, 1) ** alpha;
+  const maxPart = Math.max(ratio, 1) ** -1.2;
+  const agePart = 0.9938 ** Math.max(18, Math.min(110, age));
+
+  const egfr = 142 * minPart * maxPart * agePart * sexMultiplier;
+  return Math.max(1, Math.min(150, Math.round(egfr)));
+}
 
 export function evaluateClinicalDocument(
   rawDoc: RawExtractedDocument,
@@ -89,6 +114,51 @@ export function evaluateClinicalDocument(
         title: `Critical Panic Threshold Triggered: ${evaluated.displayName}`,
         detail: `${evaluated.siValue} ${evaluated.siUnit} crossed deterministic critical threshold (${evaluated.status.replace('_', ' ')}). UAE 998 escalation armed.`,
         status: 'critical',
+      });
+    }
+  }
+
+  // CKD-EPI 2021 (Race-Free) Auto-eGFR Calculation when Creatinine is present without printed eGFR
+  const hasPrintedEgfr = evaluatedBiomarkers.some((b) => b.canonicalId === 'egfr');
+  const creatinineBio = evaluatedBiomarkers.find((b) => b.canonicalId === 'creatinine');
+  if (!hasPrintedEgfr && creatinineBio && context.age >= 18) {
+    const computedEgfr = calculateCkdEpi2021Egfr(
+      creatinineBio.usValue,
+      context.age,
+      context.sex,
+    );
+    const { evaluated: egfrEval, rule: egfrRule } = evaluateBiomarker(
+      { name: 'eGFR', value: computedEgfr, unit: 'mL/min/1.73m²' },
+      context,
+      undefined,
+      rawDoc.reportDate,
+    );
+    egfrEval.isCalculated = true;
+    egfrEval.calculationNote = `Auto-calculated via CKD-EPI 2021 (Race-Free) from Creatinine (${creatinineBio.siValue} µmol/L / ${creatinineBio.usValue} mg/dL), ${context.sex}, ${context.age}y`;
+    evaluatedBiomarkers.push(egfrEval);
+
+    auditTrail.push({
+      stepNumber: stepCounter++,
+      stage: 'unit_normalization',
+      title: `CKD-EPI 2021 Auto-eGFR Computed: ${computedEgfr} mL/min/1.73m²`,
+      detail: `${egfrEval.calculationNote}. Chained into renal medication guardrails (Metformin, NSAIDs, Nitrofurantoin).`,
+      status: egfrEval.isCritical ? 'critical' : egfrEval.status !== 'normal' ? 'flagged' : 'converted',
+    });
+
+    if (egfrEval.isCritical) {
+      panicAlerts.push({
+        id: 'panic-egfr',
+        severity: 'critical',
+        category: 'panic_value',
+        title: `CRITICAL KIDNEY FILTRATION (CKD-EPI 2021 eGFR: ${computedEgfr} mL/min/1.73m²)`,
+        clinicalRationale:
+          egfrRule?.panicGuidance?.low ||
+          `Calculated eGFR (${computedEgfr}) is below 15 mL/min/1.73m², indicating critical kidney impairment.`,
+        recommendedAction:
+          'Seek immediate emergency medical care or call 998 (UAE National Ambulance).',
+        involvedItems: ['eGFR (CKD-EPI 2021)'],
+        emergencyNumber: '998',
+        ruleId: 'PANIC_EGFR_CKDEPI',
       });
     }
   }

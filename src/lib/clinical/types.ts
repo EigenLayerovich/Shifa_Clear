@@ -103,6 +103,8 @@ export interface EvaluatedBiomarker {
   trendDeltaText?: string;
   historySI?: Array<{ date: string; value: number }>;
   historyUS?: Array<{ date: string; value: number }>;
+  isCalculated?: boolean;
+  calculationNote?: string;
 }
 
 export interface EvaluatedMedication {

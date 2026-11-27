@@ -186,12 +186,20 @@ export function BiomarkerDashboard({
                         LOINC {bio.loincCode}
                       </span>
                     )}
+                    {bio.isCalculated && (
+                      <span className="rounded bg-teal-100 px-2 py-0.5 text-[10px] font-extrabold text-teal-900">
+                        CKD-EPI 2021 Auto-Calculated
+                      </span>
+                    )}
                   </div>
                   <h3 className="text-base font-extrabold text-slate-900">
                     {exp?.plainTitle || bio.displayName}
                   </h3>
                   {exp?.plainTitle && exp.plainTitle !== bio.displayName && (
                     <p className="text-xs font-medium text-slate-500">{bio.displayName}</p>
+                  )}
+                  {bio.isCalculated && bio.calculationNote && (
+                    <p className="text-[11px] font-semibold text-teal-800">{bio.calculationNote}</p>
                   )}
                 </div>
 

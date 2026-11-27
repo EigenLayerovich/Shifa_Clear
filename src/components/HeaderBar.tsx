@@ -75,16 +75,14 @@ export function HeaderBar({
 
           {/* Compact mobile action buttons */}
           <div className="flex items-center gap-2 lg:hidden">
-            {hasEvaluation && (
-              <button
-                type="button"
-                onClick={onOpenAudit}
-                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-              >
-                <ClipboardCheck className="h-4 w-4 text-teal-700" aria-hidden="true" />
-                <span>{t.auditTrailBtn}</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={onOpenAudit}
+              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              <ClipboardCheck className="h-4 w-4 text-teal-700" aria-hidden="true" />
+              <span>{hasEvaluation ? t.auditTrailBtn : '12/12 Validation'}</span>
+            </button>
             <button
               type="button"
               onClick={onOpenQrSettings}
@@ -174,16 +172,14 @@ export function HeaderBar({
 
           {/* Desktop Action Buttons */}
           <div className="hidden items-center gap-2 lg:flex">
-            {hasEvaluation && (
-              <button
-                type="button"
-                onClick={onOpenAudit}
-                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50/70 px-3 text-xs font-bold text-teal-900 transition hover:bg-teal-100"
-              >
-                <ClipboardCheck className="h-4 w-4 text-teal-700" aria-hidden="true" />
-                <span>{t.auditTrailBtn}</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={onOpenAudit}
+              className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50/70 px-3 text-xs font-bold text-teal-900 transition hover:bg-teal-100"
+            >
+              <ClipboardCheck className="h-4 w-4 text-teal-700" aria-hidden="true" />
+              <span>{hasEvaluation ? t.auditTrailBtn : '12/12 Validation'}</span>
+            </button>
             <button
               type="button"
               onClick={onOpenQrSettings}

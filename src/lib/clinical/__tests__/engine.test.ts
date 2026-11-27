@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateClinicalDocument } from '../engine';
+import { runClinicalValidationBenchmark } from '../benchmark';
+import { calculateCkdEpi2021Egfr, evaluateClinicalDocument } from '../engine';
 import { buildFhirR4Bundle } from '../fhir';
 import { parseClinicalTextDeterministically } from '../textParser';
 import type { PatientContext, RawExtractedDocument } from '../types';
@@ -241,5 +242,31 @@ describe('ShifaClear Deterministic Clinical Engine', () => {
     };
     const kRes = evaluateClinicalDocument(kDoc, defaultMale);
     expect(kRes.alerts.some((a) => a.ruleId === 'RX_RAAS_HYPERKALEMIA_STACK')).toBe(true);
+  });
+
+  it('auto-calculates CKD-EPI 2021 Race-Free eGFR from Creatinine and chains it into renal drug rules', () => {
+    const egfr62M = calculateCkdEpi2021Egfr(2.58, 62, 'male');
+    expect(egfr62M).toBeGreaterThanOrEqual(25);
+    expect(egfr62M).toBeLessThanOrEqual(30);
+
+    const doc: RawExtractedDocument = {
+      documentType: 'mixed',
+      biomarkers: [{ name: 'Creatinine', value: 240, unit: 'µmol/L' }],
+      medications: [{ brandName: 'Glucophage', dose: '1000 mg', frequency: 'BD' }],
+    };
+
+    const res = evaluateClinicalDocument(doc, { ...defaultMale, age: 66 });
+    const calcEgfr = res.biomarkers.find((b) => b.canonicalId === 'egfr');
+    expect(calcEgfr?.isCalculated).toBe(true);
+    expect(calcEgfr!.siValue).toBeLessThan(30);
+    expect(res.alerts.some((a) => a.ruleId === 'CROSS_METFORMIN_EGFR' && a.severity === 'critical')).toBe(true);
+  });
+
+  it('achieves 100% sensitivity and 0% false positives across all 12 clinical validation vignettes', () => {
+    const summary = runClinicalValidationBenchmark();
+    expect(summary.totalCases).toBe(12);
+    expect(summary.passedCases).toBe(12);
+    expect(summary.sensitivityPercent).toBe(100);
+    expect(summary.falsePositiveRatePercent).toBe(0);
   });
 });
