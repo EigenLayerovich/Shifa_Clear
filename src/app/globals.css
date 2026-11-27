@@ -385,7 +385,7 @@ input[type="range"].clinical-whatif-slider:focus-visible {
 }
 
 .clinical-lang-select {
-  min-width: 7.75rem;
+  min-width: 6.25rem;
   min-height: 36px;
   align-items: center;
   border-radius: 0.75rem;

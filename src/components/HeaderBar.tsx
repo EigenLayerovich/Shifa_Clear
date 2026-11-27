@@ -132,9 +132,7 @@ export function HeaderBar({
             >
               {LANGUAGES.map((lang) => (
                 <option key={lang.code} value={lang.code} lang={lang.code}>
-                  {lang.code === 'en'
-                    ? 'English'
-                    : `${lang.nativeLabel} (${lang.englishLabel})`}
+                  {lang.nativeLabel}
                 </option>
               ))}
             </select>
@@ -245,10 +243,12 @@ export function HeaderBar({
             <button
               type="button"
               onClick={onOpenQrSettings}
+              aria-label={t.qrSettingsBtn}
+              title={t.qrSettingsBtn}
               className="inline-flex min-h-[36px] items-center gap-1 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-2.5 text-[11px] font-bold text-slate-700 transition hover:bg-slate-50"
             >
               <QrCode className="h-3.5 w-3.5 text-teal-700" aria-hidden="true" />
-              <span>{t.qrSettingsBtn}</span>
+              <span>QR</span>
             </button>
           </div>
         </div>
