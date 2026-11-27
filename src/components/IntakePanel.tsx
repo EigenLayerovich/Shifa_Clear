@@ -504,10 +504,10 @@ export function IntakePanel({
             </div>
 
             {/* Autocomplete Search Input + Optional Creatinine */}
-            <div className="grid gap-3 sm:grid-cols-12">
+            <div className="grid items-start gap-3 sm:grid-cols-12">
               <div className="relative sm:col-span-8">
-                <label htmlFor="quick-drug-search" className="visually-hidden">
-                  Search UAE pharmacy brand or generic medication
+                <label htmlFor="quick-drug-search" className="mb-1 block text-[11px] font-bold text-slate-600">
+                  Search UAE Brand or Generic Medication
                 </label>
                 <div className="relative">
                   <Search
