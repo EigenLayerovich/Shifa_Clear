@@ -371,4 +371,155 @@ describe('ShifaClear Deterministic Clinical Engine', () => {
     expect(hba1c?.historySI?.length).toBe(2);
     expect(hba1c?.trendDirection).toBe('improving');
   });
+
+  it('evaluates Coagulation, Cardiac, Pancreas, Hb Electrophoresis, Sex Hormones, and PSA with correct organ groups and panic cutoffs', () => {
+    const panelDoc: RawExtractedDocument = {
+      documentType: 'lab_report',
+      biomarkers: [
+        { name: 'INR', value: 5.4, unit: 'ratio' },
+        { name: 'PT', value: 24.5, unit: 's' },
+        { name: 'aPTT', value: 42.0, unit: 's' },
+        { name: 'D-Dimer', value: 620, unit: 'ng/mL' }, // converts to 0.62 mg/L FEU; age 66 -> ULN 0.66 -> NORMAL!
+        { name: 'Troponin I', value: 0.08, unit: 'ng/mL' }, // converts to 80 ng/L -> CRITICAL HIGH!
+        { name: 'NT-proBNP', value: 1100, unit: 'pg/mL' }, // age 66 -> critical >= 900
+        { name: 'CK', value: 1450, unit: 'U/L' },
+        { name: 'ESR', value: 28, unit: 'mm/hr' }, // 66yo male ULN = 33 -> NORMAL!
+        { name: 'Free T3', value: 5.2, unit: 'pmol/L' },
+        { name: 'Direct Bilirubin', value: 12.0, unit: 'µmol/L' },
+        { name: 'Lipase', value: 220, unit: 'U/L' }, // >= 180 -> CRITICAL HIGH (pancreatitis!)
+        { name: 'Amylase', value: 140, unit: 'U/L' },
+        { name: 'Chloride', value: 102, unit: 'mmol/L' },
+        { name: 'Bicarbonate', value: 13, unit: 'mmol/L' }, // <= 14 -> CRITICAL LOW!
+        { name: 'PSA', value: 5.8, unit: 'ng/mL' }, // 66yo male ULN = 4.5 -> HIGH
+        { name: 'Cortisol', value: 340, unit: 'nmol/L' },
+        { name: 'Prolactin', value: 210, unit: 'mIU/L' },
+        { name: 'Hb A2', value: 4.8, unit: '%' }, // Beta-thalassemia trait flag!
+        { name: 'Hb S', value: 38.0, unit: '%' }, // Sickle cell trait flag!
+        { name: 'Total Testosterone', value: 3.1, unit: 'nmol/L' }, // LOW for adult male, HIGH for female!
+        { name: 'Estradiol', value: 92, unit: 'pmol/L' },
+        { name: 'FSH', value: 6.4, unit: 'IU/L' },
+        { name: 'LH', value: 4.2, unit: 'IU/L' },
+        { name: 'DHEA-S', value: 6.8, unit: 'µmol/L' },
+        { name: 'SHBG', value: 34.0, unit: 'nmol/L' },
+      ],
+      medications: [],
+    };
+
+    const male66 = evaluateClinicalDocument(panelDoc, { ...defaultMale, age: 66 });
+    const byId = (id: string) => male66.biomarkers.find((b) => b.canonicalId === id);
+
+    // Organ System classification checks
+    expect(byId('inr')?.organSystem).toBe('Coagulation');
+    expect(byId('troponin_i')?.organSystem).toBe('Lipids & Cardiac');
+    expect(byId('lipase')?.organSystem).toBe('Liver & Pancreas');
+    expect(byId('hb_a2')?.organSystem).toBe('Hematology (CBC)');
+    expect(byId('testosterone_total')?.organSystem).toBe('Reproductive & Sex Hormones');
+    expect(byId('psa')?.organSystem).toBe('Tumor & Oncology Markers');
+
+    // Unit conversion + Age-adjusted bounds
+    expect(byId('d_dimer')?.siValue).toBeCloseTo(0.62, 2);
+    expect(byId('d_dimer')?.status).toBe('normal'); // Age-adjusted ULN for 66y = 0.66 mg/L FEU
+    expect(byId('troponin_i')?.siValue).toBe(80);
+    expect(byId('troponin_i')?.status).toBe('critical_high');
+    expect(byId('esr')?.status).toBe('normal'); // 66yo male ULN = 33
+    expect(byId('lipase')?.status).toBe('critical_high');
+    expect(byId('bicarbonate')?.status).toBe('critical_low');
+    expect(byId('hb_a2')?.status).toBe('high');
+    expect(byId('hb_s')?.status).toBe('high');
+    expect(byId('psa')?.status).toBe('high');
+
+    // Sex-specific Testosterone boundary (3.1 nmol/L = LOW in male, HIGH in female)
+    expect(byId('testosterone_total')?.status).toBe('low');
+    const female30 = evaluateClinicalDocument(
+      {
+        documentType: 'lab_report',
+        biomarkers: [{ name: 'Total Testosterone', value: 3.1, unit: 'nmol/L' }],
+        medications: [],
+      },
+      { ...defaultFemale, age: 30 },
+    );
+    expect(female30.biomarkers[0].status).toBe('high');
+  });
+
+  it('catches multi-ingredient combo pills (Co-Diovan, Galvus Met), Carbamazepine, Alendronate, and Warfarin-INR / Statin-CK / Metformin-HCO3 rules', () => {
+    // 1. Co-Diovan (Valsartan/HCTZ) + Voltaren -> 2 pills trigger Triple Whammy AKI!
+    const comboTriple = evaluateClinicalDocument(
+      {
+        documentType: 'prescription',
+        biomarkers: [],
+        medications: [
+          { brandName: 'Co-Diovan', dose: '160/12.5 mg', frequency: 'OD' },
+          { brandName: 'Voltaren', dose: '50 mg', frequency: 'BD' },
+        ],
+      },
+      defaultMale,
+    );
+    expect(comboTriple.alerts.some((a) => a.ruleId === 'RX_TRIPLE_WHAMMY_AKI')).toBe(true);
+
+    // 2. Galvus Met (Vildagliptin/Metformin) + Glucophage + eGFR 28 + HCO3 13 -> Duplicate Metformin + Renal + Acidosis!
+    const galvusRes = evaluateClinicalDocument(
+      {
+        documentType: 'mixed',
+        biomarkers: [
+          { name: 'eGFR', value: 28, unit: 'mL/min/1.73m²' },
+          { name: 'Bicarbonate', value: 13, unit: 'mmol/L' },
+        ],
+        medications: [
+          { brandName: 'Galvus Met', dose: '50/1000 mg', frequency: 'BD' },
+          { brandName: 'Glucophage', dose: '1000 mg', frequency: 'OD' },
+        ],
+      },
+      defaultMale,
+    );
+    expect(galvusRes.alerts.some((a) => a.ruleId === 'RX_DUPLICATE_BIGUANIDE')).toBe(true);
+    expect(galvusRes.alerts.some((a) => a.ruleId === 'CROSS_METFORMIN_EGFR' && a.severity === 'critical')).toBe(true);
+    expect(galvusRes.alerts.some((a) => a.ruleId === 'CROSS_METFORMIN_ACIDOSIS' && a.severity === 'critical')).toBe(true);
+
+    // 3. Carbamazepine (Tegretol) + Eliquis (Apixaban) + Fosamax + Caltrate -> Critical DOAC failure + Alendronate auto-reschedule
+    const carbRes = evaluateClinicalDocument(
+      {
+        documentType: 'prescription',
+        biomarkers: [],
+        medications: [
+          { brandName: 'Tegretol', dose: '200 mg', frequency: 'BD' },
+          { brandName: 'Eliquis', dose: '5 mg', frequency: 'BD' },
+          { brandName: 'Fosamax', dose: '70 mg', frequency: 'OD morning' },
+          { brandName: 'Caltrate', dose: '600 mg', frequency: 'OD morning' },
+        ],
+      },
+      defaultFemale,
+    );
+    expect(carbRes.alerts.some((a) => a.ruleId === 'RX_CARBAMAZEPINE_INDUCER' && a.severity === 'critical')).toBe(true);
+    expect(carbRes.alerts.some((a) => a.ruleId === 'RX_BISPHOSPHONATE_CHELATION')).toBe(true);
+    expect(carbRes.medications.find((m) => m.brandName === 'Caltrate')?.slots).toEqual(['afternoon']);
+
+    // 4. Warfarin + INR 5.5 + Lipitor + CK 5400 -> Critical Warfarin INR + Critical Statin Rhabdomyolysis!
+    const crossRes = evaluateClinicalDocument(
+      {
+        documentType: 'mixed',
+        biomarkers: [
+          { name: 'INR', value: 5.5, unit: 'ratio' },
+          { name: 'CK', value: 5400, unit: 'U/L' },
+        ],
+        medications: [
+          { brandName: 'Marevan', dose: '5 mg', frequency: 'OD evening' },
+          { brandName: 'Lipitor', dose: '40 mg', frequency: 'OD' },
+        ],
+      },
+      defaultMale,
+    );
+    expect(crossRes.alerts.some((a) => a.ruleId === 'CROSS_WARFARIN_INR' && a.severity === 'critical')).toBe(true);
+    expect(crossRes.alerts.some((a) => a.ruleId === 'CROSS_STATIN_CK' && a.severity === 'critical')).toBe(true);
+
+    // 5. Pediatric Creatinine audit trail documents Bedside Schwartz transparency
+    const pedAudit = evaluateClinicalDocument(
+      {
+        documentType: 'lab_report',
+        biomarkers: [{ name: 'Serum Creatinine', value: 35, unit: 'µmol/L' }],
+        medications: [],
+      },
+      { ...defaultFemale, age: 4, isPediatric: true },
+    );
+    expect(pedAudit.auditTrail.some((s) => s.title.includes('Pediatric Renal Guardrail'))).toBe(true);
+  });
 });

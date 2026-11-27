@@ -9,8 +9,11 @@ export type OrganSystem =
   | 'Lipids & Cardiac'
   | 'Renal & Electrolytes'
   | 'Hematology (CBC)'
-  | 'Liver'
+  | 'Coagulation'
+  | 'Liver & Pancreas'
   | 'Endocrine & Vitamins'
+  | 'Reproductive & Sex Hormones'
+  | 'Tumor & Oncology Markers'
   | 'Inflammation & Other';
 
 export type BiomarkerStatus =

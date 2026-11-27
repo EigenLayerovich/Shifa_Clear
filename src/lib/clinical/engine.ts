@@ -171,6 +171,14 @@ export function evaluateClinicalDocument(
         ruleId: 'PANIC_EGFR_CKDEPI',
       });
     }
+  } else if (!hasPrintedEgfr && creatinineBio && context.age < 18) {
+    auditTrail.push({
+      stepNumber: stepCounter++,
+      stage: 'reference_range',
+      title: `Pediatric Renal Guardrail Active (${ageDisplay})`,
+      detail: `Adult CKD-EPI 2021 eGFR intentionally suppressed for patient under 18y; Serum Creatinine (${creatinineBio.siValue} ${creatinineBio.siUnit}) evaluated against age-stratified pediatric bounds. Bedside Schwartz pediatric eGFR requires patient height (cm).`,
+      status: 'passed',
+    });
   }
 
   if (evaluatedBiomarkers.length > 0) {

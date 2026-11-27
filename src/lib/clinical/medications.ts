@@ -119,13 +119,23 @@ export function evaluateMedications(
   const byTag = (tag: string) =>
     entries.filter((e) => e.profile?.tags?.includes(tag));
 
+  const dedupe = (list: ResolvedMedEntry[]) => {
+    const seen = new Set<string>();
+    return list.filter((e) => {
+      if (seen.has(e.evaluated.id)) return false;
+      seen.add(e.evaluated.id);
+      return true;
+    });
+  };
   const names = (list: ResolvedMedEntry[]) =>
-    list.map((e) => e.evaluated.brandName).join('/');
+    dedupe(list)
+      .map((e) => e.evaluated.brandName)
+      .join('/');
   const involvedLabels = (list: ResolvedMedEntry[]) =>
-    list.map((e) => `${e.evaluated.brandName} (${e.evaluated.genericName})`);
+    dedupe(list).map((e) => `${e.evaluated.brandName} (${e.evaluated.genericName})`);
 
   const markFlag = (list: ResolvedMedEntry[], summary: string) => {
-    for (const item of list) {
+    for (const item of dedupe(list)) {
       item.evaluated.hasSafetyFlag = true;
       item.evaluated.safetyFlagSummary = item.evaluated.safetyFlagSummary
         ? `${item.evaluated.safetyFlagSummary} • ${summary}`
@@ -467,6 +477,40 @@ export function evaluateMedications(
     });
   }
 
+  // 2N: Carbamazepine (Potent CYP3A4 / P-gp Inducer) + Anticoagulants / CYP3A4 Statins / CCBs
+  const inducers = byClass('anticonvulsant_inducer');
+  const inducerAnticoags = byTag('anticoagulant');
+  const inducerCardioTargets = byClass('statin_cyp3a4', 'ccb_dhp', 'ccb_non_dhp');
+  if (inducers.length > 0 && inducerAnticoags.length > 0) {
+    const group = [...inducers, ...inducerAnticoags];
+    markFlag(group, 'CRITICAL: Anticoagulant failure risk');
+    alerts.push({
+      id: 'alert-carbamazepine-anticoag',
+      severity: 'critical',
+      category: 'drug_interaction',
+      title: 'CRITICAL: Anticoagulant Loss of Protection (Carbamazepine Enzyme Induction)',
+      clinicalRationale: `${names(inducers)} strongly induces CYP3A4 and P-gp enzymes, rapidly clearing ${names(inducerAnticoags)} and causing blood-thinner treatment failure (high stroke / clot risk).`,
+      recommendedAction:
+        'Contact your neurologist and cardiologist urgently — DOACs (Eliquis, Xarelto, Pradaxa) are generally contraindicated with Carbamazepine, and Warfarin requires close INR monitoring.',
+      involvedItems: involvedLabels(group),
+      ruleId: 'RX_CARBAMAZEPINE_INDUCER',
+    });
+  } else if (inducers.length > 0 && inducerCardioTargets.length > 0) {
+    const group = [...inducers, ...inducerCardioTargets];
+    markFlag(group, 'Reduced efficacy (CYP3A4 induction)');
+    alerts.push({
+      id: 'alert-carbamazepine-cyp3a4',
+      severity: 'major',
+      category: 'drug_interaction',
+      title: 'Reduced Medication Effectiveness (Carbamazepine CYP3A4 Induction)',
+      clinicalRationale: `${names(inducers)} accelerates liver breakdown of ${names(inducerCardioTargets)}, significantly lowering its blood levels and clinical benefit.`,
+      recommendedAction:
+        'Review with your prescribing physician whether a non-CYP3A4 alternative or dose adjustment is needed.',
+      involvedItems: involvedLabels(group),
+      ruleId: 'RX_CARBAMAZEPINE_INDUCER',
+    });
+  }
+
   // =========================================================================
   // 3. ABSORPTION & TIMING SEPARATION RULES (Auto-Scheduling!)
   // =========================================================================
@@ -515,12 +559,38 @@ export function evaluateMedications(
     });
   }
 
+  // 3C: Bisphosphonate (Alendronate / Fosamax) + Polyvalent Cations (Chelation blocks bone absorption!)
+  const bisphosphonates = byClass('bisphosphonate');
+  if (bisphosphonates.length > 0 && cations.length > 0) {
+    const group = [...bisphosphonates, ...cations];
+    for (const c of cations) {
+      if (c.evaluated.slots.includes('morning')) {
+        c.evaluated.slots = ['afternoon'];
+        c.evaluated.timingInstruction =
+          'Moved to Lunch/Afternoon: separate from Alendronate (Fosamax) so calcium/minerals do not block bone medication absorption.';
+      }
+    }
+    markFlag(group, 'Separate from minerals & food');
+    alerts.push({
+      id: 'alert-bisphosphonate-chelation',
+      severity: 'moderate',
+      category: 'timing_conflict',
+      title: 'Bone Medicine Absorption Blocked by Minerals / Antacids',
+      clinicalRationale: `${names(cations)} binds ${names(bisphosphonates)} in the stomach and prevents almost all absorption into bone.`,
+      recommendedAction:
+        'Take Alendronate first thing on waking with a full glass of plain tap/bottled water, stay upright >= 30 minutes, and take Calcium, Iron, Magnesium, or Antacids later at lunch or dinner.',
+      involvedItems: involvedLabels(group),
+      ruleId: 'RX_BISPHOSPHONATE_CHELATION',
+    });
+  }
+
   // =========================================================================
   // 4. DUPLICATE THERAPY CHECKS
   // =========================================================================
   const duplicateCheckClasses: Array<{ cls: string[]; label: string; id: string }> = [
     { cls: ['nsaid'], label: 'NSAID painkillers', id: 'nsaid' },
     { cls: ['analgesic_paracetamol'], label: 'Paracetamol-containing products', id: 'paracetamol' },
+    { cls: ['biguanide'], label: 'Metformin-containing diabetes products', id: 'biguanide' },
     { cls: ['arb'], label: 'ARB blood pressure medicines', id: 'arb' },
     { cls: ['ace_inhibitor'], label: 'ACE inhibitor blood pressure medicines', id: 'acei' },
     { cls: ['statin_cyp3a4', 'statin'], label: 'Cholesterol statins', id: 'statin' },
@@ -554,6 +624,9 @@ export function evaluateMedications(
   const potassium = evaluatedBiomarkers.find((b) => b.canonicalId === 'potassium');
   const alt = evaluatedBiomarkers.find((b) => b.canonicalId === 'alt');
   const glucose = evaluatedBiomarkers.find((b) => b.canonicalId === 'glucose_fasting');
+  const inr = evaluatedBiomarkers.find((b) => b.canonicalId === 'inr');
+  const ck = evaluatedBiomarkers.find((b) => b.canonicalId === 'ck');
+  const bicarbonate = evaluatedBiomarkers.find((b) => b.canonicalId === 'bicarbonate');
 
   // 5A: Metformin + Low eGFR
   const metformin = byClass('biguanide');
@@ -656,6 +729,93 @@ export function evaluateMedications(
         'Review your diabetes dosing promptly with your physician (especially if fasting or reducing meal sizes).',
       involvedItems: [...hypoMeds.map((m) => m.evaluated.brandName), `Glucose (${glucose.siValue} mmol/L)`],
       ruleId: 'CROSS_HYPOGLYCEMIA_MEDS',
+    });
+  }
+
+  // 5G: Warfarin + Out-of-Range INR (Supratherapeutic bleed risk or Subtherapeutic clot risk)
+  if (warfarin.length > 0 && inr) {
+    if (inr.siValue >= 5.0) {
+      markFlag(warfarin, 'CRITICAL: Supratherapeutic INR');
+      alerts.push({
+        id: 'alert-warfarin-inr-critical',
+        severity: 'critical',
+        category: 'renal_caution',
+        title: `CRITICAL: Supratherapeutic Warfarin INR (${inr.siValue}) — Major Bleed Risk`,
+        clinicalRationale: `INR is ${inr.siValue} while taking ${names(warfarin)}, sharply raising the risk of spontaneous internal or intracranial hemorrhage.`,
+        recommendedAction:
+          'Hold the next Warfarin dose and contact your anticoagulation clinic or Emergency Department immediately (call 998 if any active bleeding, dark stools, or severe headache).',
+        involvedItems: [...warfarin.map((m) => m.evaluated.brandName), `INR (${inr.siValue})`],
+        emergencyNumber: '998',
+        ruleId: 'CROSS_WARFARIN_INR',
+      });
+    } else if (inr.siValue > 3.5) {
+      markFlag(warfarin, 'Elevated Warfarin INR');
+      alerts.push({
+        id: 'alert-warfarin-inr-high',
+        severity: 'major',
+        category: 'renal_caution',
+        title: `Elevated Warfarin INR (${inr.siValue}) — Dose Review Needed`,
+        clinicalRationale: `INR is ${inr.siValue} (above the typical 2.0–3.0 or 2.5–3.5 therapeutic range) while taking ${names(warfarin)}, increasing bleeding risk.`,
+        recommendedAction:
+          'Contact your anticoagulation clinic or physician promptly to adjust your Warfarin dose and schedule a repeat INR.',
+        involvedItems: [...warfarin.map((m) => m.evaluated.brandName), `INR (${inr.siValue})`],
+        ruleId: 'CROSS_WARFARIN_INR',
+      });
+    } else if (inr.siValue < 2.0) {
+      markFlag(warfarin, 'Subtherapeutic Warfarin INR');
+      alerts.push({
+        id: 'alert-warfarin-inr-low',
+        severity: 'major',
+        category: 'renal_caution',
+        title: `Subtherapeutic Warfarin INR (${inr.siValue}) — Reduced Clot Protection`,
+        clinicalRationale: `INR is ${inr.siValue} (below the standard >= 2.0 therapeutic target) while on ${names(warfarin)}, which may reduce protection against blood clots or stroke.`,
+        recommendedAction:
+          'Contact your anticoagulation clinic or cardiologist to review missed doses, Vitamin K intake, or drug interactions.',
+        involvedItems: [...warfarin.map((m) => m.evaluated.brandName), `INR (${inr.siValue})`],
+        ruleId: 'CROSS_WARFARIN_INR',
+      });
+    }
+  }
+
+  // 5H: Statin + Markedly Elevated Creatine Kinase (CK >= 1,000 U/L -> Myopathy / Rhabdomyolysis)
+  if (statins.length > 0 && ck && ck.siValue >= 1000) {
+    const isRhabdo = ck.siValue >= 5000;
+    markFlag(statins, isRhabdo ? 'CRITICAL: Rhabdomyolysis alert' : 'Statin myopathy review');
+    alerts.push({
+      id: 'alert-statin-ck',
+      severity: isRhabdo ? 'critical' : 'major',
+      category: 'renal_caution',
+      title: isRhabdo
+        ? `CRITICAL: Statin Rhabdomyolysis Risk (CK ${ck.siValue} U/L)`
+        : `Statin Muscle Injury Alert (CK ${ck.siValue} U/L > 5× Normal)`,
+      clinicalRationale: `Creatine Kinase (CK) is markedly elevated (${ck.siValue} U/L) while taking ${names(statins)}, raising concern for statin-induced myopathy or muscle breakdown.`,
+      recommendedAction: isRhabdo
+        ? 'Pause the statin and seek emergency medical care immediately for IV hydration and kidney monitoring (call 998 if dark tea-colored urine or severe weakness).'
+        : 'Contact your physician promptly before taking further statin doses to evaluate muscle symptoms and renal function.',
+      involvedItems: [...statins.map((m) => m.evaluated.brandName), `CK (${ck.siValue} U/L)`],
+      emergencyNumber: isRhabdo ? '998' : undefined,
+      ruleId: 'CROSS_STATIN_CK',
+    });
+  }
+
+  // 5I: Metformin + Low Bicarbonate (HCO3- <= 18 mmol/L -> Lactic Acidosis / MALA Screen)
+  if (metformin.length > 0 && bicarbonate && bicarbonate.siValue <= 18) {
+    const isCriticalAcidosis = bicarbonate.siValue <= 14;
+    markFlag(metformin, 'Acidosis / MALA screen');
+    alerts.push({
+      id: 'alert-metformin-acidosis',
+      severity: isCriticalAcidosis ? 'critical' : 'major',
+      category: 'renal_caution',
+      title: isCriticalAcidosis
+        ? `CRITICAL: Severe Acidosis With Metformin (HCO3- ${bicarbonate.siValue} mmol/L)`
+        : `Low Bicarbonate With Metformin (HCO3- ${bicarbonate.siValue} mmol/L)`,
+      clinicalRationale: `Serum bicarbonate is low (${bicarbonate.siValue} mmol/L) while taking ${names(metformin)}, warranting urgent evaluation to rule out Metformin-Associated Lactic Acidosis (MALA) or DKA.`,
+      recommendedAction: isCriticalAcidosis
+        ? 'Hold Metformin and seek emergency medical evaluation immediately (call 998 if rapid breathing, vomiting, or confusion).'
+        : 'Contact your physician promptly to review your acid-base status and kidney function before continuing Metformin.',
+      involvedItems: [...metformin.map((m) => m.evaluated.brandName), `Bicarbonate (${bicarbonate.siValue} mmol/L)`],
+      emergencyNumber: isCriticalAcidosis ? '998' : undefined,
+      ruleId: 'CROSS_METFORMIN_ACIDOSIS',
     });
   }
 

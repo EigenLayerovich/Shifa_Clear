@@ -488,7 +488,7 @@ export const BIOMARKER_RULES: Record<string, BiomarkerRule> = {
     canonicalId: 'alt',
     displayName: 'ALT (Liver Enzyme)',
     loincCode: '1742-6',
-    organSystem: 'Liver',
+    organSystem: 'Liver & Pancreas',
     bounds: (sex) => ({
       high: sex === 'female' ? 34 : 42,
       criticalHigh: 500,
@@ -503,7 +503,7 @@ export const BIOMARKER_RULES: Record<string, BiomarkerRule> = {
     canonicalId: 'ast',
     displayName: 'AST (Liver Enzyme)',
     loincCode: '1920-8',
-    organSystem: 'Liver',
+    organSystem: 'Liver & Pancreas',
     bounds: () => ({
       high: 41,
       criticalHigh: 500,
@@ -515,7 +515,7 @@ export const BIOMARKER_RULES: Record<string, BiomarkerRule> = {
     canonicalId: 'alp',
     displayName: 'Alkaline Phosphatase (ALP)',
     loincCode: '6768-6',
-    organSystem: 'Liver',
+    organSystem: 'Liver & Pancreas',
     bounds: (_sex, age) => {
       // Pediatric bone growth physiologically elevates ALP (avoiding false adult liver alarms!)
       if (age < 1) return { low: 110, high: 421, scaleMin: 50, scaleMax: 520 };
@@ -528,7 +528,7 @@ export const BIOMARKER_RULES: Record<string, BiomarkerRule> = {
     canonicalId: 'ggt',
     displayName: 'GGT (Biliary / Liver Enzyme)',
     loincCode: '2324-2',
-    organSystem: 'Liver',
+    organSystem: 'Liver & Pancreas',
     bounds: (sex) => ({
       high: sex === 'female' ? 41 : 61,
       scaleMin: 5,
@@ -539,7 +539,7 @@ export const BIOMARKER_RULES: Record<string, BiomarkerRule> = {
     canonicalId: 'albumin',
     displayName: 'Serum Albumin',
     loincCode: '1751-7',
-    organSystem: 'Liver',
+    organSystem: 'Liver & Pancreas',
     bounds: () => ({ low: 35, high: 53, scaleMin: 20, scaleMax: 60 }),
   },
   free_t4: {
@@ -601,13 +601,60 @@ export const BIOMARKER_RULES: Record<string, BiomarkerRule> = {
     canonicalId: 'bilirubin_total',
     displayName: 'Total Bilirubin',
     loincCode: '1975-2',
-    organSystem: 'Liver',
+    organSystem: 'Liver & Pancreas',
     bounds: () => ({
       high: 22,
       criticalHigh: 205,
       scaleMin: 0,
       scaleMax: 60,
     }),
+  },
+  bilirubin_direct: {
+    canonicalId: 'bilirubin_direct',
+    displayName: 'Direct (Conjugated) Bilirubin',
+    loincCode: '1968-7',
+    organSystem: 'Liver & Pancreas',
+    bounds: () => ({
+      high: 5.2,
+      criticalHigh: 100,
+      scaleMin: 0,
+      scaleMax: 25,
+    }),
+    panicGuidance: {
+      high: 'Markedly elevated direct bilirubin indicates significant biliary obstruction or cholestatic liver injury; urgent physician evaluation is required.',
+    },
+  },
+  lipase: {
+    canonicalId: 'lipase',
+    displayName: 'Serum Lipase (Pancreas)',
+    loincCode: '3040-3',
+    organSystem: 'Liver & Pancreas',
+    bounds: () => ({
+      low: 13,
+      high: 61,
+      criticalHigh: 180,
+      scaleMin: 0,
+      scaleMax: 220,
+    }),
+    panicGuidance: {
+      high: 'Lipase >= 3× upper limit of normal (>= 180 U/L) meets biochemical criteria for acute pancreatitis. Seek urgent emergency medical evaluation immediately.',
+    },
+  },
+  amylase: {
+    canonicalId: 'amylase',
+    displayName: 'Serum Amylase (Pancreas)',
+    loincCode: '1798-8',
+    organSystem: 'Liver & Pancreas',
+    bounds: () => ({
+      low: 28,
+      high: 101,
+      criticalHigh: 300,
+      scaleMin: 0,
+      scaleMax: 350,
+    }),
+    panicGuidance: {
+      high: 'Amylase >= 3× upper limit of normal (>= 300 U/L) suggests acute pancreatitis; urgent clinical assessment is needed.',
+    },
   },
   tsh: {
     canonicalId: 'tsh',
@@ -621,6 +668,50 @@ export const BIOMARKER_RULES: Record<string, BiomarkerRule> = {
       criticalHigh: 50.0,
       scaleMin: 0.0,
       scaleMax: 14.0,
+    }),
+  },
+  free_t3: {
+    canonicalId: 'free_t3',
+    displayName: 'Free T3 (Triiodothyronine)',
+    loincCode: '3051-0',
+    organSystem: 'Endocrine & Vitamins',
+    bounds: () => ({
+      low: 3.1,
+      high: 6.9,
+      criticalHigh: 15.0,
+      scaleMin: 1.5,
+      scaleMax: 16.0,
+    }),
+    panicGuidance: {
+      high: 'Severely elevated Free T3 (>= 15.0 pmol/L) raises risk of thyrotoxic crisis (thyroid storm) and rapid arrhythmias; seek urgent care.',
+    },
+  },
+  cortisol: {
+    canonicalId: 'cortisol',
+    displayName: 'Serum Cortisol (Morning)',
+    loincCode: '2143-6',
+    organSystem: 'Endocrine & Vitamins',
+    bounds: () => ({
+      criticalLow: 80,
+      low: 138,
+      high: 636,
+      scaleMin: 50,
+      scaleMax: 850,
+    }),
+    panicGuidance: {
+      low: 'Critically low morning cortisol (<= 80 nmol/L) raises concern for acute adrenal insufficiency; urgent medical review is required.',
+    },
+  },
+  prolactin: {
+    canonicalId: 'prolactin',
+    displayName: 'Serum Prolactin',
+    loincCode: '2842-3',
+    organSystem: 'Endocrine & Vitamins',
+    bounds: (sex) => ({
+      low: sex === 'female' ? 102 : 86,
+      high: sex === 'female' ? 497 : 325,
+      scaleMin: 30,
+      scaleMax: 800,
     }),
   },
   vitamin_d: {
@@ -662,6 +753,339 @@ export const BIOMARKER_RULES: Record<string, BiomarkerRule> = {
       scaleMin: 0,
       scaleMax: 30,
     }),
+  },
+  esr: {
+    canonicalId: 'esr',
+    displayName: 'ESR (Sedimentation Rate)',
+    loincCode: '4537-7',
+    organSystem: 'Inflammation & Other',
+    bounds: (sex, age) => {
+      // Standard age/sex-adjusted Westergren upper limit: Male = age/2, Female = (age+10)/2
+      const uln =
+        age < 18
+          ? 10
+          : sex === 'female'
+            ? Math.max(20, Math.round((age + 10) / 2))
+            : Math.max(15, Math.round(age / 2));
+      return {
+        high: uln + 0.1,
+        scaleMin: 0,
+        scaleMax: Math.max(60, uln * 2),
+      };
+    },
+  },
+
+  // ===================== COAGULATION =====================
+  inr: {
+    canonicalId: 'inr',
+    displayName: 'INR (Clotting Ratio)',
+    loincCode: '6301-6',
+    organSystem: 'Coagulation',
+    bounds: () => ({
+      low: 0.8,
+      high: 1.25,
+      criticalHigh: 5.0,
+      scaleMin: 0.5,
+      scaleMax: 6.0,
+    }),
+    panicGuidance: {
+      high: 'Critically elevated INR (>= 5.0) carries high risk of spontaneous internal or intracranial bleeding. Contact your anticoagulation clinic or Emergency Department immediately (call 998 if active bleeding).',
+    },
+  },
+  pt: {
+    canonicalId: 'pt',
+    displayName: 'Prothrombin Time (PT)',
+    loincCode: '5902-2',
+    organSystem: 'Coagulation',
+    bounds: () => ({
+      low: 10.0,
+      high: 13.6,
+      criticalHigh: 30.0,
+      scaleMin: 8.0,
+      scaleMax: 35.0,
+    }),
+    panicGuidance: {
+      high: 'Critically prolonged PT (>= 30 s) indicates severe coagulopathy or anticoagulant excess with major bleeding risk. Seek urgent emergency assessment.',
+    },
+  },
+  aptt: {
+    canonicalId: 'aptt',
+    displayName: 'aPTT (Partial Thromboplastin Time)',
+    loincCode: '3173-2',
+    organSystem: 'Coagulation',
+    bounds: () => ({
+      low: 25.0,
+      high: 36.1,
+      criticalHigh: 70.0,
+      scaleMin: 18.0,
+      scaleMax: 80.0,
+    }),
+    panicGuidance: {
+      high: 'Critically prolonged aPTT (>= 70 s) carries major spontaneous hemorrhage risk; seek urgent medical review.',
+    },
+  },
+  d_dimer: {
+    canonicalId: 'd_dimer',
+    displayName: 'D-Dimer (Fibrin Clot Marker)',
+    loincCode: '48065-7',
+    organSystem: 'Coagulation',
+    bounds: (_sex, age) => {
+      // ESC/YEARS Age-adjusted D-dimer threshold for adults > 50y (age * 0.01 mg/L FEU)
+      const uln = age > 50 ? Math.round(age * 0.01 * 100) / 100 : 0.5;
+      return {
+        high: uln + 0.01,
+        criticalHigh: 5.0,
+        scaleMin: 0,
+        scaleMax: 6.0,
+      };
+    },
+    panicGuidance: {
+      high: 'Markedly elevated D-Dimer (>= 5.0 mg/L FEU / 5,000 ng/mL) requires urgent clinical assessment for thromboembolism (DVT/PE) or coagulopathy.',
+    },
+  },
+
+  // ===================== CARDIAC & MUSCLE =====================
+  troponin_i: {
+    canonicalId: 'troponin_i',
+    displayName: 'High-Sensitivity Troponin (hs-cTn)',
+    loincCode: '89579-7',
+    organSystem: 'Lipids & Cardiac',
+    bounds: (sex) => ({
+      high: sex === 'female' ? 16.1 : 34.1,
+      criticalHigh: 52.0,
+      scaleMin: 0,
+      scaleMax: 100,
+    }),
+    panicGuidance: {
+      high: 'Critically elevated Troponin (>= 52 ng/L) indicates acute myocardial injury (heart attack / ACS must be ruled out immediately). Call 998 or go to the nearest Emergency Department now.',
+    },
+  },
+  bnp: {
+    canonicalId: 'bnp',
+    displayName: 'BNP (Heart Failure Peptide)',
+    loincCode: '42637-9',
+    organSystem: 'Lipids & Cardiac',
+    bounds: () => ({
+      high: 100.1,
+      criticalHigh: 400,
+      scaleMin: 0,
+      scaleMax: 500,
+    }),
+    panicGuidance: {
+      high: 'Markedly elevated BNP (>= 400 pg/mL) strongly suggests acute heart failure decompensation; seek urgent cardiology/emergency evaluation.',
+    },
+  },
+  nt_probnp: {
+    canonicalId: 'nt_probnp',
+    displayName: 'NT-proBNP (Heart Failure Peptide)',
+    loincCode: '33762-6',
+    organSystem: 'Lipids & Cardiac',
+    bounds: (_sex, age) => {
+      if (age >= 75) return { high: 450.1, criticalHigh: 1800, scaleMin: 0, scaleMax: 2200 };
+      if (age >= 50) return { high: 125.1, criticalHigh: 900, scaleMin: 0, scaleMax: 1200 };
+      return { high: 125.1, criticalHigh: 450, scaleMin: 0, scaleMax: 700 };
+    },
+    panicGuidance: {
+      high: 'NT-proBNP crossed the age-stratified acute heart failure threshold; prompt emergency or cardiology review is advised.',
+    },
+  },
+  ck: {
+    canonicalId: 'ck',
+    displayName: 'Creatine Kinase (CK / CPK)',
+    loincCode: '2157-6',
+    organSystem: 'Lipids & Cardiac',
+    bounds: (sex) => ({
+      low: sex === 'female' ? 26 : 39,
+      high: sex === 'female' ? 193 : 309,
+      criticalHigh: 5000,
+      scaleMin: 0,
+      scaleMax: 1200,
+    }),
+    panicGuidance: {
+      high: 'Critically elevated CK (>= 5,000 U/L) indicates rhabdomyolysis with acute kidney injury and hyperkalemia risk. Seek emergency care immediately.',
+    },
+  },
+
+  // ===================== ELECTROLYTES & ACID-BASE (EXTENDED) =====================
+  chloride: {
+    canonicalId: 'chloride',
+    displayName: 'Serum Chloride (Cl-)',
+    loincCode: '2075-0',
+    organSystem: 'Renal & Electrolytes',
+    bounds: () => ({
+      criticalLow: 80,
+      low: 98,
+      high: 108,
+      criticalHigh: 120,
+      scaleMin: 80,
+      scaleMax: 120,
+    }),
+    panicGuidance: {
+      low: 'Critical hypochloremia indicates severe electrolyte/acid-base imbalance; seek urgent evaluation.',
+      high: 'Critical hyperchloremia indicates severe hyperchloremic acidosis or dehydration; seek urgent evaluation.',
+    },
+  },
+  bicarbonate: {
+    canonicalId: 'bicarbonate',
+    displayName: 'Serum Bicarbonate (HCO3- / CO2)',
+    loincCode: '1963-8',
+    organSystem: 'Renal & Electrolytes',
+    bounds: () => ({
+      criticalLow: 14,
+      low: 22,
+      high: 30,
+      criticalHigh: 40,
+      scaleMin: 10,
+      scaleMax: 42,
+    }),
+    panicGuidance: {
+      low: 'Critically low Bicarbonate (<= 14 mmol/L) indicates severe metabolic acidosis (e.g., DKA, lactic acidosis, or renal failure). Seek emergency medical care immediately.',
+      high: 'Critically elevated Bicarbonate (>= 40 mmol/L) indicates severe metabolic alkalosis or chronic CO2 retention; seek urgent review.',
+    },
+  },
+
+  // ===================== HEMOGLOBIN ELECTROPHORESIS (UAE THALASSEMIA / SICKLE SCREEN) =====================
+  hb_a: {
+    canonicalId: 'hb_a',
+    displayName: 'Hemoglobin A (HbA — Electrophoresis)',
+    loincCode: '4547-6',
+    organSystem: 'Hematology (CBC)',
+    higherIsBetter: true,
+    bounds: (_sex, age) =>
+      age < 1
+        ? { low: 60.0, high: 98.5, scaleMin: 40, scaleMax: 100 }
+        : { low: 95.0, high: 98.5, scaleMin: 50, scaleMax: 100 },
+  },
+  hb_a2: {
+    canonicalId: 'hb_a2',
+    displayName: 'Hemoglobin A2 (HbA2 — Beta-Thalassemia Screen)',
+    loincCode: '4551-8',
+    organSystem: 'Hematology (CBC)',
+    bounds: () => ({
+      low: 2.0,
+      high: 3.6,
+      scaleMin: 0,
+      scaleMax: 8.0,
+    }),
+  },
+  hb_f: {
+    canonicalId: 'hb_f',
+    displayName: 'Hemoglobin F (Fetal Hemoglobin)',
+    loincCode: '4576-5',
+    organSystem: 'Hematology (CBC)',
+    bounds: (_sex, age) =>
+      age < 1
+        ? { high: 30.1, scaleMin: 0, scaleMax: 50 }
+        : { high: 2.1, scaleMin: 0, scaleMax: 15 },
+  },
+  hb_s: {
+    canonicalId: 'hb_s',
+    displayName: 'Hemoglobin S (Sickle Cell Variant)',
+    loincCode: '4575-7',
+    organSystem: 'Hematology (CBC)',
+    bounds: () => ({
+      high: 0.5,
+      scaleMin: 0,
+      scaleMax: 100,
+    }),
+  },
+
+  // ===================== REPRODUCTIVE & SEX HORMONES =====================
+  testosterone_total: {
+    canonicalId: 'testosterone_total',
+    displayName: 'Total Testosterone',
+    loincCode: '2986-8',
+    organSystem: 'Reproductive & Sex Hormones',
+    bounds: (sex, age) => {
+      if (age < 12) return { high: 1.1, scaleMin: 0, scaleMax: 5 };
+      if (sex === 'female') return { low: 0.3, high: 1.8, scaleMin: 0, scaleMax: 5.0 };
+      return { low: 8.6, high: 29.1, scaleMin: 0, scaleMax: 40.0 };
+    },
+  },
+  estradiol: {
+    canonicalId: 'estradiol',
+    displayName: 'Estradiol (E2)',
+    loincCode: '2243-4',
+    organSystem: 'Reproductive & Sex Hormones',
+    bounds: (sex, age) => {
+      if (sex === 'male') return { low: 41, high: 160, scaleMin: 0, scaleMax: 300 };
+      if (age >= 51) return { high: 139, scaleMin: 0, scaleMax: 350 };
+      // Premenopausal female spans follicular through mid-cycle/luteal broad physiologic range
+      return { low: 45, high: 1461, scaleMin: 0, scaleMax: 1800 };
+    },
+  },
+  progesterone: {
+    canonicalId: 'progesterone',
+    displayName: 'Progesterone',
+    loincCode: '2839-9',
+    organSystem: 'Reproductive & Sex Hormones',
+    bounds: (sex, age) => {
+      if (sex === 'male') return { high: 1.5, scaleMin: 0, scaleMax: 5 };
+      if (age >= 51) return { high: 1.4, scaleMin: 0, scaleMax: 5 };
+      return { low: 0.6, high: 76.1, scaleMin: 0, scaleMax: 90 };
+    },
+  },
+  fsh: {
+    canonicalId: 'fsh',
+    displayName: 'FSH (Follicle-Stimulating Hormone)',
+    loincCode: '15067-2',
+    organSystem: 'Reproductive & Sex Hormones',
+    bounds: (sex, age) => {
+      if (sex === 'male') return { low: 1.5, high: 12.5, scaleMin: 0, scaleMax: 25 };
+      if (age >= 51) return { low: 25.8, high: 134.9, scaleMin: 0, scaleMax: 160 };
+      return { low: 1.7, high: 21.6, scaleMin: 0, scaleMax: 40 };
+    },
+  },
+  lh: {
+    canonicalId: 'lh',
+    displayName: 'LH (Luteinizing Hormone)',
+    loincCode: '10501-5',
+    organSystem: 'Reproductive & Sex Hormones',
+    bounds: (sex, age) => {
+      if (sex === 'male') return { low: 1.7, high: 8.7, scaleMin: 0, scaleMax: 20 };
+      if (age >= 51) return { low: 7.7, high: 58.6, scaleMin: 0, scaleMax: 80 };
+      return { low: 1.0, high: 95.7, scaleMin: 0, scaleMax: 110 };
+    },
+  },
+  dhea_s: {
+    canonicalId: 'dhea_s',
+    displayName: 'DHEA-S (Adrenal Androgen)',
+    loincCode: '2191-5',
+    organSystem: 'Reproductive & Sex Hormones',
+    bounds: (sex) =>
+      sex === 'female'
+        ? { low: 2.7, high: 9.3, scaleMin: 0, scaleMax: 16 }
+        : { low: 4.3, high: 12.3, scaleMin: 0, scaleMax: 20 },
+  },
+  shbg: {
+    canonicalId: 'shbg',
+    displayName: 'SHBG (Sex Hormone-Binding Globulin)',
+    loincCode: '13967-5',
+    organSystem: 'Reproductive & Sex Hormones',
+    bounds: (sex) =>
+      sex === 'female'
+        ? { low: 32.4, high: 128.1, scaleMin: 10, scaleMax: 170 }
+        : { low: 18.3, high: 54.2, scaleMin: 5, scaleMax: 90 },
+  },
+
+  // ===================== TUMOR & ONCOLOGY MARKERS =====================
+  psa: {
+    canonicalId: 'psa',
+    displayName: 'PSA (Prostate-Specific Antigen)',
+    loincCode: '2857-1',
+    organSystem: 'Tumor & Oncology Markers',
+    bounds: (_sex, age) => {
+      const uln = age < 50 ? 2.5 : age < 60 ? 3.5 : age < 70 ? 4.5 : 6.5;
+      return {
+        high: uln + 0.01,
+        criticalHigh: 20.0,
+        scaleMin: 0,
+        scaleMax: 25.0,
+      };
+    },
+    panicGuidance: {
+      high: 'Markedly elevated PSA (>= 20.0 µg/L) warrants prompt urology evaluation to investigate prostate pathology or acute prostatitis.',
+    },
   },
 };
 
