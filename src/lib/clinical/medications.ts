@@ -16,8 +16,17 @@ interface ResolvedMedEntry {
 }
 
 function resolveDrugProfile(brandName: string, genericHint?: string): DrugProfile | undefined {
+  // 1. Exact genericName match takes top priority (prevents "Calcium + Vitamin D3" matching "Vitamin D3")
+  if (genericHint) {
+    const cleanGeneric = genericHint.trim().toLowerCase();
+    const exactGeneric = UAE_DRUG_REGISTRY.find(
+      (entry) => entry.genericName.toLowerCase() === cleanGeneric,
+    );
+    if (exactGeneric) return exactGeneric;
+  }
+
   const haystack = `${brandName} ${genericHint || ''}`.toLowerCase();
-  // Match longest alias first so "panadol cold" or "janumet" matches specifically before shorter tokens
+  // 2. Match longest alias first so "panadol cold" or "janumet" matches specifically before shorter tokens
   let bestMatch: { profile: DrugProfile; aliasLen: number } | undefined;
 
   for (const entry of UAE_DRUG_REGISTRY) {

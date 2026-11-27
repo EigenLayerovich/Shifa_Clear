@@ -521,5 +521,20 @@ describe('ShifaClear Deterministic Clinical Engine', () => {
       { ...defaultFemale, age: 4, isPediatric: true },
     );
     expect(pedAudit.auditTrail.some((s) => s.title.includes('Pediatric Renal Guardrail'))).toBe(true);
+
+    // 6. Caltrate with genericName "Calcium + Vitamin D3" must resolve to Calcium (not Vitamin D3!) and fire 4h thyroid split
+    const caltrateRes = evaluateClinicalDocument(
+      {
+        documentType: 'prescription',
+        biomarkers: [],
+        medications: [
+          { brandName: 'Euthyrox', genericName: 'Levothyroxine', dose: '75 mcg', frequency: 'OD' },
+          { brandName: 'Caltrate', genericName: 'Calcium + Vitamin D3', dose: '600 mg', frequency: 'OD' },
+        ],
+      },
+      defaultFemale,
+    );
+    expect(caltrateRes.alerts.some((a) => a.ruleId === 'RX_LEVOTHYROXINE_CHELATION')).toBe(true);
+    expect(caltrateRes.medications.find((m) => m.brandName === 'Caltrate')?.slots).toEqual(['afternoon']);
   });
 });

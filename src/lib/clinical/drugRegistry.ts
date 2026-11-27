@@ -1176,7 +1176,7 @@ export const UAE_DRUG_REGISTRY: DrugProfile[] = [
     tags: ['polyvalent_cation'],
     defaultFoodRule: 'with_food',
     defaultTimingNote: 'Take with lunch or dinner; keep 4 hours away from thyroid pills and 2–6 hours away from fluoroquinolones.',
-    aliases: ['calcium', 'calcium-d3', 'calcium d3', 'caltrate', 'osteocare', 'calcichew', 'ide-os', 'ideos', 'cac-1000'],
+    aliases: ['calcium + vitamin d3', 'calcium vitamin d3', 'calcium-d3', 'calcium d3', 'calcium', 'caltrate', 'osteocare', 'calcichew', 'ide-os', 'ideos', 'cac-1000'],
   },
   {
     genericName: 'Ferrous Sulfate (Iron)',
