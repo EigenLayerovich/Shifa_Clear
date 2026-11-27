@@ -537,4 +537,70 @@ describe('ShifaClear Deterministic Clinical Engine', () => {
     expect(caltrateRes.alerts.some((a) => a.ruleId === 'RX_LEVOTHYROXINE_CHELATION')).toBe(true);
     expect(caltrateRes.medications.find((m) => m.brandName === 'Caltrate')?.slots).toEqual(['afternoon']);
   });
+
+  it('blocks wrong-patient longitudinal merging (JCI IPSG.1) when two different people are uploaded together, and maps singular Triglyceride cleanly', () => {
+    // Scenario: Wife (30Y Female, Nov 2026) + Infant Daughter (11 Mth Female, Apr 2026) uploaded together
+    const mismatchDoc: RawExtractedDocument = {
+      documentType: 'lab_report',
+      facilityName: 'International Medical Center',
+      reportDate: '22/11/2026',
+      priorReportDate: '09/04/2026',
+      patientAgeYears: 30.2,
+      patientAgeLabel: '30Y 2M 9D',
+      patientSex: 'female',
+      priorPatientAgeYears: 0.95,
+      priorPatientSex: 'female',
+      patientIdentityMismatch: true,
+      detectedPatients: [
+        { label: 'Patient 1 (Adult)', ageLabel: '30Y 2M 9D', sex: 'female', reportDate: '22/11/2026' },
+        { label: 'Patient 2 (Infant)', ageLabel: '11 Mth', sex: 'female', reportDate: '09/04/2026' },
+      ],
+      biomarkers: [
+        { name: 'WBC', value: 5.3, unit: '10^9/L' },
+        { name: 'Triglyceride', value: 0.94, unit: 'mmol/L' },
+      ],
+      // Even if priorBiomarkers somehow slipped through, the deterministic engine MUST strip them!
+      priorBiomarkers: [{ name: 'WBC', value: 6.1, unit: '10^9/L' }],
+      medications: [],
+    };
+
+    const res = evaluateClinicalDocument(mismatchDoc, {
+      ...defaultFemale,
+      age: 30.2,
+      ageLabel: '30Y 2M 9D',
+    });
+
+    // 1. IPSG.1 alert fires deterministically
+    expect(res.alerts.some((a) => a.ruleId === 'IPSG1_PATIENT_MISMATCH' && a.category === 'patient_identity')).toBe(true);
+    // 2. No false cross-patient trajectory chart is constructed!
+    const wbc = res.biomarkers.find((b) => b.canonicalId === 'wbc');
+    expect(wbc?.priorSiValue).toBeUndefined();
+    expect(wbc?.historySI).toBeUndefined();
+    expect(res.priorReportDate).toBeUndefined();
+
+    // 3. Singular "Triglyceride" maps cleanly to LOINC 2571-8 under Lipids & Cardiac
+    const tg = res.biomarkers.find((b) => b.canonicalId === 'triglycerides');
+    expect(tg?.organSystem).toBe('Lipids & Cardiac');
+    expect(tg?.loincCode).toBe('2571-8');
+    expect(tg?.status).toBe('normal');
+
+    // 4. Secondary pure-code check: catches age > 3y mismatch even when patientIdentityMismatch flag is omitted!
+    const silentMismatch = evaluateClinicalDocument(
+      {
+        documentType: 'lab_report',
+        reportDate: '22/11/2026',
+        priorReportDate: '09/04/2026',
+        patientAgeYears: 30,
+        patientSex: 'female',
+        priorPatientAgeYears: 1,
+        priorPatientSex: 'female',
+        biomarkers: [{ name: 'WBC', value: 5.3, unit: '10^9/L' }],
+        priorBiomarkers: [{ name: 'WBC', value: 9.7, unit: '10^9/L' }],
+        medications: [],
+      },
+      { ...defaultFemale, age: 30 },
+    );
+    expect(silentMismatch.alerts.some((a) => a.ruleId === 'IPSG1_PATIENT_MISMATCH')).toBe(true);
+    expect(silentMismatch.biomarkers[0].priorSiValue).toBeUndefined();
+  });
 });

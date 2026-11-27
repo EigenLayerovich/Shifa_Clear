@@ -57,16 +57,71 @@ export function evaluateClinicalDocument(
     status: context.autoDetectedFromReport ? 'converted' : 'passed',
   });
 
-  // Index prior biomarkers for longitudinal trend comparison
+  // JCI IPSG.1 Deterministic Patient-Identity Safety Guardrail (Blocks Wrong-Patient Chart Merging!)
+  const deterministicSexConflict = Boolean(
+    rawDoc.patientSex && rawDoc.priorPatientSex && rawDoc.patientSex !== rawDoc.priorPatientSex,
+  );
+  const deterministicAgeConflict = Boolean(
+    typeof rawDoc.patientAgeYears === 'number' &&
+      typeof rawDoc.priorPatientAgeYears === 'number' &&
+      Math.abs(rawDoc.patientAgeYears - rawDoc.priorPatientAgeYears) > 3,
+  );
+  const isPatientIdentityMismatch = Boolean(
+    rawDoc.patientIdentityMismatch ||
+      (rawDoc.detectedPatients && rawDoc.detectedPatients.length > 1) ||
+      deterministicSexConflict ||
+      deterministicAgeConflict,
+  );
+
+  // Index prior biomarkers for longitudinal trend comparison ONLY when patient identity matches!
   const priorMap = new Map<string, (typeof rawDoc.biomarkers)[number]>();
-  for (const p of rawDoc.priorBiomarkers || []) {
-    priorMap.set(normalizeBiomarkerKey(p.name, p.unit), p);
+  const effectivePriorReportDate = isPatientIdentityMismatch ? undefined : rawDoc.priorReportDate;
+  if (!isPatientIdentityMismatch) {
+    for (const p of rawDoc.priorBiomarkers || []) {
+      priorMap.set(normalizeBiomarkerKey(p.name, p.unit), p);
+    }
   }
 
   const evaluatedBiomarkers: EvaluatedBiomarker[] = [];
   const seenKeys = new Set<string>();
   const panicAlerts: ClinicalAlert[] = [];
   let convertedCount = 0;
+
+  if (isPatientIdentityMismatch) {
+    const patientDescriptions =
+      rawDoc.detectedPatients && rawDoc.detectedPatients.length > 1
+        ? rawDoc.detectedPatients.map((p) => {
+            const parts = [p.label];
+            if (p.sex) parts.push(p.sex === 'female' ? 'Female' : 'Male');
+            if (p.ageLabel) parts.push(p.ageLabel);
+            if (p.reportDate) parts.push(`[${p.reportDate}]`);
+            return parts.join(', ');
+          })
+        : [
+            `Primary: ${rawDoc.patientSex || context.sex}, ${rawDoc.patientAgeLabel || `${rawDoc.patientAgeYears ?? context.age}y`}`,
+            `Other document: ${rawDoc.priorPatientSex || 'unknown sex'}, ${rawDoc.priorPatientAgeYears !== undefined ? `${rawDoc.priorPatientAgeYears}y` : 'different demographics'}`,
+          ];
+
+    panicAlerts.push({
+      id: 'alert-ipsg1-patient-mismatch',
+      severity: 'major',
+      category: 'patient_identity',
+      title: 'Different Patients Detected — Cross-Patient Trajectory Blocked (JCI IPSG.1)',
+      clinicalRationale: `Uploaded files appear to belong to different people (${patientDescriptions.join(' vs. ')}). Merging lab results from two different individuals into one longitudinal trend chart is a patient-safety hazard, so ShifaClear blocked cross-patient merging and evaluated only the primary report (${ageDisplay}, ${context.sex}).`,
+      recommendedAction:
+        'Please upload each family member’s lab reports in separate scans so ShifaClear applies the correct age- and sex-specific ranges and tracks each person’s own trajectory accurately.',
+      involvedItems: patientDescriptions,
+      ruleId: 'IPSG1_PATIENT_MISMATCH',
+    });
+
+    auditTrail.push({
+      stepNumber: stepCounter++,
+      stage: 'panic_check',
+      title: 'JCI IPSG.1 Patient Identity Guardrail Triggered',
+      detail: `Blocked merging multi-file upload from different patients (${patientDescriptions.join(' vs. ')}). Suppressed longitudinal trend comparison to prevent wrong-patient chart mixing.`,
+      status: 'flagged',
+    });
+  }
 
   for (const rawBio of rawDoc.biomarkers) {
     const key = normalizeBiomarkerKey(rawBio.name, rawBio.unit);
@@ -80,7 +135,7 @@ export function evaluateClinicalDocument(
       context,
       prior,
       rawDoc.reportDate,
-      rawDoc.priorReportDate,
+      effectivePriorReportDate,
     );
     evaluatedBiomarkers.push(evaluated);
 
@@ -267,7 +322,7 @@ export function evaluateClinicalDocument(
   return {
     documentType: rawDoc.documentType,
     reportDate: rawDoc.reportDate,
-    priorReportDate: rawDoc.priorReportDate,
+    priorReportDate: effectivePriorReportDate,
     facilityName: rawDoc.facilityName,
     patientContext: context,
     overallRisk,

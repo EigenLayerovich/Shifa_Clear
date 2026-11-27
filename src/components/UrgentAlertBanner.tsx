@@ -112,7 +112,9 @@ export function UrgentAlertBanner({
                     <p className="text-sm leading-relaxed opacity-90">{explanation}</p>
 
                     {/* Animated Drug Interaction Arc Graph for multi-item drug/cross-domain interactions */}
-                    {alert.involvedItems.length >= 2 && alert.category !== 'panic_value' && (
+                    {alert.involvedItems.length >= 2 &&
+                      alert.category !== 'panic_value' &&
+                      alert.category !== 'patient_identity' && (
                       <div
                         dir="ltr"
                         className="my-2.5 rounded-xl border border-black/10 bg-white/85 px-4 py-3"

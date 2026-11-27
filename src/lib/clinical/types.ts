@@ -72,6 +72,13 @@ export interface RawMedication {
   route?: string;
 }
 
+export interface DetectedPatientSummary {
+  label: string;
+  ageLabel?: string;
+  sex?: BiologicalSex;
+  reportDate?: string;
+}
+
 export interface RawExtractedDocument {
   documentType: 'lab_report' | 'prescription' | 'mixed';
   reportDate?: string;
@@ -81,6 +88,10 @@ export interface RawExtractedDocument {
   patientAgeYears?: number;
   patientAgeLabel?: string;
   patientSex?: BiologicalSex;
+  priorPatientAgeYears?: number;
+  priorPatientSex?: BiologicalSex;
+  patientIdentityMismatch?: boolean;
+  detectedPatients?: DetectedPatientSummary[];
   biomarkers: RawBiomarker[];
   priorBiomarkers?: RawBiomarker[];
   medications: RawMedication[];
@@ -141,7 +152,8 @@ export interface ClinicalAlert {
     | 'drug_interaction'
     | 'duplicate_therapy'
     | 'timing_conflict'
-    | 'renal_caution';
+    | 'renal_caution'
+    | 'patient_identity';
   title: string;
   clinicalRationale: string;
   recommendedAction: string;

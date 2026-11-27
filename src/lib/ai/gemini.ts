@@ -79,7 +79,34 @@ const EXTRACTION_SCHEMA = {
     patientSex: {
       type: 'string',
       enum: ['male', 'female'],
-      description: 'Patient sex printed on report header ("male" or "female"). Omit if not printed.',
+      description: 'Patient sex printed on the primary report header ("male" or "female"). Omit if not printed.',
+    },
+    priorPatientAgeYears: {
+      type: 'number',
+      description: 'If a second/older document is attached, record the patient age (in years) printed on that second document so the safety engine can verify it is the same person.',
+    },
+    priorPatientSex: {
+      type: 'string',
+      enum: ['male', 'female'],
+      description: 'If a second/older document is attached, record the patient sex printed on that second document.',
+    },
+    patientIdentityMismatch: {
+      type: 'boolean',
+      description: 'MUST be true if the uploaded files belong to TWO OR MORE DIFFERENT PEOPLE (different Patient Names, different Patient IDs/MRNs, incompatible ages/DOBs such as adult vs child, or different sex).',
+    },
+    detectedPatients: {
+      type: 'array',
+      description: 'When patientIdentityMismatch is true, list each distinct patient detected across the uploaded files.',
+      items: {
+        type: 'object',
+        properties: {
+          label: { type: 'string' },
+          ageLabel: { type: 'string' },
+          sex: { type: 'string', enum: ['male', 'female'] },
+          reportDate: { type: 'string' },
+        },
+        required: ['label'],
+      },
     },
     biomarkers: {
       type: 'array',
@@ -202,7 +229,7 @@ export async function extractClinicalDocumentWithGemini(params: {
   const instructionText = [
     'You are a precision clinical document OCR & structured extraction engine for a UAE hospital app.',
     allFiles.length > 1
-      ? `You are given ${allFiles.length} separate pages/documents. If they share the SAME visit date (e.g., Hematology PDF + Biochemistry PDF + Prescription photo), merge ALL biomarkers and medications into biomarkers/medications without duplicates. If they have DIFFERENT collection dates (e.g., an older May lab and a newer Nov lab), put the MOST RECENT date & results into reportDate/biomarkers and the OLDER date & results into priorReportDate/priorBiomarkers for longitudinal trend tracking.`
+      ? `You are given ${allFiles.length} separate pages/documents. CRITICAL JCI IPSG.1 PATIENT IDENTITY CHECK FIRST: Compare Patient Name, Patient ID/MRN, Date of Birth / Age, and Sex printed on EVERY file! ONLY merge same-date files or populate priorBiomarkers if ALL files clearly belong to the EXACT SAME PATIENT. If the files belong to DIFFERENT PEOPLE (e.g., different names, different MRNs, adult vs child/infant, or husband vs wife): (a) set patientIdentityMismatch=true, (b) list each distinct person in detectedPatients (first name or "Patient 1"/"Patient 2", ageLabel, sex, reportDate), (c) extract ONLY the primary (most recent) patient into biomarkers/medications/patientAgeYears/patientSex, and (d) leave priorBiomarkers COMPLETELY EMPTY — NEVER merge two different people or build a trajectory between two different people! Only if all files are confirmed to be the SAME person with different collection dates, put the MOST RECENT visit into reportDate/biomarkers and the OLDER visit into priorReportDate/priorBiomarkers (and record priorPatientAgeYears/priorPatientSex).`
       : 'Extract all lab biomarkers and medications from the attached medical document or medication photo.',
     '1. Extract patient demographics from the header if printed: patientAgeYears (numeric years — use decimals for infants/babies, e.g. "11 Mth 11 Days" -> 0.95, "6 Months" -> 0.5), patientAgeLabel (exact text like "11 Mth 11 Days"), and patientSex ("male" or "female").',
     '2. Extract EVERY numeric lab biomarker (name, numeric value, exact unit printed, exact rawReferenceRange printed on the report) and EVERY medication (brandName, genericName if visible, dose, frequency shorthand like OD/BD/TDS, timingNotes, duration).',
@@ -262,18 +289,47 @@ export async function extractClinicalDocumentWithGemini(params: {
     ? parsed.patientSex
     : undefined;
 
+  const rawPriorAge =
+    typeof parsed.priorPatientAgeYears === 'number' &&
+    parsed.priorPatientAgeYears >= 0 &&
+    parsed.priorPatientAgeYears < 120
+      ? Math.round(parsed.priorPatientAgeYears * 100) / 100
+      : undefined;
+  const rawPriorSex =
+    parsed.priorPatientSex === 'female' || parsed.priorPatientSex === 'male'
+      ? parsed.priorPatientSex
+      : undefined;
+  const detectedPatients = Array.isArray(parsed.detectedPatients)
+    ? parsed.detectedPatients
+        .filter((p) => p && typeof p.label === 'string' && p.label.trim().length > 0)
+        .map((p) => ({
+          label: cleanStr(p.label) || 'Patient',
+          ageLabel: cleanStr(p.ageLabel),
+          sex: p.sex === 'female' || p.sex === 'male' ? p.sex : undefined,
+          reportDate: cleanStr(p.reportDate),
+        }))
+    : undefined;
+  const hasMismatch = Boolean(
+    parsed.patientIdentityMismatch || (detectedPatients && detectedPatients.length > 1),
+  );
+
   return {
     documentType: parsed.documentType || 'lab_report',
     reportDate: cleanStr(parsed.reportDate),
-    priorReportDate: cleanStr(parsed.priorReportDate),
+    priorReportDate: hasMismatch ? undefined : cleanStr(parsed.priorReportDate),
     facilityName: cleanStr(parsed.facilityName),
     patientAgeYears: rawAge,
     patientAgeLabel: cleanStr(parsed.patientAgeLabel),
     patientSex: rawSex,
+    priorPatientAgeYears: rawPriorAge,
+    priorPatientSex: rawPriorSex,
+    patientIdentityMismatch: hasMismatch || undefined,
+    detectedPatients,
     biomarkers: Array.isArray(parsed.biomarkers) ? parsed.biomarkers : [],
-    priorBiomarkers: Array.isArray(parsed.priorBiomarkers) && parsed.priorBiomarkers.length > 0
-      ? parsed.priorBiomarkers
-      : undefined,
+    priorBiomarkers:
+      !hasMismatch && Array.isArray(parsed.priorBiomarkers) && parsed.priorBiomarkers.length > 0
+        ? parsed.priorBiomarkers
+        : undefined,
     medications: Array.isArray(parsed.medications) ? parsed.medications : [],
   };
 }

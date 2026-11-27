@@ -20,9 +20,13 @@ export const BIOMARKER_NAME_ALIASES: Record<string, string> = {
   glucose: 'glucose_fasting',
   'fasting glucose': 'glucose_fasting',
   'fasting blood glucose': 'glucose_fasting',
+  'fasting blood sugar': 'glucose_fasting',
   'blood glucose': 'glucose_fasting',
+  'random glucose': 'glucose_fasting',
+  'random blood sugar': 'glucose_fasting',
   fbs: 'glucose_fasting',
   fbg: 'glucose_fasting',
+  rbs: 'glucose_fasting',
   glu: 'glucose_fasting',
 
   // Lipids
@@ -38,6 +42,9 @@ export const BIOMARKER_NAME_ALIASES: Record<string, string> = {
   cholesterol: 'total_cholesterol',
   tc: 'total_cholesterol',
   triglycerides: 'triglycerides',
+  triglyceride: 'triglycerides',
+  'serum triglyceride': 'triglycerides',
+  'serum triglycerides': 'triglycerides',
   tg: 'triglycerides',
   trigs: 'triglycerides',
 
