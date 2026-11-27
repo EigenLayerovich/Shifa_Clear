@@ -44,26 +44,36 @@ export function evaluateClinicalDocument(
   const auditTrail: ClinicalAuditStep[] = [];
   let stepCounter = 1;
 
+  const ageDisplay = context.ageLabel || `${context.age}y`;
+  const pediatricTag = context.age < 18 ? ' • Pediatric Ranges' : '';
+
   auditTrail.push({
     stepNumber: stepCounter++,
     stage: 'extraction',
-    title: 'Structured Clinical Intake Verified',
+    title: context.autoDetectedFromReport
+      ? `Demographics Auto-Detected (${context.sex}, ${ageDisplay}${pediatricTag})`
+      : 'Structured Clinical Intake Verified',
     detail: `Parsed ${rawDoc.biomarkers.length} biomarker(s) and ${rawDoc.medications.length} medication(s) from ${rawDoc.documentType.replace('_', ' ')}${rawDoc.facilityName ? ` (${rawDoc.facilityName})` : ''}.`,
-    status: 'passed',
+    status: context.autoDetectedFromReport ? 'converted' : 'passed',
   });
 
   // Index prior biomarkers for longitudinal trend comparison
   const priorMap = new Map<string, (typeof rawDoc.biomarkers)[number]>();
   for (const p of rawDoc.priorBiomarkers || []) {
-    priorMap.set(normalizeBiomarkerKey(p.name), p);
+    priorMap.set(normalizeBiomarkerKey(p.name, p.unit), p);
   }
 
   const evaluatedBiomarkers: EvaluatedBiomarker[] = [];
+  const seenKeys = new Set<string>();
   const panicAlerts: ClinicalAlert[] = [];
   let convertedCount = 0;
 
   for (const rawBio of rawDoc.biomarkers) {
-    const key = normalizeBiomarkerKey(rawBio.name);
+    const key = normalizeBiomarkerKey(rawBio.name, rawBio.unit);
+    // Prevent duplicate rows from OCR extracting the same marker twice
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+
     const prior = priorMap.get(key);
     const { evaluated, rule } = evaluateBiomarker(
       rawBio,
@@ -170,8 +180,8 @@ export function evaluateClinicalDocument(
     auditTrail.push({
       stepNumber: stepCounter++,
       stage: 'reference_range',
-      title: `Age/Sex Reference Evaluation (${context.sex}, ${context.age}y)`,
-      detail: `Evaluated ${evaluatedBiomarkers.length} biomarker(s) against deterministic clinical bounds (${convertedCount} unit conversion(s); ${abnormalCount} out-of-range/borderline).`,
+      title: `Age/Sex Reference Evaluation (${context.sex}, ${ageDisplay}${pediatricTag})`,
+      detail: `Evaluated ${evaluatedBiomarkers.length} biomarker(s) against deterministic ${context.age < 18 ? 'pediatric' : 'adult'} clinical bounds (${convertedCount} unit conversion(s); ${abnormalCount} out-of-range/borderline).`,
       status: abnormalCount > 0 ? 'flagged' : 'passed',
     });
   }

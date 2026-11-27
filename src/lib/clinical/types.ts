@@ -33,10 +33,15 @@ export type FoodRule =
   | 'any';
 
 export interface PatientContext {
+  /** Age in years (supports decimals for infants, e.g., 0.95 for 11 months) */
   age: number;
+  /** Optional human-readable age extracted from report (e.g., "11 Mth 11 Days") */
+  ageLabel?: string;
+  isPediatric?: boolean;
   sex: BiologicalSex;
   unitSystem: UnitSystem;
   language: SupportedLanguage;
+  autoDetectedFromReport?: boolean;
 }
 
 export interface BiomarkerHistoryPoint {
@@ -70,6 +75,9 @@ export interface RawExtractedDocument {
   priorReportDate?: string;
   facilityName?: string;
   patientLabel?: string;
+  patientAgeYears?: number;
+  patientAgeLabel?: string;
+  patientSex?: BiologicalSex;
   biomarkers: RawBiomarker[];
   priorBiomarkers?: RawBiomarker[];
   medications: RawMedication[];

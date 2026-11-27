@@ -171,15 +171,22 @@ export const BIOMARKER_RULES: Record<string, BiomarkerRule> = {
     displayName: 'Serum Creatinine',
     loincCode: '2160-0',
     organSystem: 'Renal & Electrolytes',
-    bounds: (sex) => ({
-      low: sex === 'female' ? 44 : 62,
-      high: sex === 'female' ? 81 : 107,
-      criticalHigh: 400,
-      scaleMin: 30,
-      scaleMax: 300,
-    }),
+    bounds: (sex, age) => {
+      // Pediatric age-stratified Creatinine (µmol/L)
+      if (age < 1) return { low: 15, high: 39, criticalHigh: 180, scaleMin: 5, scaleMax: 80 };
+      if (age < 6) return { low: 21, high: 45, criticalHigh: 220, scaleMin: 10, scaleMax: 90 };
+      if (age < 13) return { low: 27, high: 62, criticalHigh: 280, scaleMin: 15, scaleMax: 120 };
+      if (age < 18) return { low: 44, high: 88, criticalHigh: 350, scaleMin: 25, scaleMax: 180 };
+      return {
+        low: sex === 'female' ? 44 : 62,
+        high: sex === 'female' ? 81 : 107,
+        criticalHigh: 400,
+        scaleMin: 30,
+        scaleMax: 300,
+      };
+    },
     panicGuidance: {
-      high: 'Critically elevated creatinine (>= 400 µmol/L) indicates severe acute or chronic kidney impairment requiring urgent clinical assessment.',
+      high: 'Critically elevated creatinine indicates severe acute or chronic kidney impairment requiring urgent clinical assessment.',
     },
   },
   egfr: {
@@ -247,17 +254,55 @@ export const BIOMARKER_RULES: Record<string, BiomarkerRule> = {
     displayName: 'Hemoglobin (Hb)',
     loincCode: '718-7',
     organSystem: 'Hematology (CBC)',
-    bounds: (sex) => ({
-      criticalLow: 70,
-      low: sex === 'female' ? 120 : 135,
-      high: sex === 'female' ? 156 : 176,
-      criticalHigh: 200,
-      scaleMin: 60,
-      scaleMax: 200,
-    }),
+    bounds: (sex, age) => {
+      // Pediatric age-stratified Hemoglobin (g/L)
+      if (age < 2) return { criticalLow: 70, low: 105, high: 136, criticalHigh: 185, scaleMin: 70, scaleMax: 165 };
+      if (age < 6) return { criticalLow: 70, low: 110, high: 141, criticalHigh: 185, scaleMin: 75, scaleMax: 170 };
+      if (age < 12) return { criticalLow: 70, low: 115, high: 151, criticalHigh: 190, scaleMin: 80, scaleMax: 180 };
+      return {
+        criticalLow: 70,
+        low: sex === 'female' ? 120 : 135,
+        high: sex === 'female' ? 156 : 176,
+        criticalHigh: 200,
+        scaleMin: 60,
+        scaleMax: 200,
+      };
+    },
     panicGuidance: {
       low: 'Critical anemia (Hb < 70 g/L / 7.0 g/dL) severely reduces oxygen delivery. Seek urgent emergency medical evaluation immediately.',
       high: 'Critically elevated hemoglobin increases thrombosis risk; seek urgent medical review.',
+    },
+  },
+  rbc: {
+    canonicalId: 'rbc',
+    displayName: 'Red Blood Cells (RBC)',
+    loincCode: '789-8',
+    organSystem: 'Hematology (CBC)',
+    bounds: (sex, age) => {
+      if (age < 6) return { low: 3.7, high: 5.31, scaleMin: 2.5, scaleMax: 6.5 };
+      if (age < 13) return { low: 4.0, high: 5.21, scaleMin: 3.0, scaleMax: 6.5 };
+      return {
+        low: sex === 'female' ? 3.8 : 4.3,
+        high: sex === 'female' ? 5.11 : 5.81,
+        scaleMin: 3.0,
+        scaleMax: 6.8,
+      };
+    },
+  },
+  hematocrit: {
+    canonicalId: 'hematocrit',
+    displayName: 'Hematocrit (HCT)',
+    loincCode: '4544-3',
+    organSystem: 'Hematology (CBC)',
+    bounds: (sex, age) => {
+      if (age < 2) return { low: 33.0, high: 49.1, scaleMin: 22, scaleMax: 58 };
+      if (age < 12) return { low: 34.0, high: 45.1, scaleMin: 24, scaleMax: 55 };
+      return {
+        low: sex === 'female' ? 36.0 : 40.0,
+        high: sex === 'female' ? 46.1 : 52.1,
+        scaleMin: 25,
+        scaleMax: 60,
+      };
     },
   },
   wbc: {
@@ -265,17 +310,22 @@ export const BIOMARKER_RULES: Record<string, BiomarkerRule> = {
     displayName: 'White Blood Cells (WBC)',
     loincCode: '6690-2',
     organSystem: 'Hematology (CBC)',
-    bounds: () => ({
-      criticalLow: 2.0,
-      low: 4.0,
-      high: 11.1,
-      criticalHigh: 30.0,
-      scaleMin: 1.0,
-      scaleMax: 22.0,
-    }),
+    bounds: (_sex, age) => {
+      if (age < 2) return { criticalLow: 2.0, low: 6.0, high: 17.6, criticalHigh: 35.0, scaleMin: 1.0, scaleMax: 24.0 };
+      if (age < 6) return { criticalLow: 2.0, low: 5.0, high: 15.6, criticalHigh: 35.0, scaleMin: 1.0, scaleMax: 22.0 };
+      if (age < 13) return { criticalLow: 2.0, low: 4.5, high: 13.6, criticalHigh: 30.0, scaleMin: 1.0, scaleMax: 22.0 };
+      return {
+        criticalLow: 2.0,
+        low: 4.0,
+        high: 11.1,
+        criticalHigh: 30.0,
+        scaleMin: 1.0,
+        scaleMax: 22.0,
+      };
+    },
     panicGuidance: {
       low: 'Severe leukopenia (< 2.0 ×10⁹/L) indicates elevated infection risk; urgent clinical assessment required.',
-      high: 'Marked leukocytosis (>= 30.0 ×10⁹/L) requires urgent physician evaluation.',
+      high: 'Marked leukocytosis requires urgent physician evaluation.',
     },
   },
   platelets: {
@@ -283,14 +333,18 @@ export const BIOMARKER_RULES: Record<string, BiomarkerRule> = {
     displayName: 'Platelets (PLT)',
     loincCode: '777-3',
     organSystem: 'Hematology (CBC)',
-    bounds: () => ({
-      criticalLow: 50,
-      low: 150,
-      high: 401,
-      criticalHigh: 1000,
-      scaleMin: 20,
-      scaleMax: 600,
-    }),
+    bounds: (_sex, age) => {
+      if (age < 2) return { criticalLow: 50, low: 200, high: 551, criticalHigh: 1000, scaleMin: 50, scaleMax: 650 };
+      if (age < 12) return { criticalLow: 50, low: 150, high: 451, criticalHigh: 1000, scaleMin: 20, scaleMax: 600 };
+      return {
+        criticalLow: 50,
+        low: 150,
+        high: 401,
+        criticalHigh: 1000,
+        scaleMin: 20,
+        scaleMax: 600,
+      };
+    },
     panicGuidance: {
       low: 'Critical thrombocytopenia (< 50 ×10⁹/L) carries significant bleeding risk. Seek urgent medical care.',
     },
@@ -300,12 +354,123 @@ export const BIOMARKER_RULES: Record<string, BiomarkerRule> = {
     displayName: 'MCV (Red Cell Size)',
     loincCode: '787-2',
     organSystem: 'Hematology (CBC)',
-    bounds: () => ({
-      low: 80,
-      high: 101,
-      scaleMin: 65,
-      scaleMax: 115,
-    }),
+    bounds: (_sex, age) => {
+      if (age < 2) return { low: 70, high: 86.1, scaleMin: 60, scaleMax: 100 };
+      if (age < 6) return { low: 73, high: 89.1, scaleMin: 62, scaleMax: 102 };
+      if (age < 12) return { low: 76, high: 94.1, scaleMin: 65, scaleMax: 106 };
+      return { low: 80, high: 101, scaleMin: 65, scaleMax: 115 };
+    },
+  },
+  mch: {
+    canonicalId: 'mch',
+    displayName: 'MCH (Hemoglobin per Cell)',
+    loincCode: '785-6',
+    organSystem: 'Hematology (CBC)',
+    bounds: (_sex, age) =>
+      age < 6
+        ? { low: 23.0, high: 31.1, scaleMin: 18, scaleMax: 36 }
+        : { low: 27.0, high: 33.1, scaleMin: 20, scaleMax: 38 },
+  },
+  mchc: {
+    canonicalId: 'mchc',
+    displayName: 'MCHC (Hemoglobin Concentration)',
+    loincCode: '786-4',
+    organSystem: 'Hematology (CBC)',
+    bounds: () => ({ low: 30.0, high: 36.1, scaleMin: 26, scaleMax: 40 }),
+  },
+  rdw: {
+    canonicalId: 'rdw',
+    displayName: 'RDW (Red Cell Size Variation)',
+    loincCode: '788-0',
+    organSystem: 'Hematology (CBC)',
+    bounds: () => ({ low: 11.5, high: 16.01, scaleMin: 10, scaleMax: 22 }),
+  },
+  neutrophils_abs: {
+    canonicalId: 'neutrophils_abs',
+    displayName: 'Neutrophils (Absolute)',
+    loincCode: '751-8',
+    organSystem: 'Hematology (CBC)',
+    bounds: (_sex, age) =>
+      age < 6
+        ? { criticalLow: 0.5, low: 1.5, high: 8.51, scaleMin: 0, scaleMax: 12 }
+        : { criticalLow: 0.5, low: 1.8, high: 7.51, scaleMin: 0, scaleMax: 12 },
+  },
+  lymphocytes_abs: {
+    canonicalId: 'lymphocytes_abs',
+    displayName: 'Lymphocytes (Absolute)',
+    loincCode: '731-0',
+    organSystem: 'Hematology (CBC)',
+    bounds: (_sex, age) =>
+      age < 2
+        ? { low: 4.0, high: 10.51, scaleMin: 0.5, scaleMax: 13 }
+        : age < 6
+          ? { low: 2.0, high: 8.01, scaleMin: 0.5, scaleMax: 11 }
+          : { low: 1.0, high: 4.01, scaleMin: 0.2, scaleMax: 6.5 },
+  },
+  monocytes_abs: {
+    canonicalId: 'monocytes_abs',
+    displayName: 'Monocytes (Absolute)',
+    loincCode: '742-7',
+    organSystem: 'Hematology (CBC)',
+    bounds: () => ({ low: 0.05, high: 1.11, scaleMin: 0, scaleMax: 2.0 }),
+  },
+  eosinophils_abs: {
+    canonicalId: 'eosinophils_abs',
+    displayName: 'Eosinophils (Absolute)',
+    loincCode: '711-2',
+    organSystem: 'Hematology (CBC)',
+    bounds: (_sex, age) =>
+      age < 6
+        ? { low: 0.04, high: 1.2, scaleMin: 0, scaleMax: 2.0 }
+        : { high: 0.51, scaleMin: 0, scaleMax: 1.5 },
+  },
+  basophils_abs: {
+    canonicalId: 'basophils_abs',
+    displayName: 'Basophils (Absolute)',
+    loincCode: '704-7',
+    organSystem: 'Hematology (CBC)',
+    bounds: () => ({ high: 0.21, scaleMin: 0, scaleMax: 0.5 }),
+  },
+  neutrophils_pct: {
+    canonicalId: 'neutrophils_pct',
+    displayName: 'Neutrophils (%)',
+    loincCode: '770-8',
+    organSystem: 'Hematology (CBC)',
+    bounds: (_sex, age) =>
+      age < 4
+        ? { low: 17, high: 60.1, scaleMin: 0, scaleMax: 90 }
+        : { low: 40, high: 75.1, scaleMin: 10, scaleMax: 95 },
+  },
+  lymphocytes_pct: {
+    canonicalId: 'lymphocytes_pct',
+    displayName: 'Lymphocytes (%)',
+    loincCode: '736-9',
+    organSystem: 'Hematology (CBC)',
+    bounds: (_sex, age) =>
+      age < 4
+        ? { low: 20, high: 70.1, scaleMin: 0, scaleMax: 90 }
+        : { low: 20, high: 45.1, scaleMin: 5, scaleMax: 75 },
+  },
+  monocytes_pct: {
+    canonicalId: 'monocytes_pct',
+    displayName: 'Monocytes (%)',
+    loincCode: '5905-5',
+    organSystem: 'Hematology (CBC)',
+    bounds: () => ({ low: 1, high: 11.01, scaleMin: 0, scaleMax: 20 }),
+  },
+  eosinophils_pct: {
+    canonicalId: 'eosinophils_pct',
+    displayName: 'Eosinophils (%)',
+    loincCode: '713-8',
+    organSystem: 'Hematology (CBC)',
+    bounds: () => ({ high: 5.01, scaleMin: 0, scaleMax: 12 }),
+  },
+  basophils_pct: {
+    canonicalId: 'basophils_pct',
+    displayName: 'Basophils (%)',
+    loincCode: '706-2',
+    organSystem: 'Hematology (CBC)',
+    bounds: () => ({ high: 1.01, scaleMin: 0, scaleMax: 4 }),
   },
   ferritin: {
     canonicalId: 'ferritin',
@@ -447,6 +612,38 @@ export function classifyStatus(siValue: number, bounds: ReferenceBoundsSI): Biom
   return 'normal';
 }
 
+/**
+ * Parses a printed lab reference range (e.g., "10.5-13.5", "4.00 - 10.50", "< 5", ">= 90")
+ * so even unfamiliar or analyzer-specific pediatric markers evaluate deterministically.
+ */
+export function parseRawReferenceRange(rawRef?: string): { low?: number; high?: number } | null {
+  if (!rawRef) return null;
+  const clean = rawRef.replace(/,/g, '').trim();
+
+  const rangeMatch = clean.match(/([0-9]+(?:\.[0-9]+)?)\s*(?:-|–|—|to)\s*([0-9]+(?:\.[0-9]+)?)/i);
+  if (rangeMatch) {
+    const low = Number(rangeMatch[1]);
+    const high = Number(rangeMatch[2]);
+    if (!Number.isNaN(low) && !Number.isNaN(high) && high > low) {
+      return { low, high };
+    }
+  }
+
+  const ltMatch = clean.match(/(?:<=|<|up to)\s*([0-9]+(?:\.[0-9]+)?)/i);
+  if (ltMatch) {
+    const high = Number(ltMatch[1]);
+    if (!Number.isNaN(high)) return { high };
+  }
+
+  const gtMatch = clean.match(/(?:>=|>)\s*([0-9]+(?:\.[0-9]+)?)/i);
+  if (gtMatch) {
+    const low = Number(gtMatch[1]);
+    if (!Number.isNaN(low)) return { low };
+  }
+
+  return null;
+}
+
 export function evaluateBiomarker(
   raw: RawBiomarker,
   context: PatientContext,
@@ -454,7 +651,7 @@ export function evaluateBiomarker(
   reportDate?: string,
   priorReportDate?: string,
 ): { evaluated: EvaluatedBiomarker; rule?: BiomarkerRule } {
-  const canonicalId = normalizeBiomarkerKey(raw.name);
+  const canonicalId = normalizeBiomarkerKey(raw.name, raw.unit);
   const rule = BIOMARKER_RULES[canonicalId];
   const unitDef = UNIT_DEFINITIONS[canonicalId];
 
@@ -493,6 +690,29 @@ export function evaluateBiomarker(
       b.borderlineHigh !== undefined ? b.borderlineHigh * factor : undefined,
       b.borderlineLow !== undefined ? b.borderlineLow * factor : undefined,
     );
+  } else {
+    // Fallback: deterministically parse the lab's own printed Reference Interval!
+    const parsed = parseRawReferenceRange(raw.rawReferenceRange);
+    if (parsed) {
+      const val = raw.value;
+      if (parsed.low !== undefined && val < parsed.low) {
+        status = 'low';
+      } else if (parsed.high !== undefined && val > parsed.high) {
+        status = 'high';
+      } else {
+        status = 'normal';
+      }
+      const lo = parsed.low ?? 0;
+      const hi = parsed.high ?? lo * 2 + 10;
+      const margin = Math.max((hi - lo) * 0.45, 0.5);
+      const scaleMin = Math.max(0, lo - margin);
+      const scaleMax = hi + margin;
+      gaugePercent = Math.max(4, Math.min(96, Math.round(((val - scaleMin) / Math.max(scaleMax - scaleMin, 0.001)) * 100)));
+      refLowSI = parsed.low;
+      refHighSI = parsed.high;
+      refLowUS = parsed.low;
+      refHighUS = parsed.high;
+    }
   }
 
   let priorSiValue: number | undefined;

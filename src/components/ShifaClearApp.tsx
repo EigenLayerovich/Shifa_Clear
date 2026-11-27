@@ -150,8 +150,12 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
         headers: buildHeaders(false),
         body: formData,
       });
-      const data = await res.json();
+      const data = (await res.json()) as ShifaClearAnalysisResponse & { error?: string };
       if (!res.ok) throw new Error(data.error || 'Could not analyze uploaded document.');
+      if (data.evaluation?.patientContext?.autoDetectedFromReport) {
+        setAge(Math.max(1, Math.round(data.evaluation.patientContext.age)));
+        setSex(data.evaluation.patientContext.sex);
+      }
       setAnalysis(data);
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Upload analysis failed.');
@@ -509,8 +513,18 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
                       )}
                     <span>
                       {analysis.evaluation.patientContext.sex === 'female' ? t.female : t.male},{' '}
-                      {analysis.evaluation.patientContext.age}y
+                      {analysis.evaluation.patientContext.ageLabel || `${analysis.evaluation.patientContext.age}y`}
                     </span>
+                    {analysis.evaluation.patientContext.isPediatric && (
+                      <span className="rounded-full bg-teal-100 px-2.5 py-0.5 text-[11px] font-extrabold text-teal-900">
+                        Pediatric Ranges Active
+                      </span>
+                    )}
+                    {analysis.evaluation.patientContext.autoDetectedFromReport && (
+                      <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-800 ring-1 ring-sky-200">
+                        Auto-detected from report
+                      </span>
+                    )}
                   </div>
                 </div>
 

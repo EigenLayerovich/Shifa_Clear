@@ -67,11 +67,19 @@ export const BIOMARKER_NAME_ALIASES: Record<string, string> = {
   ca: 'calcium',
   'serum calcium': 'calcium',
 
-  // Hematology
+  // Hematology (Complete CBC + Differentials)
   hemoglobin: 'hemoglobin',
   haemoglobin: 'hemoglobin',
   hb: 'hemoglobin',
   hgb: 'hemoglobin',
+  rbc: 'rbc',
+  'red blood cell': 'rbc',
+  'red blood cells': 'rbc',
+  'red cell count': 'rbc',
+  hematocrit: 'hematocrit',
+  haematocrit: 'hematocrit',
+  hct: 'hematocrit',
+  pcv: 'hematocrit',
   wbc: 'wbc',
   'white blood cell': 'wbc',
   'white blood cells': 'wbc',
@@ -82,6 +90,37 @@ export const BIOMARKER_NAME_ALIASES: Record<string, string> = {
   'platelet count': 'platelets',
   mcv: 'mcv',
   'mean corpuscular volume': 'mcv',
+  mch: 'mch',
+  'mean corpuscular hemoglobin': 'mch',
+  mchc: 'mchc',
+  'mean corpuscular hemoglobin concentration': 'mchc',
+  rdw: 'rdw',
+  'rdw-cv': 'rdw',
+  'red cell distribution width': 'rdw',
+  'neutrophils %': 'neutrophils_pct',
+  'neutrophil %': 'neutrophils_pct',
+  'neutrophils percent': 'neutrophils_pct',
+  'lymphocytes %': 'lymphocytes_pct',
+  'lymphocyte %': 'lymphocytes_pct',
+  'lymphocytes percent': 'lymphocytes_pct',
+  'monocytes %': 'monocytes_pct',
+  'monocyte %': 'monocytes_pct',
+  'eosinophils %': 'eosinophils_pct',
+  'eosinophil %': 'eosinophils_pct',
+  'basophils %': 'basophils_pct',
+  'basophil %': 'basophils_pct',
+  neutrophils: 'neutrophils_abs',
+  'absolute neutrophils': 'neutrophils_abs',
+  anc: 'neutrophils_abs',
+  lymphocytes: 'lymphocytes_abs',
+  'absolute lymphocytes': 'lymphocytes_abs',
+  alc: 'lymphocytes_abs',
+  monocytes: 'monocytes_abs',
+  'absolute monocytes': 'monocytes_abs',
+  eosinophils: 'eosinophils_abs',
+  'absolute eosinophils': 'eosinophils_abs',
+  basophils: 'basophils_abs',
+  'absolute basophils': 'basophils_abs',
   ferritin: 'ferritin',
   'serum ferritin': 'ferritin',
 
@@ -268,6 +307,141 @@ export const UNIT_DEFINITIONS: Record<string, UnitDefinition> = {
     siUnitAliases: ['fl'],
     usUnitAliases: ['fl'],
   },
+  rbc: {
+    siUnit: '×10¹²/L',
+    usUnit: 'M/µL',
+    siToUsFactor: 1,
+    decimalsSI: 2,
+    decimalsUS: 2,
+    siUnitAliases: ['10^12/l', '×10¹²/l', 'x10^12/l', 't/l'],
+    usUnitAliases: ['m/ul', 'm/µl', '10^6/ul'],
+  },
+  hematocrit: {
+    siUnit: '%',
+    usUnit: '%',
+    siToUsFactor: 1,
+    decimalsSI: 1,
+    decimalsUS: 1,
+    siUnitAliases: ['%', 'percent'],
+    usUnitAliases: ['%', 'percent'],
+  },
+  mch: {
+    siUnit: 'pg',
+    usUnit: 'pg',
+    siToUsFactor: 1,
+    decimalsSI: 1,
+    decimalsUS: 1,
+    siUnitAliases: ['pg'],
+    usUnitAliases: ['pg'],
+  },
+  mchc: {
+    siUnit: 'g/dL',
+    usUnit: 'g/dL',
+    siToUsFactor: 1,
+    decimalsSI: 1,
+    decimalsUS: 1,
+    siUnitAliases: ['g/dl'],
+    usUnitAliases: ['g/dl'],
+  },
+  rdw: {
+    siUnit: '%',
+    usUnit: '%',
+    siToUsFactor: 1,
+    decimalsSI: 1,
+    decimalsUS: 1,
+    siUnitAliases: ['%'],
+    usUnitAliases: ['%'],
+  },
+  neutrophils_abs: {
+    siUnit: '×10⁹/L',
+    usUnit: 'K/µL',
+    siToUsFactor: 1,
+    decimalsSI: 2,
+    decimalsUS: 2,
+    siUnitAliases: ['10^9/l', '×10⁹/l', 'x10^9/l'],
+    usUnitAliases: ['k/ul', 'k/µl'],
+  },
+  lymphocytes_abs: {
+    siUnit: '×10⁹/L',
+    usUnit: 'K/µL',
+    siToUsFactor: 1,
+    decimalsSI: 2,
+    decimalsUS: 2,
+    siUnitAliases: ['10^9/l', '×10⁹/l', 'x10^9/l'],
+    usUnitAliases: ['k/ul', 'k/µl'],
+  },
+  monocytes_abs: {
+    siUnit: '×10⁹/L',
+    usUnit: 'K/µL',
+    siToUsFactor: 1,
+    decimalsSI: 2,
+    decimalsUS: 2,
+    siUnitAliases: ['10^9/l', '×10⁹/l', 'x10^9/l'],
+    usUnitAliases: ['k/ul', 'k/µl'],
+  },
+  eosinophils_abs: {
+    siUnit: '×10⁹/L',
+    usUnit: 'K/µL',
+    siToUsFactor: 1,
+    decimalsSI: 2,
+    decimalsUS: 2,
+    siUnitAliases: ['10^9/l', '×10⁹/l', 'x10^9/l'],
+    usUnitAliases: ['k/ul', 'k/µl'],
+  },
+  basophils_abs: {
+    siUnit: '×10⁹/L',
+    usUnit: 'K/µL',
+    siToUsFactor: 1,
+    decimalsSI: 2,
+    decimalsUS: 2,
+    siUnitAliases: ['10^9/l', '×10⁹/l', 'x10^9/l'],
+    usUnitAliases: ['k/ul', 'k/µl'],
+  },
+  neutrophils_pct: {
+    siUnit: '%',
+    usUnit: '%',
+    siToUsFactor: 1,
+    decimalsSI: 1,
+    decimalsUS: 1,
+    siUnitAliases: ['%'],
+    usUnitAliases: ['%'],
+  },
+  lymphocytes_pct: {
+    siUnit: '%',
+    usUnit: '%',
+    siToUsFactor: 1,
+    decimalsSI: 1,
+    decimalsUS: 1,
+    siUnitAliases: ['%'],
+    usUnitAliases: ['%'],
+  },
+  monocytes_pct: {
+    siUnit: '%',
+    usUnit: '%',
+    siToUsFactor: 1,
+    decimalsSI: 1,
+    decimalsUS: 1,
+    siUnitAliases: ['%'],
+    usUnitAliases: ['%'],
+  },
+  eosinophils_pct: {
+    siUnit: '%',
+    usUnit: '%',
+    siToUsFactor: 1,
+    decimalsSI: 1,
+    decimalsUS: 1,
+    siUnitAliases: ['%'],
+    usUnitAliases: ['%'],
+  },
+  basophils_pct: {
+    siUnit: '%',
+    usUnit: '%',
+    siToUsFactor: 1,
+    decimalsSI: 1,
+    decimalsUS: 1,
+    siUnitAliases: ['%'],
+    usUnitAliases: ['%'],
+  },
   ferritin: {
     siUnit: 'µg/L',
     usUnit: 'ng/mL',
@@ -347,25 +521,46 @@ export function roundClinical(value: number, decimals: number): number {
   return Math.round(value * factor) / factor;
 }
 
-export function normalizeBiomarkerKey(rawName: string): string {
+export function normalizeBiomarkerKey(rawName: string, rawUnit = ''): string {
+  const unitClean = (rawUnit || '').trim();
+  const hasPct = rawName.includes('%') || unitClean === '%';
+
   const cleaned = rawName
     .toLowerCase()
     .replace(/\(.*?\)/g, '')
-    .replace(/[^a-z0-9+\-\s]/g, ' ')
+    .replace(/[^a-z0-9+\-%\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
+  // Distinguish Absolute vs Percentage CBC Differentials accurately
+  const diffBases = ['neutrophil', 'lymphocyte', 'monocyte', 'eosinophil', 'basophil'];
+  for (const base of diffBases) {
+    if (cleaned.includes(base)) {
+      return `${base}s_${hasPct ? 'pct' : 'abs'}`;
+    }
+  }
+
+  const noPct = cleaned.replace(/%/g, '').trim();
   if (BIOMARKER_NAME_ALIASES[cleaned]) {
     return BIOMARKER_NAME_ALIASES[cleaned];
   }
+  if (BIOMARKER_NAME_ALIASES[noPct]) {
+    return BIOMARKER_NAME_ALIASES[noPct];
+  }
 
-  for (const [alias, canonical] of Object.entries(BIOMARKER_NAME_ALIASES)) {
-    if (cleaned === alias || cleaned.includes(alias)) {
+  // Sort longest alias first so "mchc" matches before "mch", "hemoglobin a1c" before "hemoglobin"
+  const sortedAliases = Object.entries(BIOMARKER_NAME_ALIASES).sort(
+    (a, b) => b[0].length - a[0].length,
+  );
+  for (const [alias, canonical] of sortedAliases) {
+    const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(?:^|[^a-z0-9])${escaped}(?:$|[^a-z0-9])`, 'i');
+    if (regex.test(noPct)) {
       return canonical;
     }
   }
 
-  return cleaned.replace(/\s+/g, '_');
+  return noPct.replace(/\s+/g, '_');
 }
 
 export function convertToSIAndUS(

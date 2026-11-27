@@ -87,14 +87,16 @@ export function BiomarkerDashboard({
   const filteredBiomarkers = useMemo(() => {
     if (filter === 'all') return biomarkers;
     if (filter === 'abnormal') {
-      return biomarkers.filter((b) => b.status !== 'normal');
+      return biomarkers.filter((b) => b.status !== 'normal' && b.status !== 'unknown');
     }
     return biomarkers.filter((b) => b.organSystem === filter);
   }, [biomarkers, filter]);
 
   if (biomarkers.length === 0) return null;
 
-  const abnormalCount = biomarkers.filter((b) => b.status !== 'normal').length;
+  const abnormalCount = biomarkers.filter(
+    (b) => b.status !== 'normal' && b.status !== 'unknown',
+  ).length;
 
   const toggleCard = (id: string) => {
     setExpandedIds((prev) => ({ ...prev, [id]: !prev[id] }));

@@ -20,11 +20,15 @@ function parseContext(raw?: Partial<PatientContext>): PatientContext {
   const lang = validLangs.includes(raw?.language as SupportedLanguage)
     ? (raw?.language as SupportedLanguage)
     : 'en';
+  const age = typeof raw?.age === 'number' && raw.age >= 0 && raw.age < 120 ? raw.age : 45;
   return {
-    age: typeof raw?.age === 'number' && raw.age > 0 && raw.age < 120 ? raw.age : 45,
+    age,
+    ageLabel: raw?.ageLabel,
+    isPediatric: age < 18,
     sex: raw?.sex === 'female' ? 'female' : 'male',
     unitSystem: raw?.unitSystem === 'US' ? 'US' : 'SI',
     language: lang,
+    autoDetectedFromReport: raw?.autoDetectedFromReport,
   };
 }
 
@@ -184,7 +188,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const evaluation = evaluateClinicalDocument(extracted, context);
+    // Auto-override default UI demographics when the report header prints patient age/sex!
+    const detectedAge =
+      typeof extracted.patientAgeYears === 'number' && extracted.patientAgeYears >= 0 && extracted.patientAgeYears < 120
+        ? extracted.patientAgeYears
+        : undefined;
+    const detectedSex = extracted.patientSex;
+    const effectiveContext: PatientContext = {
+      ...context,
+      age: detectedAge ?? context.age,
+      ageLabel: extracted.patientAgeLabel ?? context.ageLabel,
+      isPediatric: (detectedAge ?? context.age) < 18,
+      sex: detectedSex ?? context.sex,
+      autoDetectedFromReport: Boolean(detectedAge !== undefined || detectedSex),
+    };
+
+    const evaluation = evaluateClinicalDocument(extracted, effectiveContext);
 
     let narrative: PatientNarrative;
     try {

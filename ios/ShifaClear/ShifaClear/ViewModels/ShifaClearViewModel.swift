@@ -22,7 +22,7 @@ final class ShifaClearViewModel {
     let speech = SpeechManager()
 
     var currentContext: PatientContext {
-        PatientContext(age: age, sex: sex, unitSystem: unitSystem, language: language)
+        PatientContext(age: Double(age), sex: sex, unitSystem: unitSystem, language: language)
     }
 
     func resetToIntake() {

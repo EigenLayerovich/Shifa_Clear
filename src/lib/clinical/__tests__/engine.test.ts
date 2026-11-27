@@ -269,4 +269,65 @@ describe('ShifaClear Deterministic Clinical Engine', () => {
     expect(summary.sensitivityPercent).toBe(100);
     expect(summary.falsePositiveRatePercent).toBe(0);
   });
+
+  it('accurately evaluates pediatric infant (11-month-old female) CBC & Creatinine without adult false positives', () => {
+    const infantDoc: RawExtractedDocument = {
+      documentType: 'lab_report',
+      facilityName: 'YAS HEALTHCARE',
+      reportDate: '20-07-2026',
+      patientAgeYears: 0.95,
+      patientAgeLabel: '11 Mth 11 Days',
+      patientSex: 'female',
+      biomarkers: [
+        { name: 'HEMOGLOBIN', value: 11.8, unit: 'g/dL', rawReferenceRange: '10.5-13.5' },
+        { name: 'RBC', value: 4.5, unit: '10^12/L', rawReferenceRange: '3.7-5.3' },
+        { name: 'HEMATOCRIT', value: 35.1, unit: '%', rawReferenceRange: '33.0-49.0' },
+        { name: 'MCV', value: 78.1, unit: 'fL', rawReferenceRange: '70.0-86.0' },
+        { name: 'MCH', value: 26.2, unit: 'pg', rawReferenceRange: '23.00-31.00' },
+        { name: 'MCHC', value: 33.6, unit: 'g/dL', rawReferenceRange: '30.00-36.00' },
+        { name: 'RDW', value: 17.0, unit: '%', rawReferenceRange: '11.50-16.00' },
+        { name: 'PLATELET COUNT', value: 219, unit: '10^9/L', rawReferenceRange: '200-550' },
+        { name: 'WBC', value: 9.7, unit: '10^9/L', rawReferenceRange: '6.00-17.5' },
+        { name: 'Neutrophils', value: 4.89, unit: '10^9/L', rawReferenceRange: '1.50-8.50' },
+        { name: 'Lymphocytes', value: 3.56, unit: '10^9/L', rawReferenceRange: '4.00-10.50' },
+        { name: 'Neutrophils %', value: 50.4, unit: '%', rawReferenceRange: '17-60' },
+        { name: 'Monocytes %', value: 11.2, unit: '%', rawReferenceRange: '1-11' },
+        { name: 'Serum Creatinine', value: 35, unit: 'µmol/L' },
+      ],
+      medications: [],
+    };
+
+    const res = evaluateClinicalDocument(infantDoc, {
+      age: 0.95,
+      ageLabel: '11 Mth 11 Days',
+      isPediatric: true,
+      sex: 'female',
+      unitSystem: 'SI',
+      language: 'en',
+      autoDetectedFromReport: true,
+    });
+
+    const byId = (id: string) => res.biomarkers.find((b) => b.canonicalId === id);
+
+    // Infant normal markers must NOT be falsely flagged against adult male ranges!
+    expect(byId('hemoglobin')?.status).toBe('normal');
+    expect(byId('mcv')?.status).toBe('normal');
+    expect(byId('creatinine')?.status).toBe('normal');
+    expect(byId('rbc')?.status).toBe('normal');
+    expect(byId('hematocrit')?.status).toBe('normal');
+    expect(byId('mch')?.status).toBe('normal');
+    expect(byId('mchc')?.status).toBe('normal');
+    expect(byId('platelets')?.status).toBe('normal');
+    expect(byId('wbc')?.status).toBe('normal');
+    expect(byId('neutrophils_abs')?.status).toBe('normal');
+    expect(byId('neutrophils_pct')?.status).toBe('normal');
+
+    // Adult CKD-EPI eGFR must NOT run on an 11-month-old infant!
+    expect(byId('egfr')).toBeUndefined();
+
+    // Only the true mild infant flags should show as out-of-range
+    expect(byId('rdw')?.status).toBe('high');
+    expect(byId('lymphocytes_abs')?.status).toBe('low');
+    expect(byId('monocytes_pct')?.status).toBe('high');
+  });
 });

@@ -64,6 +64,19 @@ const EXTRACTION_SCHEMA = {
     },
     reportDate: { type: 'string' },
     facilityName: { type: 'string' },
+    patientAgeYears: {
+      type: 'number',
+      description: 'Patient age converted to numeric years (use decimals for infants, e.g., 11 months = 0.92, 11 months 11 days = 0.95, 6 weeks = 0.12). Omit if not printed.',
+    },
+    patientAgeLabel: {
+      type: 'string',
+      description: 'Exact age text printed on report header, e.g., "11 Mth 11 Days", "4 Years", "54Y". Omit if not printed.',
+    },
+    patientSex: {
+      type: 'string',
+      enum: ['male', 'female'],
+      description: 'Patient sex printed on report header ("male" or "female"). Omit if not printed.',
+    },
     biomarkers: {
       type: 'array',
       items: {
@@ -106,9 +119,10 @@ export async function extractClinicalDocumentWithGemini(params: {
 
   const instructionText = [
     'You are a precision clinical document OCR & structured extraction engine for a UAE hospital app.',
-    'Extract EVERY numeric lab biomarker (name, numeric value, exact unit printed, raw reference range if printed) and EVERY medication (brandName, genericName if visible, dose, frequency shorthand like OD/BD/TDS, timingNotes, duration).',
-    'Never invent values not present in the source. If a value has a ">" or "<" sign (e.g. eGFR > 90), extract the numeric value cleanly.',
-    'Return strict JSON matching the schema.',
+    '1. Extract patient demographics from the header if printed: patientAgeYears (numeric years — use decimals for infants/babies, e.g. "11 Mth 11 Days" -> 0.95, "6 Months" -> 0.5), patientAgeLabel (exact text like "11 Mth 11 Days"), and patientSex ("male" or "female").',
+    '2. Extract EVERY numeric lab biomarker (name, numeric value, exact unit printed, exact rawReferenceRange printed on the report) and EVERY medication (brandName, genericName if visible, dose, frequency shorthand like OD/BD/TDS, timingNotes, duration).',
+    '3. For CBC differential counts: keep "%" in the name for percentage rows (e.g., "Neutrophils %", "Lymphocytes %", "Monocytes %") so they stay distinct from absolute counts ("Neutrophils", "Lymphocytes" in 10^9/L). Never duplicate identical rows.',
+    '4. Never invent values not present in the source. If a value has a ">" or "<" sign (e.g. eGFR > 90), extract the numeric value cleanly. Return strict JSON matching the schema.',
   ].join(' ');
 
   const inputParts: Array<Record<string, unknown>> = [
@@ -156,10 +170,20 @@ export async function extractClinicalDocumentWithGemini(params: {
   };
 
   const parsed = JSON.parse(text) as RawExtractedDocument;
+  const rawAge = typeof parsed.patientAgeYears === 'number' && parsed.patientAgeYears >= 0 && parsed.patientAgeYears < 120
+    ? Math.round(parsed.patientAgeYears * 100) / 100
+    : undefined;
+  const rawSex = parsed.patientSex === 'female' || parsed.patientSex === 'male'
+    ? parsed.patientSex
+    : undefined;
+
   return {
     documentType: parsed.documentType || 'lab_report',
     reportDate: cleanStr(parsed.reportDate),
     facilityName: cleanStr(parsed.facilityName),
+    patientAgeYears: rawAge,
+    patientAgeLabel: cleanStr(parsed.patientAgeLabel),
+    patientSex: rawSex,
     biomarkers: Array.isArray(parsed.biomarkers) ? parsed.biomarkers : [],
     medications: Array.isArray(parsed.medications) ? parsed.medications : [],
   };

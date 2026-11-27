@@ -49,10 +49,13 @@ enum BiologicalSex: String, CaseIterable, Identifiable, Codable {
 }
 
 struct PatientContext: Codable {
-    var age: Int
+    var age: Double
+    var ageLabel: String?
+    var isPediatric: Bool?
     var sex: BiologicalSex
     var unitSystem: UnitSystem
     var language: SupportedLanguage
+    var autoDetectedFromReport: Bool?
 }
 
 struct HistoryPoint: Codable, Identifiable {
