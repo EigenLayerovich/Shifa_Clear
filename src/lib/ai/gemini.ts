@@ -403,3 +403,68 @@ export async function synthesizeSpeechWithGemini(params: {
     mimeType: audio.mime_type || 'audio/wav',
   };
 }
+
+export async function answerClinicalQuestionWithGemini(params: {
+  apiKey: string;
+  evaluation: VerifiedClinicalEvaluation;
+  question: string;
+  language: SupportedLanguage;
+}): Promise<{ answer: string; modelUsed: string }> {
+  const client = createClient(params.apiKey);
+  const langMeta = LANGUAGE_MAP[params.language];
+
+  const compactFacts = {
+    overallRisk: params.evaluation.overallRisk,
+    patient: params.evaluation.patientContext,
+    alerts: params.evaluation.alerts.map((a) => ({
+      severity: a.severity,
+      title: a.title,
+      rationale: a.clinicalRationale,
+      action: a.recommendedAction,
+    })),
+    biomarkers: params.evaluation.biomarkers.map((b) => ({
+      name: b.displayName,
+      si: `${b.siValue} ${b.siUnit}`,
+      us: `${b.usValue} ${b.usUnit}`,
+      status: b.status,
+      trend: b.trendDeltaText,
+    })),
+    medications: params.evaluation.medications.map((m) => ({
+      brand: m.brandName,
+      generic: m.genericName,
+      dose: m.dose,
+      slots: m.slots,
+      timing: m.timingInstruction,
+      safetyFlag: m.safetyFlagSummary,
+    })),
+  };
+
+  const prompt = [
+    `You are ShifaClear, a compassionate UAE clinical health educator built by an MD & Biomedical Engineer.`,
+    `Answer the patient or caregiver's follow-up question in ${langMeta.englishLabel} (${langMeta.nativeLabel}) in 3 to 5 concise, warm, practical sentences.`,
+    `STRICT CLINICAL GUARDRAILS:`,
+    `1. Ground every medical statement ONLY in the verified report facts below — never invent lab values or medications.`,
+    `2. Tailor practical lifestyle guidance to UAE daily life when relevant (e.g., Ramadan fasting physician planning, Abu Dhabi heat hydration, local foods like dates, karak tea, ghee, Arabic coffee).`,
+    `3. NEVER diagnose a disease or tell the user to stop/change prescription doses on their own. Frame medication adjustments as specific questions to confirm with their doctor or pharmacist.`,
+    `4. If the verified report has an URGENT/CRITICAL alert (e.g., hyperkalemia >= 6.0), remind them to seek Emergency care / call 998 immediately first.`,
+    ``,
+    `VERIFIED REPORT FACTS:`,
+    JSON.stringify(compactFacts),
+    ``,
+    `USER QUESTION: ${params.question}`,
+  ].join('\n');
+
+  const { result: interaction, modelUsed } = await runWithModelFallback((model) =>
+    client.interactions.create({
+      model,
+      input: prompt,
+    }),
+  );
+
+  const answer = interaction.output_text?.trim();
+  if (!answer) {
+    throw new Error('Empty Q&A response from Gemini.');
+  }
+
+  return { answer, modelUsed };
+}

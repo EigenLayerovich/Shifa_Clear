@@ -451,6 +451,8 @@ export function evaluateBiomarker(
   raw: RawBiomarker,
   context: PatientContext,
   priorRaw?: RawBiomarker,
+  reportDate?: string,
+  priorReportDate?: string,
 ): { evaluated: EvaluatedBiomarker; rule?: BiomarkerRule } {
   const canonicalId = normalizeBiomarkerKey(raw.name);
   const rule = BIOMARKER_RULES[canonicalId];
@@ -520,6 +522,31 @@ export function evaluateBiomarker(
     }
   }
 
+  let historySI: Array<{ date: string; value: number }> | undefined;
+  let historyUS: Array<{ date: string; value: number }> | undefined;
+
+  if (raw.history && raw.history.length > 0) {
+    historySI = raw.history.map((pt) => {
+      const c = convertToSIAndUS(canonicalId, pt.value, pt.unit || raw.unit);
+      return { date: pt.date, value: c.siValue };
+    });
+    historyUS = raw.history.map((pt) => {
+      const c = convertToSIAndUS(canonicalId, pt.value, pt.unit || raw.unit);
+      return { date: pt.date, value: c.usValue };
+    });
+    historySI.push({ date: reportDate || 'Current', value: converted.siValue });
+    historyUS.push({ date: reportDate || 'Current', value: converted.usValue });
+  } else if (priorSiValue !== undefined && priorUsValue !== undefined) {
+    historySI = [
+      { date: priorReportDate || 'Prior', value: priorSiValue },
+      { date: reportDate || 'Current', value: converted.siValue },
+    ];
+    historyUS = [
+      { date: priorReportDate || 'Prior', value: priorUsValue },
+      { date: reportDate || 'Current', value: converted.usValue },
+    ];
+  }
+
   const evaluated: EvaluatedBiomarker = {
     id: `${canonicalId}-${raw.name.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
     canonicalId,
@@ -546,6 +573,8 @@ export function evaluateBiomarker(
     priorUsValue,
     trendDirection,
     trendDeltaText,
+    historySI,
+    historyUS,
   };
 
   return { evaluated, rule };

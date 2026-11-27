@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Camera,
+  Download,
   FileText,
   HeartPulse,
   Pill,
@@ -238,15 +239,26 @@ export function IntakePanel({
               disabled={isLoading}
             />
 
-            <button
-              type="button"
-              disabled={isLoading}
-              onClick={() => fileInputRef.current?.click()}
-              className="mt-5 inline-flex min-h-[46px] items-center gap-2 rounded-xl bg-teal-700 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-teal-800 disabled:opacity-60"
-            >
-              <Camera className="h-4 w-4" aria-hidden="true" />
-              <span>{t.chooseFileBtn}</span>
-            </button>
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                disabled={isLoading}
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex min-h-[46px] items-center gap-2 rounded-xl bg-teal-700 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-teal-800 disabled:opacity-60"
+              >
+                <Camera className="h-4 w-4" aria-hidden="true" />
+                <span>{t.chooseFileBtn}</span>
+              </button>
+
+              <a
+                href="/samples/abu-dhabi-sample-lab-report.pdf"
+                download="abu-dhabi-sample-lab-report.pdf"
+                className="inline-flex min-h-[46px] items-center gap-2 rounded-xl border border-teal-200 bg-white px-4 py-2.5 text-xs font-bold text-teal-900 shadow-xs transition hover:bg-teal-50"
+              >
+                <Download className="h-4 w-4 text-teal-700" aria-hidden="true" />
+                <span>Download Sample UAE Lab PDF</span>
+              </a>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">

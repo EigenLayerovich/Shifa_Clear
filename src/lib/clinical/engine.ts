@@ -40,7 +40,13 @@ export function evaluateClinicalDocument(
   for (const rawBio of rawDoc.biomarkers) {
     const key = normalizeBiomarkerKey(rawBio.name);
     const prior = priorMap.get(key);
-    const { evaluated, rule } = evaluateBiomarker(rawBio, context, prior);
+    const { evaluated, rule } = evaluateBiomarker(
+      rawBio,
+      context,
+      prior,
+      rawDoc.reportDate,
+      rawDoc.priorReportDate,
+    );
     evaluatedBiomarkers.push(evaluated);
 
     if (evaluated.wasUnitConverted) {

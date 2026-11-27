@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { evaluateClinicalDocument } from '../engine';
+import { buildFhirR4Bundle } from '../fhir';
 import { parseClinicalTextDeterministically } from '../textParser';
 import type { PatientContext, RawExtractedDocument } from '../types';
 import { convertToSIAndUS } from '../units';
@@ -122,5 +123,40 @@ describe('ShifaClear Deterministic Clinical Engine', () => {
     expect(result.medications.length).toBe(4);
     expect(result.alerts.some((a) => a.ruleId === 'RX_TRIPLE_WHAMMY_AKI')).toBe(true);
     expect(result.alerts.some((a) => a.ruleId === 'CROSS_METFORMIN_EGFR')).toBe(true);
+  });
+
+  it('exports a standards-compliant HL7 FHIR R4 Bundle with LOINC Observations and DetectedIssues', () => {
+    const doc: RawExtractedDocument = {
+      documentType: 'mixed',
+      reportDate: '2026-11-26',
+      facilityName: 'SEHA Abu Dhabi',
+      biomarkers: [
+        {
+          name: 'HbA1c',
+          value: 7.2,
+          unit: '%',
+          history: [
+            { date: '2025-11', value: 9.1, unit: '%' },
+            { date: '2026-05', value: 8.4, unit: '%' },
+          ],
+        },
+        { name: 'Potassium', value: 6.3, unit: 'mmol/L' },
+      ],
+      medications: [{ brandName: 'Glucophage', dose: '1000 mg', frequency: 'BD' }],
+    };
+
+    const evaluation = evaluateClinicalDocument(doc, defaultMale);
+    expect(evaluation.biomarkers[0].historySI?.length).toBe(3);
+
+    const bundle = buildFhirR4Bundle(evaluation);
+    expect(bundle.resourceType).toBe('Bundle');
+    expect(bundle.type).toBe('collection');
+
+    const types = bundle.entry.map((e) => e.resource.resourceType);
+    expect(types).toContain('Patient');
+    expect(types).toContain('DiagnosticReport');
+    expect(types).toContain('Observation');
+    expect(types).toContain('MedicationStatement');
+    expect(types).toContain('DetectedIssue');
   });
 });

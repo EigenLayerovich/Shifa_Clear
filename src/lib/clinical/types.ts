@@ -39,12 +39,19 @@ export interface PatientContext {
   language: SupportedLanguage;
 }
 
+export interface BiomarkerHistoryPoint {
+  date: string;
+  value: number;
+  unit?: string;
+}
+
 export interface RawBiomarker {
   name: string;
   value: number;
   unit: string;
   rawReferenceRange?: string;
   date?: string;
+  history?: BiomarkerHistoryPoint[];
 }
 
 export interface RawMedication {
@@ -94,6 +101,8 @@ export interface EvaluatedBiomarker {
   priorUsValue?: number;
   trendDirection?: 'improving' | 'worsening' | 'stable';
   trendDeltaText?: string;
+  historySI?: Array<{ date: string; value: number }>;
+  historyUS?: Array<{ date: string; value: number }>;
 }
 
 export interface EvaluatedMedication {

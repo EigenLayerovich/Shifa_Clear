@@ -1,0 +1,44 @@
+%PDF-1.4
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj
+4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Courier >> endobj
+5 0 obj << /Length 1566 >> stream
+BT
+/F1 10.5 Tf
+42 756 Td
+18 TL
+(SEHA ABU DHABI AMBULATORY HEALTH SERVICES - SAMPLE DIAGNOSTIC REPORT) Tj
+T* (Facility: Corniche Outpatient Clinic, Abu Dhabi, UAE   Date: 2026-11-27) Tj
+T* (Patient: Synthetic Demo Case \(54Y Male\)   MRN: DEMO-KU-2026) Tj
+T* (--------------------------------------------------------------------------) Tj
+T* (CLINICAL BIOCHEMISTRY & HEMATOLOGY PANEL \(MIXED SI / US UNITS\)) Tj
+T* (  HbA1c \(Glycated Hemoglobin\) :   7.6 %        \(Ref: < 5.7 %\)) Tj
+T* (  Fasting Blood Glucose       :   156 mg/dL    \(Ref: 70 - 100 mg/dL\)) Tj
+T* (  LDL Cholesterol             :   4.10 mmol/L  \(Ref: < 2.60 mmol/L\)) Tj
+T* (  Potassium \(Serum K+\)        :   5.8 mmol/L   \(Ref: 3.5 - 5.0 mmol/L\)) Tj
+T* (  Serum Creatinine            :   148 umol/L   \(Ref: 62 - 106 umol/L\)) Tj
+T* (  eGFR \(CKD-EPI\)              :   44 mL/min/1.73m2) Tj
+T* (  25-OH Vitamin D             :   36 nmol/L    \(Ref: 75 - 250 nmol/L\)) Tj
+T* (--------------------------------------------------------------------------) Tj
+T* (ACTIVE OUTPATIENT PHARMACY PRESCRIPTION \(UAE BRANDS\)) Tj
+T* (  1. Cozaar \(Losartan\) 50 mg       - OD \(Once daily morning\)) Tj
+T* (  2. Lasix \(Furosemide\) 40 mg      - OD \(Once daily morning\)) Tj
+T* (  3. Voltaren \(Diclofenac\) 50 mg   - BD \(Twice daily after meals, 7 days\)) Tj
+T* (  4. Glucophage \(Metformin\) 1000mg - BD \(With breakfast and dinner\)) Tj
+T* (--------------------------------------------------------------------------) Tj
+T* (SYNTHETIC SAMPLE FOR SHIFACLEAR KUEC HACKATHON LIVE VISION OCR DEMO) Tj
+ET
+endstream endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000309 00000 n 
+trailer << /Size 6 /Root 1 0 R >>
+startxref
+1926
+%%EOF

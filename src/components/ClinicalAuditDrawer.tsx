@@ -1,15 +1,20 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertOctagon,
+  Check,
   CheckCircle2,
   ClipboardCheck,
   Code2,
+  Copy,
+  Download,
+  FileJson,
   RefreshCw,
   ShieldAlert,
   X,
 } from 'lucide-react';
+import { buildFhirR4Bundle } from '@/lib/clinical/fhir';
 import type { VerifiedClinicalEvaluation } from '@/lib/clinical/types';
 
 interface ClinicalAuditDrawerProps {
@@ -18,13 +23,21 @@ interface ClinicalAuditDrawerProps {
   evaluation: VerifiedClinicalEvaluation | null;
 }
 
+type AuditTab = 'steps' | 'fhir' | 'json';
+
 export function ClinicalAuditDrawer({
   open,
   onClose,
   evaluation,
 }: ClinicalAuditDrawerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [showRawJson, setShowRawJson] = useState(false);
+  const [activeTab, setActiveTab] = useState<AuditTab>('steps');
+  const [copiedFhir, setCopiedFhir] = useState(false);
+
+  const fhirBundleJson = useMemo(() => {
+    if (!evaluation) return '';
+    return JSON.stringify(buildFhirR4Bundle(evaluation), null, 2);
+  }, [evaluation]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -74,6 +87,26 @@ export function ClinicalAuditDrawer({
     };
   }, [onClose]);
 
+  const handleCopyFhir = async () => {
+    try {
+      await navigator.clipboard.writeText(fhirBundleJson);
+      setCopiedFhir(true);
+      setTimeout(() => setCopiedFhir(false), 2200);
+    } catch {
+      setCopiedFhir(false);
+    }
+  };
+
+  const handleDownloadFhir = () => {
+    const blob = new Blob([fhirBundleJson], { type: 'application/fhir+json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `shifaclear-malaffi-fhir-r4-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <dialog
       ref={dialogRef}
@@ -89,10 +122,10 @@ export function ClinicalAuditDrawer({
             </span>
             <div>
               <h1 id="audit-dialog-title" className="text-base font-extrabold text-slate-900 sm:text-lg">
-                Deterministic Clinical Safety Audit Trail
+                Clinical Safety Audit &amp; HL7 FHIR R4 Export
               </h1>
               <p className="text-xs text-slate-600">
-                Inspect every MD rule fired before patient explanation — zero black-box diagnosis
+                Inspect every deterministic MD rule fired + export Malaffi-ready FHIR R4 bundles
               </p>
             </div>
           </div>
@@ -114,28 +147,95 @@ export function ClinicalAuditDrawer({
             <p className="text-sm text-slate-500">Run a scan or select a UAE clinical case to inspect the audit trail.</p>
           ) : (
             <div className="space-y-5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap gap-2 text-xs font-bold">
-                  <span className="rounded-lg bg-teal-50 px-2.5 py-1 text-teal-900 ring-1 ring-teal-200">
-                    Context: {evaluation.patientContext.sex}, {evaluation.patientContext.age}y ({evaluation.patientContext.unitSystem})
-                  </span>
-                  <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-slate-800">
-                    Overall Risk: {evaluation.overallRisk.toUpperCase()}
-                  </span>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap gap-1.5 rounded-xl bg-slate-100 p-1">
+                  <button
+                    type="button"
+                    aria-pressed={activeTab === 'steps'}
+                    onClick={() => setActiveTab('steps')}
+                    className={`min-h-[34px] rounded-lg px-3 text-xs font-bold transition ${
+                      activeTab === 'steps'
+                        ? 'bg-teal-700 text-white shadow-xs'
+                        : 'text-slate-700 hover:bg-white'
+                    }`}
+                  >
+                    Pipeline Steps
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={activeTab === 'fhir'}
+                    onClick={() => setActiveTab('fhir')}
+                    className={`inline-flex min-h-[34px] items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition ${
+                      activeTab === 'fhir'
+                        ? 'bg-teal-700 text-white shadow-xs'
+                        : 'text-slate-700 hover:bg-white'
+                    }`}
+                  >
+                    <FileJson className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>HL7 FHIR R4 (Malaffi)</span>
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={activeTab === 'json'}
+                    onClick={() => setActiveTab('json')}
+                    className={`inline-flex min-h-[34px] items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition ${
+                      activeTab === 'json'
+                        ? 'bg-teal-700 text-white shadow-xs'
+                        : 'text-slate-700 hover:bg-white'
+                    }`}
+                  >
+                    <Code2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>Verified JSON</span>
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  aria-pressed={showRawJson}
-                  onClick={() => setShowRawJson((v) => !v)}
-                  className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"
-                >
-                  <Code2 className="h-3.5 w-3.5 text-teal-700" aria-hidden="true" />
-                  <span>{showRawJson ? 'Show Pipeline Steps' : 'Inspect Verified JSON'}</span>
-                </button>
+                <span className="rounded-lg bg-teal-50 px-2.5 py-1 text-xs font-bold text-teal-900 ring-1 ring-teal-200">
+                  {evaluation.patientContext.sex}, {evaluation.patientContext.age}y • Risk: {evaluation.overallRisk.toUpperCase()}
+                </span>
               </div>
 
-              {showRawJson ? (
+              {activeTab === 'fhir' ? (
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-teal-200 bg-teal-50/70 p-3.5">
+                    <p className="text-xs font-semibold text-teal-950">
+                      Standards-compliant <strong>HL7 FHIR R4 Bundle</strong> with LOINC-coded{' '}
+                      <code>Observation</code>, <code>DiagnosticReport</code>,{' '}
+                      <code>MedicationStatement</code>, and <code>DetectedIssue</code> resources ready
+                      for Abu Dhabi Malaffi HIE integration.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCopyFhir}
+                        className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-teal-300 bg-white px-3 text-xs font-extrabold text-teal-900 hover:bg-teal-50"
+                      >
+                        {copiedFhir ? (
+                          <>
+                            <Check className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
+                            <span>Copied FHIR</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+                            <span>Copy FHIR JSON</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDownloadFhir}
+                        className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl bg-teal-700 px-3 text-xs font-extrabold text-white hover:bg-teal-800"
+                      >
+                        <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span>Download .fhir.json</span>
+                      </button>
+                    </div>
+                  </div>
+                  <pre className="max-h-[46dvh] overflow-auto rounded-2xl bg-slate-950 p-4 font-mono text-xs text-sky-300">
+                    {fhirBundleJson}
+                  </pre>
+                </div>
+              ) : activeTab === 'json' ? (
                 <pre className="max-h-[50dvh] overflow-auto rounded-2xl bg-slate-950 p-4 font-mono text-xs text-emerald-300">
                   {JSON.stringify(evaluation, null, 2)}
                 </pre>

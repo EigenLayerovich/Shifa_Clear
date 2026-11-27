@@ -17,11 +17,14 @@ import type {
 } from '@/lib/clinical/types';
 import { DEMO_CASES } from '@/lib/demo/cases';
 import { LANGUAGE_MAP, UI_STRINGS } from '@/lib/i18n/uiStrings';
+import { BilingualPrintSheet } from './BilingualPrintSheet';
 import { BiomarkerDashboard } from './BiomarkerDashboard';
 import { ClinicalAuditDrawer } from './ClinicalAuditDrawer';
+import { ClinicalQaPanel } from './ClinicalQaPanel';
 import { DoctorPrepAndVoice } from './DoctorPrepAndVoice';
 import { HeaderBar } from './HeaderBar';
 import { IntakePanel } from './IntakePanel';
+import { LongitudinalTrendChart } from './LongitudinalTrendChart';
 import { MedicationTimetable } from './MedicationTimetable';
 import { QrSettingsModal } from './QrSettingsModal';
 import { UrgentAlertBanner } from './UrgentAlertBanner';
@@ -296,6 +299,15 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
       />
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+        {analysis && (
+          <BilingualPrintSheet
+            evaluation={analysis.evaluation}
+            narrative={analysis.narrative}
+            language={language}
+          />
+        )}
+
+        <div className={analysis ? 'print:hidden' : ''}>
         {!analysis ? (
           <IntakePanel
             language={language}
@@ -431,6 +443,13 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
               language={language}
             />
 
+            {/* Multi-Visit Longitudinal Trajectory Chart */}
+            <LongitudinalTrendChart
+              biomarkers={analysis.evaluation.biomarkers}
+              unitSystem={unitSystem}
+              language={language}
+            />
+
             {/* Lab Biomarker Gauges */}
             <BiomarkerDashboard
               biomarkers={analysis.evaluation.biomarkers}
@@ -459,12 +478,21 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
               audioProviderLabel={audioProviderLabel}
               onToggleSpeak={handleToggleMainSpeech}
             />
+
+            {/* Grounded UAE Clinical Follow-Up Q&A */}
+            <ClinicalQaPanel
+              key={`${analysis.demoCaseId || 'custom'}-${language}`}
+              evaluation={analysis.evaluation}
+              language={language}
+              sessionApiKey={sessionApiKey}
+            />
           </div>
         )}
+        </div>
       </main>
 
       {/* Persistent Clinical Safety Footer */}
-      <footer className="mt-12 border-t border-slate-200 bg-white py-6">
+      <footer className="no-print mt-12 border-t border-slate-200 bg-white py-6">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div className="max-w-3xl">
             <p className="font-extrabold text-slate-800">{t.disclaimerTitle}</p>

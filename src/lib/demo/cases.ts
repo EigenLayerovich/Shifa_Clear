@@ -37,14 +37,54 @@ export const DEMO_CASES: DemoCaseDefinition[] = [
       facilityName: 'SEHA Ambulatory Health Services — Abu Dhabi',
       patientLabel: 'Adult Male (54y)',
       biomarkers: [
-        { name: 'HbA1c', value: 7.2, unit: '%' },
-        { name: 'Fasting Glucose', value: 142, unit: 'mg/dL' },
-        { name: 'LDL Cholesterol', value: 4.3, unit: 'mmol/L' },
+        {
+          name: 'HbA1c',
+          value: 7.2,
+          unit: '%',
+          history: [
+            { date: '2025-11', value: 9.1, unit: '%' },
+            { date: '2026-05', value: 8.4, unit: '%' },
+          ],
+        },
+        {
+          name: 'Fasting Glucose',
+          value: 142,
+          unit: 'mg/dL',
+          history: [
+            { date: '2025-11', value: 196, unit: 'mg/dL' },
+            { date: '2026-05', value: 178, unit: 'mg/dL' },
+          ],
+        },
+        {
+          name: 'LDL Cholesterol',
+          value: 4.3,
+          unit: 'mmol/L',
+          history: [
+            { date: '2025-11', value: 5.2, unit: 'mmol/L' },
+            { date: '2026-05', value: 4.95, unit: 'mmol/L' },
+          ],
+        },
         { name: 'HDL Cholesterol', value: 0.95, unit: 'mmol/L' },
         { name: 'Triglycerides', value: 2.15, unit: 'mmol/L' },
-        { name: 'eGFR', value: 64, unit: 'mL/min/1.73m²' },
+        {
+          name: 'eGFR',
+          value: 64,
+          unit: 'mL/min/1.73m²',
+          history: [
+            { date: '2025-11', value: 68, unit: 'mL/min/1.73m²' },
+            { date: '2026-05', value: 66, unit: 'mL/min/1.73m²' },
+          ],
+        },
         { name: 'Serum Creatinine', value: 114, unit: 'µmol/L' },
-        { name: '25-OH Vitamin D', value: 34, unit: 'nmol/L' },
+        {
+          name: '25-OH Vitamin D',
+          value: 34,
+          unit: 'nmol/L',
+          history: [
+            { date: '2025-11', value: 24, unit: 'nmol/L' },
+            { date: '2026-05', value: 28, unit: 'nmol/L' },
+          ],
+        },
         { name: 'ALT', value: 36, unit: 'U/L' },
       ],
       priorBiomarkers: [
