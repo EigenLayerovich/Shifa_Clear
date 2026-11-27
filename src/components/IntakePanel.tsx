@@ -32,6 +32,8 @@ interface IntakePanelProps {
   onAnalyzeText: (text: string) => void;
   onSelectDemoCase: (caseId: string) => void;
   onOpenDrugChecker: () => void;
+  savedOfflineHeadline?: string | null;
+  onRestoreOfflineReport?: () => void;
 }
 
 export function IntakePanel({
@@ -46,6 +48,8 @@ export function IntakePanel({
   onAnalyzeText,
   onSelectDemoCase,
   onOpenDrugChecker,
+  savedOfflineHeadline,
+  onRestoreOfflineReport,
 }: IntakePanelProps) {
   const t = UI_STRINGS[language];
   const [activeTab, setActiveTab] = useState<'upload' | 'paste'>('upload');
@@ -122,6 +126,27 @@ export function IntakePanel({
           </div>
         </div>
       </section>
+
+      {/* Offline Cached Report Resume Banner */}
+      {savedOfflineHeadline && onRestoreOfflineReport && !isLoading && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 shadow-xs">
+          <div className="flex items-center gap-2.5 text-xs">
+            <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true" />
+            <span className="font-bold text-emerald-950">
+              Saved Offline Report Available:{' '}
+              <span className="font-semibold text-emerald-800">{savedOfflineHeadline}</span>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onRestoreOfflineReport}
+            className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl bg-emerald-700 px-3.5 text-xs font-extrabold text-white shadow-xs transition hover:bg-emerald-800"
+          >
+            <span>Resume Report</span>
+            <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
+          </button>
+        </div>
+      )}
 
       {/* Error alert if any */}
       {errorMessage && (

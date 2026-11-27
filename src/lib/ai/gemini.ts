@@ -126,6 +126,63 @@ const EXTRACTION_SCHEMA = {
   required: ['documentType', 'biomarkers', 'medications'],
 };
 
+export async function identifyMedicationBoxWithGemini(params: {
+  apiKey: string;
+  base64Data: string;
+  mimeType: string;
+}): Promise<Array<{ brandName: string; genericName?: string; strength?: string }>> {
+  const ai = createClient(params.apiKey);
+
+  const schema = {
+    type: 'object',
+    properties: {
+      medications: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            brandName: { type: 'string' },
+            genericName: { type: 'string' },
+            strength: { type: 'string' },
+          },
+          required: ['brandName'],
+        },
+      },
+    },
+    required: ['medications'],
+  };
+
+  const { result: interaction } = await runWithModelFallback((model) =>
+    ai.interactions.create({
+      model,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      input: [
+        {
+          type: 'text',
+          text: 'You are a UAE clinical pharmacy vision scanner. Identify every medication box, blister pack, bottle, or barcode label visible in the photo. Extract the exact brand name (e.g., Panadol Extra, Glucophage XR, Concor, Co-Diovan, Plavix), active generic ingredient(s), and dosage strength if visible. Return strictly valid JSON matching the schema.',
+        },
+        {
+          type: 'image',
+          data: params.base64Data,
+          mime_type: params.mimeType,
+        },
+      ] as any,
+      response_format: {
+        type: 'text',
+        mime_type: 'application/json',
+        schema,
+      },
+    }),
+  );
+
+  const text = interaction.output_text;
+  if (!text) return [];
+  const parsed = JSON.parse(text) as {
+    medications?: Array<{ brandName: string; genericName?: string; strength?: string }>;
+  };
+  return parsed.medications || [];
+}
+
 export async function extractClinicalDocumentWithGemini(params: {
   apiKey: string;
   rawText?: string;

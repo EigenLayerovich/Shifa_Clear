@@ -98,27 +98,54 @@ export function BilingualPrintSheet({
                 <th scope="col" className="border border-slate-300 px-2 py-1 text-end">SI (UAE)</th>
                 <th scope="col" className="border border-slate-300 px-2 py-1 text-end">US</th>
                 <th scope="col" className="border border-slate-300 px-2 py-1 text-start">Target (SI)</th>
+                <th scope="col" className="border border-slate-300 px-2 py-1 text-center">12m Trend</th>
                 <th scope="col" className="border border-slate-300 px-2 py-1 text-start">Status</th>
               </tr>
             </thead>
             <tbody>
-              {evaluation.biomarkers.map((b) => (
-                <tr key={b.id}>
-                  <td className="border border-slate-300 px-2 py-1 font-semibold">
-                    {b.displayName} {b.loincCode ? `(${b.loincCode})` : ''}
-                  </td>
-                  <td className="border border-slate-300 px-2 py-1 text-end tabular-nums font-bold">
-                    {b.siValue} {b.siUnit}
-                  </td>
-                  <td className="border border-slate-300 px-2 py-1 text-end tabular-nums">
-                    {b.usValue} {b.usUnit}
-                  </td>
-                  <td className="border border-slate-300 px-2 py-1">{b.refLabelSI}</td>
-                  <td className="border border-slate-300 px-2 py-1 font-bold uppercase">
-                    {b.status.replace('_', ' ')}
-                  </td>
-                </tr>
-              ))}
+              {evaluation.biomarkers.map((b) => {
+                const pts = b.historySI && b.historySI.length >= 2 ? b.historySI : null;
+                let sparkPath = '';
+                if (pts) {
+                  const vals = pts.map((p) => p.value);
+                  const minV = Math.min(...vals);
+                  const maxV = Math.max(...vals);
+                  const span = Math.max(maxV - minV, 0.01);
+                  sparkPath = pts
+                    .map((p, i) => {
+                      const x = 4 + (i / (pts.length - 1)) * 56;
+                      const y = 18 - ((p.value - minV) / span) * 14;
+                      return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+                    })
+                    .join(' ');
+                }
+                return (
+                  <tr key={b.id}>
+                    <td className="border border-slate-300 px-2 py-1 font-semibold">
+                      {b.displayName} {b.loincCode ? `(${b.loincCode})` : ''}
+                    </td>
+                    <td className="border border-slate-300 px-2 py-1 text-end tabular-nums font-bold">
+                      {b.siValue} {b.siUnit}
+                    </td>
+                    <td className="border border-slate-300 px-2 py-1 text-end tabular-nums">
+                      {b.usValue} {b.usUnit}
+                    </td>
+                    <td className="border border-slate-300 px-2 py-1">{b.refLabelSI}</td>
+                    <td className="border border-slate-300 px-2 py-1 text-center">
+                      {sparkPath ? (
+                        <svg viewBox="0 0 64 22" className="mx-auto h-4 w-14" aria-hidden="true">
+                          <path d={sparkPath} fill="none" stroke="#0F766E" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                      ) : (
+                        <span className="text-[10px] text-slate-400">—</span>
+                      )}
+                    </td>
+                    <td className="border border-slate-300 px-2 py-1 font-bold uppercase">
+                      {b.status.replace('_', ' ')}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -9,8 +9,12 @@ import {
   ChevronUp,
   Minus,
   RefreshCw,
+  RotateCcw,
+  SlidersHorizontal,
 } from 'lucide-react';
+import { BIOMARKER_RULES, classifyStatus } from '@/lib/clinical/ranges';
 import type {
+  BiologicalSex,
   BiomarkerExplanation,
   BiomarkerStatus,
   EvaluatedBiomarker,
@@ -18,6 +22,7 @@ import type {
   SupportedLanguage,
   UnitSystem,
 } from '@/lib/clinical/types';
+import { UNIT_DEFINITIONS, roundClinical } from '@/lib/clinical/units';
 import { UI_STRINGS } from '@/lib/i18n/uiStrings';
 
 interface BiomarkerDashboardProps {
@@ -27,6 +32,8 @@ interface BiomarkerDashboardProps {
   unitSystem: UnitSystem;
   language: SupportedLanguage;
   elderMode: boolean;
+  patientAge: number;
+  patientSex: BiologicalSex;
 }
 
 function statusColors(status: BiomarkerStatus) {
@@ -79,10 +86,14 @@ export function BiomarkerDashboard({
   unitSystem,
   language,
   elderMode,
+  patientAge,
+  patientSex,
 }: BiomarkerDashboardProps) {
   const t = UI_STRINGS[language];
   const [filter, setFilter] = useState<string>('all');
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+  const [whatIfOpen, setWhatIfOpen] = useState<Record<string, boolean>>({});
+  const [whatIfSiValues, setWhatIfSiValues] = useState<Record<string, number>>({});
 
   const filteredBiomarkers = useMemo(() => {
     if (filter === 'all') return biomarkers;
@@ -164,13 +175,53 @@ export function BiomarkerDashboard({
       {/* Biomarker Gauge Grid */}
       <div className={`grid gap-4 ${elderMode ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
         {filteredBiomarkers.map((bio, bioIdx) => {
-          const colors = statusColors(bio.status);
+          const rule = BIOMARKER_RULES[bio.canonicalId];
+          const unitDef = UNIT_DEFINITIONS[bio.canonicalId];
+          const bounds = rule ? rule.bounds(patientSex, patientAge) : undefined;
+          const isSimActive = Boolean(whatIfOpen[bio.id] && bounds);
+          const simSiVal = isSimActive ? (whatIfSiValues[bio.id] ?? bio.siValue) : bio.siValue;
+          const factor = unitDef?.siToUsFactor ?? 1;
+          const decSI = unitDef?.decimalsSI ?? 1;
+          const decUS = unitDef?.decimalsUS ?? 1;
+
+          const effectiveStatus: BiomarkerStatus =
+            isSimActive && bounds ? classifyStatus(simSiVal, bounds) : bio.status;
+          const effectiveGaugePct =
+            isSimActive && bounds
+              ? Math.max(
+                  4,
+                  Math.min(
+                    96,
+                    Math.round(
+                      ((simSiVal - bounds.scaleMin) /
+                        Math.max(bounds.scaleMax - bounds.scaleMin, 0.001)) *
+                        100,
+                    ),
+                  ),
+                )
+              : bio.gaugePercent;
+
+          const colors = statusColors(effectiveStatus);
           const exp = explanations[bio.canonicalId];
-          const displayVal = unitSystem === 'SI' ? bio.siValue : bio.usValue;
+          const displayVal = isSimActive
+            ? unitSystem === 'SI'
+              ? roundClinical(simSiVal, decSI)
+              : roundClinical(simSiVal * factor, decUS)
+            : unitSystem === 'SI'
+              ? bio.siValue
+              : bio.usValue;
           const displayUnit = unitSystem === 'SI' ? bio.siUnit : bio.usUnit;
           const displayRef = unitSystem === 'SI' ? bio.refLabelSI : bio.refLabelUS;
           const priorVal = unitSystem === 'SI' ? bio.priorSiValue : bio.priorUsValue;
           const isExpanded = elderMode || expandedIds[bio.id] !== false;
+
+          const sliderStep = bounds
+            ? bounds.scaleMax - bounds.scaleMin <= 5
+              ? 0.05
+              : bounds.scaleMax - bounds.scaleMin <= 30
+                ? 0.1
+                : 1
+            : 0.1;
 
           return (
             <article
@@ -194,6 +245,11 @@ export function BiomarkerDashboard({
                         CKD-EPI 2021 Auto-Calculated
                       </span>
                     )}
+                    {isSimActive && (
+                      <span className="rounded bg-indigo-100 px-2 py-0.5 text-[10px] font-extrabold text-indigo-900">
+                        What-If Preview
+                      </span>
+                    )}
                   </div>
                   <h3 className="text-base font-extrabold text-slate-900">
                     {exp?.plainTitle || bio.displayName}
@@ -207,30 +263,57 @@ export function BiomarkerDashboard({
                 </div>
 
                 <div className="text-end">
-                  <div className={`elder-value text-2xl font-extrabold tabular-nums ${colors.valueText}`}>
+                  <div
+                    key={`${bio.id}-${unitSystem}`}
+                    className={`unit-digit-roll elder-value text-2xl font-extrabold tabular-nums ${colors.valueText}`}
+                  >
                     {displayVal}{' '}
                     <span className="text-xs font-bold text-slate-500">{displayUnit}</span>
                   </div>
-                  <span
-                    className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${colors.pill}`}
-                  >
-                    {t.statusLabels[bio.status] || bio.status}
-                  </span>
+                  <div className="mt-1 flex items-center justify-end gap-1.5">
+                    <span
+                      className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${colors.pill}`}
+                    >
+                      {t.statusLabels[effectiveStatus] || effectiveStatus}
+                    </span>
+                  </div>
                 </div>
               </div>
 
               {/* Continuous Color-Coded Range Gauge Bar */}
               <div className="mt-4 space-y-1.5">
-                <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold text-slate-500">
                   <span>
                     {t.referenceLabel}: <strong className="text-slate-700">{displayRef}</strong>
                   </span>
-                  {bio.wasUnitConverted && (
-                    <span className="inline-flex items-center gap-1 rounded-md bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-800">
-                      <RefreshCw className="h-3 w-3" aria-hidden="true" />
-                      {t.convertedFromLabel} {bio.originalValue} {bio.originalUnit}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {bio.wasUnitConverted && (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-800">
+                        <RefreshCw className="h-3 w-3" aria-hidden="true" />
+                        {t.convertedFromLabel} {bio.originalValue} {bio.originalUnit}
+                      </span>
+                    )}
+                    {bounds && (
+                      <button
+                        type="button"
+                        aria-pressed={isSimActive}
+                        onClick={() => {
+                          setWhatIfOpen((prev) => ({ ...prev, [bio.id]: !prev[bio.id] }));
+                          if (whatIfSiValues[bio.id] === undefined) {
+                            setWhatIfSiValues((prev) => ({ ...prev, [bio.id]: bio.siValue }));
+                          }
+                        }}
+                        className={`no-print inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-extrabold transition ${
+                          isSimActive
+                            ? 'bg-indigo-700 text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-800'
+                        }`}
+                      >
+                        <SlidersHorizontal className="h-3 w-3" aria-hidden="true" />
+                        <span>{isSimActive ? 'Close What-If' : 'What-If'}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div
@@ -239,10 +322,58 @@ export function BiomarkerDashboard({
                   aria-hidden="true"
                 >
                   <div
-                    className={`clinical-gauge-pin absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-md ring-4 transition-all duration-500 ${colors.pin}`}
-                    style={{ left: `${bio.gaugePercent}%` }}
+                    className={`clinical-gauge-pin absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-md ring-4 transition-all duration-300 ${colors.pin}`}
+                    style={{ left: `${effectiveGaugePct}%` }}
                   />
                 </div>
+
+                {/* Interactive What-If Biomarker Risk Simulator */}
+                {isSimActive && bounds && (
+                  <div className="no-print mt-3 rounded-xl border border-indigo-200 bg-indigo-50/60 px-3.5 py-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                      <label
+                        htmlFor={`whatif-${bio.id}`}
+                        className="font-extrabold text-indigo-950"
+                      >
+                        Drag to simulate target {bio.displayName.split(' (')[0]}:
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setWhatIfSiValues((prev) => ({ ...prev, [bio.id]: bio.siValue }))
+                        }
+                        className="inline-flex items-center gap-1 font-bold text-indigo-700 hover:text-indigo-950"
+                      >
+                        <RotateCcw className="h-3 w-3" aria-hidden="true" />
+                        <span>
+                          Reset to lab ({unitSystem === 'SI' ? bio.siValue : bio.usValue}{' '}
+                          {displayUnit})
+                        </span>
+                      </button>
+                    </div>
+                    <input
+                      id={`whatif-${bio.id}`}
+                      type="range"
+                      min={bounds.scaleMin}
+                      max={bounds.scaleMax}
+                      step={sliderStep}
+                      value={Math.max(bounds.scaleMin, Math.min(bounds.scaleMax, simSiVal))}
+                      aria-valuetext={`${displayVal} ${displayUnit} (${t.statusLabels[effectiveStatus] || effectiveStatus})`}
+                      style={
+                        {
+                          '--slider-progress': `${effectiveGaugePct}%`,
+                        } as React.CSSProperties
+                      }
+                      onChange={(e) =>
+                        setWhatIfSiValues((prev) => ({
+                          ...prev,
+                          [bio.id]: Number(e.target.value),
+                        }))
+                      }
+                      className="clinical-whatif-slider mt-1"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Longitudinal 6-month Trend Pill */}

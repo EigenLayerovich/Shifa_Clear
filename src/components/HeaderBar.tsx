@@ -3,13 +3,18 @@
 import React from 'react';
 import {
   Activity,
+  Baby,
   ClipboardCheck,
   Pill,
   QrCode,
   ShieldCheck,
+  User,
+  Users,
 } from 'lucide-react';
 import type { SupportedLanguage, UnitSystem } from '@/lib/clinical/types';
 import { LANGUAGES, UI_STRINGS } from '@/lib/i18n/uiStrings';
+
+export type FamilyProfileKey = 'self' | 'parent' | 'child' | 'custom';
 
 interface HeaderBarProps {
   language: SupportedLanguage;
@@ -18,6 +23,8 @@ interface HeaderBarProps {
   onUnitSystemChange: (unit: UnitSystem) => void;
   elderMode: boolean;
   onElderModeChange: (enabled: boolean) => void;
+  familyProfile: FamilyProfileKey;
+  onSelectFamilyProfile: (profile: 'self' | 'parent' | 'child') => void;
   hasEvaluation: boolean;
   onOpenDrugChecker: () => void;
   onOpenAudit: () => void;
@@ -32,6 +39,8 @@ export function HeaderBar({
   onUnitSystemChange,
   elderMode,
   onElderModeChange,
+  familyProfile,
+  onSelectFamilyProfile,
   hasEvaluation,
   onOpenDrugChecker,
   onOpenAudit,
@@ -160,6 +169,39 @@ export function HeaderBar({
             >
               US (mg/dL)
             </button>
+          </div>
+
+          {/* Family Profile Switcher (Self / Parent / Child) */}
+          <div
+            role="group"
+            aria-label="Family Profile"
+            className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold"
+          >
+            {(
+              [
+                { id: 'self', label: 'Self', Icon: User },
+                { id: 'parent', label: 'Parent', Icon: Users },
+                { id: 'child', label: 'Child', Icon: Baby },
+              ] as const
+            ).map(({ id, label, Icon }) => {
+              const active = familyProfile === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => onSelectFamilyProfile(id)}
+                  className={`inline-flex min-h-[34px] items-center gap-1 rounded-lg px-2.5 transition ${
+                    active
+                      ? 'bg-teal-700 text-white shadow-xs'
+                      : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>{label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Native HTML Switch for Elder Mode */}

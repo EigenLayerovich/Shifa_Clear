@@ -24,7 +24,7 @@ import { BiomarkerDashboard } from './BiomarkerDashboard';
 import { ClinicalAuditDrawer } from './ClinicalAuditDrawer';
 import { ClinicalQaPanel } from './ClinicalQaPanel';
 import { DoctorPrepAndVoice } from './DoctorPrepAndVoice';
-import { HeaderBar } from './HeaderBar';
+import { HeaderBar, type FamilyProfileKey } from './HeaderBar';
 import { IntakePanel } from './IntakePanel';
 import { LongitudinalTrendChart } from './LongitudinalTrendChart';
 import { MedicationTimetable } from './MedicationTimetable';
@@ -40,10 +40,12 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
   const [language, setLanguage] = useState<SupportedLanguage>('en');
   const [unitSystem, setUnitSystem] = useState<UnitSystem>('SI');
   const [elderMode, setElderMode] = useState(false);
+  const [familyProfile, setFamilyProfile] = useState<FamilyProfileKey>('self');
   const [age, setAge] = useState(54);
   const [sex, setSex] = useState<BiologicalSex>('male');
 
   const [analysis, setAnalysis] = useState<ShifaClearAnalysisResponse | null>(null);
+  const [savedOfflineReport, setSavedOfflineReport] = useState<ShifaClearAnalysisResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -53,11 +55,13 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
   const [drugCheckerOpen, setDrugCheckerOpen] = useState(false);
   const [sessionApiKey, setSessionApiKey] = useState('');
 
-  // Audio playback state
+  // Audio playback & live teleprompter state
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  const [audioProgress, setAudioProgress] = useState(0);
   const [audioProviderLabel, setAudioProviderLabel] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const speechTimerRef = useRef<number | null>(null);
 
   const langMeta = LANGUAGE_MAP[language];
   const t = UI_STRINGS[language];
@@ -75,7 +79,41 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
     };
   }, [elderMode]);
 
+  // Register Offline PWA Service Worker & hydrate last cached clinical report
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+    try {
+      const cached = window.localStorage.getItem('shifaclear_last_report_v1');
+      if (cached) {
+        const parsed = JSON.parse(cached) as ShifaClearAnalysisResponse;
+        if (parsed?.evaluation && parsed?.narrative) {
+          setSavedOfflineReport(parsed);
+        }
+      }
+    } catch {
+      // Ignore storage read issues
+    }
+  }, []);
+
+  // Automatically persist the latest verified analysis locally for offline PWA access
+  useEffect(() => {
+    if (!analysis || typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem('shifaclear_last_report_v1', JSON.stringify(analysis));
+      setSavedOfflineReport(analysis);
+    } catch {
+      // Ignore quota errors
+    }
+  }, [analysis]);
+
   const stopAnyAudio = () => {
+    if (speechTimerRef.current !== null) {
+      window.clearInterval(speechTimerRef.current);
+      speechTimerRef.current = null;
+    }
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
@@ -85,6 +123,7 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
     }
     setIsSpeaking(false);
     setIsLoadingAudio(false);
+    setAudioProgress(0);
   };
 
   useEffect(() => {
@@ -309,9 +348,81 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
     }
   };
 
+  const handleSelectFamilyProfile = (profile: 'self' | 'parent' | 'child') => {
+    const presets: Record<'self' | 'parent' | 'child', { age: number; sex: BiologicalSex; elder: boolean }> = {
+      self: { age: 35, sex: 'male', elder: false },
+      parent: { age: 72, sex: 'female', elder: true },
+      child: { age: 5, sex: 'female', elder: false },
+    };
+    const next = presets[profile];
+    setFamilyProfile(profile);
+    setAge(next.age);
+    setSex(next.sex);
+    setElderMode(next.elder);
+
+    // Deterministically re-evaluate the currently open report under the new age/sex bounds in <2ms
+    if (analysis) {
+      const ev = analysis.evaluation;
+      const reEvaluated = evaluateClinicalDocument(
+        {
+          documentType: ev.documentType,
+          reportDate: ev.reportDate,
+          priorReportDate: ev.priorReportDate,
+          facilityName: ev.facilityName,
+          biomarkers: ev.biomarkers
+            .filter((b) => !b.isCalculated)
+            .map((b) => ({
+              name: b.displayName,
+              value: b.originalValue,
+              unit: b.originalUnit,
+              history: b.historySI?.slice(0, -1).map((h) => ({ date: h.date, value: h.value, unit: b.siUnit })),
+            })),
+          priorBiomarkers: ev.biomarkers
+            .filter((b) => b.priorSiValue !== undefined && !b.isCalculated)
+            .map((b) => ({
+              name: b.displayName,
+              value: b.priorSiValue!,
+              unit: b.siUnit,
+            })),
+          medications: ev.medications.map((m) => ({
+            brandName: m.brandName,
+            genericName: m.genericName,
+            dose: m.dose,
+            frequency: m.frequencyRaw,
+            timingNotes: m.timingInstruction,
+            duration: m.duration,
+          })),
+        },
+        {
+          age: next.age,
+          isPediatric: next.age < 18,
+          sex: next.sex,
+          unitSystem,
+          language,
+        },
+      );
+      setAnalysis((prev) => (prev ? { ...prev, evaluation: reEvaluated } : null));
+    }
+  };
+
   const handleLanguageChange = async (newLang: SupportedLanguage) => {
     stopAnyAudio();
-    setLanguage(newLang);
+    const applyLang = () => setLanguage(newLang);
+    const prevDir = LANGUAGE_MAP[language].dir;
+    const nextDir = LANGUAGE_MAP[newLang].dir;
+
+    // Progressive View Transitions API reflow when flipping LTR <-> RTL (per modern-web-guidance)
+    if (
+      prevDir !== nextDir &&
+      typeof document !== 'undefined' &&
+      'startViewTransition' in document
+    ) {
+      (document as Document & { startViewTransition: (cb: () => void) => void }).startViewTransition(
+        applyLang,
+      );
+    } else {
+      applyLang();
+    }
 
     if (!analysis) return;
 
@@ -369,8 +480,20 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
         setAudioProviderLabel('Gemini 3.8 TTS');
         setIsLoadingAudio(false);
         setIsSpeaking(true);
-        audio.onended = () => setIsSpeaking(false);
-        audio.onerror = () => setIsSpeaking(false);
+        setAudioProgress(0);
+        audio.ontimeupdate = () => {
+          if (audio.duration && Number.isFinite(audio.duration) && audio.duration > 0) {
+            setAudioProgress(Math.min(1, audio.currentTime / audio.duration));
+          }
+        };
+        audio.onended = () => {
+          setIsSpeaking(false);
+          setAudioProgress(0);
+        };
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          setAudioProgress(0);
+        };
         await audio.play();
         return;
       }
@@ -378,7 +501,7 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
       // Fall through cleanly to browser Web Speech API
     }
 
-    // Fallback: Browser Speech Synthesis
+    // Fallback: Browser Speech Synthesis with live teleprompter progress
     setIsLoadingAudio(false);
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       const utter = new SpeechSynthesisUtterance(textToSpeak);
@@ -386,8 +509,41 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
       utter.rate = elderMode ? 0.88 : 0.96;
       setAudioProviderLabel('Browser Voice');
       setIsSpeaking(true);
-      utter.onend = () => setIsSpeaking(false);
-      utter.onerror = () => setIsSpeaking(false);
+      setAudioProgress(0);
+
+      const estimatedMs = Math.max(3000, (textToSpeak.length / 13.5) * 1000);
+      const startedAt = Date.now();
+      let gotBoundary = false;
+
+      utter.onboundary = (event) => {
+        if (typeof event.charIndex === 'number' && textToSpeak.length > 0) {
+          gotBoundary = true;
+          setAudioProgress(Math.min(0.99, event.charIndex / textToSpeak.length));
+        }
+      };
+
+      speechTimerRef.current = window.setInterval(() => {
+        if (!gotBoundary) {
+          setAudioProgress(Math.min(0.98, (Date.now() - startedAt) / estimatedMs));
+        }
+      }, 220);
+
+      utter.onend = () => {
+        if (speechTimerRef.current !== null) {
+          window.clearInterval(speechTimerRef.current);
+          speechTimerRef.current = null;
+        }
+        setIsSpeaking(false);
+        setAudioProgress(0);
+      };
+      utter.onerror = () => {
+        if (speechTimerRef.current !== null) {
+          window.clearInterval(speechTimerRef.current);
+          speechTimerRef.current = null;
+        }
+        setIsSpeaking(false);
+        setAudioProgress(0);
+      };
       window.speechSynthesis.speak(utter);
     }
   };
@@ -423,6 +579,8 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
         onUnitSystemChange={setUnitSystem}
         elderMode={elderMode}
         onElderModeChange={setElderMode}
+        familyProfile={familyProfile}
+        onSelectFamilyProfile={handleSelectFamilyProfile}
         hasEvaluation={Boolean(analysis)}
         onOpenDrugChecker={() => setDrugCheckerOpen(true)}
         onOpenAudit={() => setAuditOpen(true)}
@@ -449,14 +607,30 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
             language={language}
             age={age}
             sex={sex}
-            onAgeChange={setAge}
-            onSexChange={setSex}
+            onAgeChange={(val) => {
+              setAge(val);
+              setFamilyProfile('custom');
+            }}
+            onSexChange={(val) => {
+              setSex(val);
+              setFamilyProfile('custom');
+            }}
             isLoading={isLoading}
             errorMessage={errorMessage}
             onAnalyzeFiles={handleAnalyzeFiles}
             onAnalyzeText={handleAnalyzeText}
             onSelectDemoCase={(id) => runDemoCase(id)}
             onOpenDrugChecker={() => setDrugCheckerOpen(true)}
+            savedOfflineHeadline={savedOfflineReport?.narrative.headline ?? null}
+            onRestoreOfflineReport={
+              savedOfflineReport
+                ? () => {
+                    setAnalysis(savedOfflineReport);
+                    setAge(savedOfflineReport.evaluation.patientContext.age);
+                    setSex(savedOfflineReport.evaluation.patientContext.sex);
+                  }
+                : undefined
+            }
           />
         ) : (
           <div className="space-y-7">
@@ -605,6 +779,8 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
               unitSystem={unitSystem}
               language={language}
               elderMode={elderMode}
+              patientAge={analysis.evaluation.patientContext.age}
+              patientSex={analysis.evaluation.patientContext.sex}
             />
 
             {/* Visual Daily Medication Timetable */}
@@ -622,6 +798,7 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
               language={language}
               isSpeaking={isSpeaking}
               isLoadingAudio={isLoadingAudio}
+              audioProgress={audioProgress}
               audioProviderLabel={audioProviderLabel}
               onToggleSpeak={handleToggleMainSpeech}
             />
@@ -658,6 +835,7 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
         onClose={() => setDrugCheckerOpen(false)}
         defaultAge={age}
         defaultSex={sex}
+        sessionApiKey={sessionApiKey}
         onSubmitCheck={handleQuickDrugCheck}
       />
 

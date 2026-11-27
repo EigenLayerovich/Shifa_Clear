@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Check,
-  Copy,
-  Printer,
-  Square,
   CheckSquare,
+  Copy,
+  FileDown,
+  Square,
   Stethoscope,
   Volume2,
   VolumeX,
@@ -19,6 +19,7 @@ interface DoctorPrepAndVoiceProps {
   language: SupportedLanguage;
   isSpeaking: boolean;
   isLoadingAudio: boolean;
+  audioProgress: number;
   audioProviderLabel: string | null;
   onToggleSpeak: () => void;
 }
@@ -28,12 +29,35 @@ export function DoctorPrepAndVoice({
   language,
   isSpeaking,
   isLoadingAudio,
+  audioProgress,
   audioProviderLabel,
   onToggleSpeak,
 }: DoctorPrepAndVoiceProps) {
   const t = UI_STRINGS[language];
   const [checkedQuestions, setCheckedQuestions] = useState<Record<number, boolean>>({});
   const [copied, setCopied] = useState(false);
+
+  const spokenSentences = useMemo(() => {
+    const raw = (narrative.spokenSummaryScript || '').trim();
+    if (!raw) return [];
+    const parts = raw
+      .split(/(?<=[.!?؟۔])\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    return parts.length > 0 ? parts : [raw];
+  }, [narrative.spokenSummaryScript]);
+
+  const activeSentenceIdx = useMemo(() => {
+    if (!isSpeaking || spokenSentences.length === 0) return -1;
+    const totalChars = spokenSentences.reduce((sum, s) => sum + s.length, 0) || 1;
+    const targetChar = Math.min(0.999, Math.max(0, audioProgress)) * totalChars;
+    let acc = 0;
+    for (let i = 0; i < spokenSentences.length; i++) {
+      acc += spokenSentences[i].length;
+      if (targetChar <= acc) return i;
+    }
+    return spokenSentences.length - 1;
+  }, [isSpeaking, spokenSentences, audioProgress]);
 
   const handleCopyWhatsapp = async () => {
     try {
@@ -143,6 +167,41 @@ export function DoctorPrepAndVoice({
             )}
           </button>
 
+          {/* Synced Teleprompter / Karaoke Sentence Highlight during TTS Playback */}
+          {isSpeaking && spokenSentences.length > 0 && (
+            <div
+              aria-live="polite"
+              className="rounded-2xl border-2 border-teal-300 bg-white p-3.5 shadow-xs space-y-1.5"
+            >
+              <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider text-teal-800">
+                <span>Live Voice Teleprompter</span>
+                <span className="tabular-nums">
+                  {Math.min(spokenSentences.length, activeSentenceIdx + 1)} / {spokenSentences.length}
+                </span>
+              </div>
+              <p className="text-xs leading-relaxed text-slate-500 sm:text-sm">
+                {spokenSentences.map((sentence, idx) => {
+                  const isActive = idx === activeSentenceIdx;
+                  const isPast = idx < activeSentenceIdx;
+                  return (
+                    <span
+                      key={idx}
+                      className={`inline rounded-md px-1 py-0.5 transition-colors duration-300 ${
+                        isActive
+                          ? 'bg-teal-100 font-extrabold text-teal-950 ring-1 ring-teal-300'
+                          : isPast
+                            ? 'text-slate-600'
+                            : 'text-slate-400'
+                      }`}
+                    >
+                      {sentence}{' '}
+                    </span>
+                  );
+                })}
+              </p>
+            </div>
+          )}
+
           <div className="rounded-2xl border border-slate-200 bg-white p-3.5 text-xs leading-relaxed whitespace-pre-line text-slate-700">
             {narrative.caregiverWhatsappSummary}
           </div>
@@ -170,10 +229,10 @@ export function DoctorPrepAndVoice({
           <button
             type="button"
             onClick={() => window.print()}
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-xs font-extrabold text-slate-800 shadow-xs transition hover:bg-slate-50"
+            className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-extrabold text-white shadow-xs transition hover:bg-slate-800"
           >
-            <Printer className="h-4 w-4 text-slate-600" aria-hidden="true" />
-            <span>{t.printBtn}</span>
+            <FileDown className="h-4 w-4 text-teal-300" aria-hidden="true" />
+            <span>Generate Doctor Brief (PDF)</span>
           </button>
         </div>
       </div>

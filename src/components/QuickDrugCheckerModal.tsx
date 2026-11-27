@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pill, Plus, Search, ShieldCheck, X } from 'lucide-react';
+import { AlertTriangle, Camera, Loader2, Pill, Plus, Search, ShieldCheck, Sparkles, X } from 'lucide-react';
 import { UAE_DRUG_REGISTRY } from '@/lib/clinical/drugRegistry';
+import { evaluateMedications } from '@/lib/clinical/medications';
 import type { BiologicalSex, RawMedication } from '@/lib/clinical/types';
 
 interface SelectedQuickMed {
@@ -16,6 +17,7 @@ interface QuickDrugCheckerModalProps {
   onClose: () => void;
   defaultAge: number;
   defaultSex: BiologicalSex;
+  sessionApiKey?: string;
   onSubmitCheck: (
     meds: RawMedication[],
     creatinineUmol?: number,
@@ -29,14 +31,18 @@ export function QuickDrugCheckerModal({
   onClose,
   defaultAge,
   defaultSex,
+  sessionApiKey,
   onSubmitCheck,
 }: QuickDrugCheckerModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const boxInputRef = useRef<HTMLInputElement>(null);
   const [drugQuery, setDrugQuery] = useState('');
   const [selectedMeds, setSelectedMeds] = useState<SelectedQuickMed[]>([]);
   const [optionalCreatinine, setOptionalCreatinine] = useState('');
   const [checkAge, setCheckAge] = useState(defaultAge);
   const [checkSex, setCheckSex] = useState<BiologicalSex>(defaultSex);
+  const [isScanningBox, setIsScanningBox] = useState(false);
+  const [scanStatus, setScanStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -121,7 +127,75 @@ export function QuickDrugCheckerModal({
   const applyPreset = (meds: SelectedQuickMed[], crUmol = '', presetAge?: number) => {
     setSelectedMeds(meds);
     setOptionalCreatinine(crUmol);
+    setScanStatus(null);
     if (presetAge !== undefined) setCheckAge(presetAge);
+  };
+
+  // Live instant <1ms interaction preview inside the modal as drugs are picked or scanned
+  const livePreviewAlerts = useMemo(() => {
+    if (selectedMeds.length === 0) return [];
+    const { alerts } = evaluateMedications(
+      selectedMeds.map((m) => ({
+        brandName: m.brandName,
+        genericName: m.genericName,
+        dose: 'Standard dose',
+        frequency: 'OD',
+      })),
+      [],
+      checkAge,
+    );
+    return alerts;
+  }, [selectedMeds, checkAge]);
+
+  const handleBoxPhotoSelected = async (file?: File) => {
+    if (!file) return;
+    setIsScanningBox(true);
+    setScanStatus(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const headers: Record<string, string> = {};
+      if (sessionApiKey?.trim()) headers['x-gemini-api-key'] = sessionApiKey.trim();
+
+      const res = await fetch('/api/scan-med', {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not scan medication box.');
+
+      const found = (data.medications || []) as Array<{
+        brandName: string;
+        genericName: string;
+        drugClass: string;
+      }>;
+      if (found.length === 0) {
+        setScanStatus('No readable medication name found on photo — try a clearer front label.');
+      } else {
+        setSelectedMeds((prev) => {
+          const next = [...prev];
+          for (const item of found) {
+            if (!next.some((x) => x.genericName === item.genericName && x.brandName === item.brandName)) {
+              next.push({
+                brandName: item.brandName,
+                genericName: item.genericName,
+                drugClass: item.drugClass,
+              });
+            }
+          }
+          return next;
+        });
+        setScanStatus(
+          `Scanned from box: ${found.map((f) => `${f.brandName} (${f.genericName})`).join(', ')}`,
+        );
+      }
+    } catch (err) {
+      setScanStatus(err instanceof Error ? err.message : 'Box scan failed.');
+    } finally {
+      setIsScanningBox(false);
+      if (boxInputRef.current) boxInputRef.current.value = '';
+    }
   };
 
   const handleRun = () => {
@@ -158,7 +232,7 @@ export function QuickDrugCheckerModal({
                 Quick Drug Interaction &amp; CKD-EPI Checker
               </h1>
               <p className="text-xs text-slate-600">
-                141 generics • 600+ UAE/Gulf pharmacy brands • 25+ RxList &amp; pediatric safety rules (&lt; 10ms)
+                150 drug profiles • 620+ UAE/Gulf brands • 40 RxList, pediatric &amp; cross-domain rules (&lt; 10ms)
               </p>
             </div>
           </div>
@@ -301,7 +375,75 @@ export function QuickDrugCheckerModal({
               >
                 Aspirin in 5y Child (Reye&apos;s!)
               </button>
+              <button
+                type="button"
+                onClick={() =>
+                  applyPreset(
+                    [
+                      { brandName: 'Euthyrox', genericName: 'Levothyroxine', drugClass: 'thyroid hormone' },
+                      { brandName: 'Caltrate', genericName: 'Calcium + Vitamin D3', drugClass: 'calcium supplement' },
+                    ],
+                    '',
+                    45,
+                  )
+                }
+                className="min-h-[34px] rounded-xl bg-sky-50 px-3 text-xs font-bold text-sky-900 ring-1 ring-sky-200 hover:bg-sky-100"
+              >
+                Euthyrox + Caltrate (4h Split)
+              </button>
             </div>
+          </div>
+
+          {/* Pharmacy Box / Label Camera Scanner Strip */}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-teal-300 bg-teal-50/40 px-4 py-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-800">
+                <Camera className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <div>
+                <p className="text-xs font-extrabold text-teal-950">
+                  Pharmacy Box / Label Camera Scanner
+                </p>
+                <p className="text-[11px] text-slate-600">
+                  Snap any UAE medicine box (Panadol, Glucophage, Concor, Co-Diovan) to auto-detect generic &amp; risks
+                </p>
+              </div>
+            </div>
+
+            <input
+              ref={boxInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="visually-hidden"
+              onChange={(e) => handleBoxPhotoSelected(e.target.files?.[0])}
+              disabled={isScanningBox}
+            />
+            <button
+              type="button"
+              disabled={isScanningBox}
+              onClick={() => boxInputRef.current?.click()}
+              className="inline-flex min-h-[38px] items-center gap-2 rounded-xl bg-teal-700 px-3.5 text-xs font-extrabold text-white shadow-xs transition hover:bg-teal-800 disabled:opacity-60"
+            >
+              {isScanningBox ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                  <span>Scanning box...</span>
+                </>
+              ) : (
+                <>
+                  <Camera className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Scan Box Photo</span>
+                </>
+              )}
+            </button>
+
+            {scanStatus && (
+              <p className="w-full rounded-xl bg-white px-3 py-1.5 text-xs font-bold text-teal-900 ring-1 ring-teal-200">
+                <Sparkles className="me-1.5 inline h-3.5 w-3.5 text-teal-700" aria-hidden="true" />
+                {scanStatus}
+              </p>
+            )}
           </div>
 
           {/* Aligned Inputs */}
@@ -397,6 +539,73 @@ export function QuickDrugCheckerModal({
                   </button>
                 </span>
               ))}
+            </div>
+          )}
+
+          {/* Live Instant Interaction Arc Preview (runs in <1ms before clicking Check Safety) */}
+          {livePreviewAlerts.length > 0 && (
+            <div
+              dir="ltr"
+              className="space-y-2.5 rounded-2xl border-2 border-amber-300 bg-amber-50/60 p-4"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-amber-950">
+                  <AlertTriangle className="h-4 w-4 text-rose-600" aria-hidden="true" />
+                  Instant Interaction Detected ({livePreviewAlerts.length})
+                </span>
+                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-extrabold uppercase text-rose-700 ring-1 ring-rose-200">
+                  {livePreviewAlerts[0].severity} • {livePreviewAlerts[0].ruleId}
+                </span>
+              </div>
+
+              {livePreviewAlerts[0].involvedItems.length >= 2 && (
+                <div className="flex items-center justify-between gap-2 rounded-xl bg-white/90 px-3 py-2.5">
+                  <span className="rounded-lg bg-slate-900 px-2.5 py-1 text-[11px] font-extrabold text-white">
+                    {livePreviewAlerts[0].involvedItems[0].split(' (')[0]}
+                  </span>
+                  <div className="flex flex-1 flex-col items-center">
+                    <svg viewBox="0 0 140 28" className="h-7 w-full max-w-[160px] overflow-visible" aria-hidden="true">
+                      <path
+                        key={livePreviewAlerts[0].ruleId}
+                        d="M 6 24 Q 70 -4 134 24"
+                        pathLength={100}
+                        fill="none"
+                        stroke={
+                          livePreviewAlerts[0].severity === 'critical'
+                            ? '#BE123C'
+                            : livePreviewAlerts[0].category === 'timing_conflict'
+                              ? '#0284C7'
+                              : '#D97706'
+                        }
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        className="interaction-arc-draw"
+                      />
+                    </svg>
+                    <span className="-mt-1 text-[10px] font-extrabold text-rose-700">
+                      {livePreviewAlerts[0].category === 'timing_conflict' ? '4h Separation Needed' : 'Warning Link'}
+                    </span>
+                  </div>
+                  <span className="rounded-lg bg-slate-900 px-2.5 py-1 text-[11px] font-extrabold text-white">
+                    {livePreviewAlerts[0].involvedItems.slice(1).map((x) => x.split(' (')[0]).join(' + ')}
+                  </span>
+                </div>
+              )}
+
+              {livePreviewAlerts[0].category === 'timing_conflict' && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] font-bold text-slate-700">
+                    <span>07:00 AM</span>
+                    <span className="text-emerald-800">4-Hour Safe Window</span>
+                    <span>11:00 AM / Lunch</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-white p-0.5">
+                    <div className="separation-bar-expand h-full w-full rounded-full bg-gradient-to-r from-teal-600 via-emerald-400 to-sky-600" />
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs font-semibold text-slate-800">{livePreviewAlerts[0].title}</p>
             </div>
           )}
 
