@@ -29,7 +29,7 @@ interface IntakePanelProps {
   onSexChange: (sex: BiologicalSex) => void;
   isLoading: boolean;
   errorMessage: string | null;
-  onAnalyzeFile: (file: File) => void;
+  onAnalyzeFiles: (files: File[]) => void;
   onAnalyzeText: (text: string) => void;
   onSelectDemoCase: (caseId: string) => void;
   onQuickDrugCheck: (meds: RawMedication[], creatinineUmol?: number) => void;
@@ -49,7 +49,7 @@ export function IntakePanel({
   onSexChange,
   isLoading,
   errorMessage,
-  onAnalyzeFile,
+  onAnalyzeFiles,
   onAnalyzeText,
   onSelectDemoCase,
   onQuickDrugCheck,
@@ -57,6 +57,7 @@ export function IntakePanel({
   const t = UI_STRINGS[language];
   const [activeTab, setActiveTab] = useState<'upload' | 'paste' | 'drugs'>('upload');
   const [pastedText, setPastedText] = useState('');
+  const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -101,9 +102,22 @@ export function IntakePanel({
     setOptionalCreatinine(crUmol);
   };
 
-  const handleFilePicked = (file?: File) => {
-    if (!file) return;
-    onAnalyzeFile(file);
+  const handleFilesAdded = (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    const incoming = Array.from(fileList);
+    setQueuedFiles((prev) => {
+      const merged = [...prev];
+      for (const f of incoming) {
+        if (merged.length >= 6) break;
+        if (!merged.some((existing) => existing.name === f.name && existing.size === f.size)) {
+          merged.push(f);
+        }
+      }
+      return merged;
+    });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
@@ -269,62 +283,120 @@ export function IntakePanel({
         </div>
 
         {activeTab === 'upload' ? (
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setIsDragging(true);
-            }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setIsDragging(false);
-              const file = e.dataTransfer.files?.[0];
-              handleFilePicked(file);
-            }}
-            className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-10 text-center transition ${
-              isDragging
-                ? 'border-teal-600 bg-teal-50/70'
-                : 'border-slate-300 bg-slate-50/50 hover:border-teal-500/70'
-            }`}
-          >
-            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-100 text-teal-800">
-              <UploadCloud className="h-7 w-7" aria-hidden="true" />
-            </div>
-            <p className="text-base font-bold text-slate-900">{t.dropzoneTitle}</p>
-            <p className="mt-1 max-w-xl text-xs text-slate-600 sm:text-sm">
-              {t.dropzoneSubtitle}
-            </p>
+          <div className="space-y-4">
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragging(false);
+                handleFilesAdded(e.dataTransfer.files);
+              }}
+              className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-8 text-center transition ${
+                isDragging
+                  ? 'border-teal-600 bg-teal-50/70'
+                  : 'border-slate-300 bg-slate-50/50 hover:border-teal-500/70'
+              }`}
+            >
+              <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-100 text-teal-800">
+                <UploadCloud className="h-7 w-7" aria-hidden="true" />
+              </div>
+              <p className="text-base font-bold text-slate-900">{t.dropzoneTitle}</p>
+              <p className="mt-1 max-w-xl text-xs text-slate-600 sm:text-sm">
+                Upload <strong>1 to 6 files together</strong> (e.g., Hematology PDF + Biochemistry PDF + Prescription photo) — merged into one verified report.
+              </p>
 
-            <input
-              ref={fileInputRef}
-              id="clinical-file-upload"
-              type="file"
-              accept="image/*,application/pdf"
-              className="visually-hidden"
-              onChange={(e) => handleFilePicked(e.target.files?.[0])}
-              disabled={isLoading}
-            />
-
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-              <button
-                type="button"
+              <input
+                ref={fileInputRef}
+                id="clinical-file-upload"
+                type="file"
+                multiple
+                accept="image/*,application/pdf"
+                className="visually-hidden"
+                onChange={(e) => handleFilesAdded(e.target.files)}
                 disabled={isLoading}
-                onClick={() => fileInputRef.current?.click()}
-                className="inline-flex min-h-[46px] items-center gap-2 rounded-xl bg-teal-700 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-teal-800 disabled:opacity-60"
-              >
-                <Camera className="h-4 w-4" aria-hidden="true" />
-                <span>{t.chooseFileBtn}</span>
-              </button>
+              />
 
-              <a
-                href="/samples/abu-dhabi-sample-lab-report.pdf"
-                download="abu-dhabi-sample-lab-report.pdf"
-                className="inline-flex min-h-[46px] items-center gap-2 rounded-xl border border-teal-200 bg-white px-4 py-2.5 text-xs font-bold text-teal-900 shadow-xs transition hover:bg-teal-50"
-              >
-                <Download className="h-4 w-4 text-teal-700" aria-hidden="true" />
-                <span>Download Sample UAE Lab PDF</span>
-              </a>
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  type="button"
+                  disabled={isLoading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex min-h-[46px] items-center gap-2 rounded-xl bg-teal-700 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-teal-800 disabled:opacity-60"
+                >
+                  <Camera className="h-4 w-4" aria-hidden="true" />
+                  <span>{queuedFiles.length > 0 ? 'Add More Files / Photos' : t.chooseFileBtn}</span>
+                </button>
+
+                <a
+                  href="/samples/abu-dhabi-sample-lab-report.pdf"
+                  download="abu-dhabi-sample-lab-report.pdf"
+                  className="inline-flex min-h-[46px] items-center gap-2 rounded-xl border border-teal-200 bg-white px-4 py-2.5 text-xs font-bold text-teal-900 shadow-xs transition hover:bg-teal-50"
+                >
+                  <Download className="h-4 w-4 text-teal-700" aria-hidden="true" />
+                  <span>Download Sample UAE Lab PDF</span>
+                </a>
+              </div>
             </div>
+
+            {queuedFiles.length > 0 && (
+              <div className="rounded-2xl border border-teal-200 bg-teal-50/50 p-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-extrabold text-teal-950">
+                    Ready to Analyze Together ({queuedFiles.length} {queuedFiles.length === 1 ? 'document' : 'documents'})
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setQueuedFiles([])}
+                    className="text-xs font-bold text-slate-500 hover:text-rose-700"
+                  >
+                    Clear all
+                  </button>
+                </div>
+
+                <ul className="flex flex-wrap gap-2">
+                  {queuedFiles.map((file, idx) => (
+                    <li
+                      key={`${file.name}-${file.size}-${idx}`}
+                      className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-800 shadow-xs ring-1 ring-teal-200"
+                    >
+                      <FileText className="h-3.5 w-3.5 shrink-0 text-teal-700" aria-hidden="true" />
+                      <span className="max-w-[200px] truncate">{file.name}</span>
+                      <span className="text-[10px] font-semibold text-slate-400">
+                        {Math.max(1, Math.round(file.size / 1024))} KB
+                      </span>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${file.name}`}
+                        onClick={() =>
+                          setQueuedFiles((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                        className="rounded-full p-0.5 text-slate-400 hover:bg-slate-100 hover:text-rose-600"
+                      >
+                        <X className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    disabled={isLoading}
+                    onClick={() => onAnalyzeFiles(queuedFiles)}
+                    className="inline-flex min-h-[46px] items-center gap-2 rounded-xl bg-teal-700 px-6 text-sm font-extrabold text-white shadow-sm transition hover:bg-teal-800 disabled:opacity-50"
+                  >
+                    <Sparkles className="h-4 w-4" aria-hidden="true" />
+                    <span>
+                      {t.analyzeBtn} ({queuedFiles.length} {queuedFiles.length === 1 ? 'File' : 'Files'})
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ) : activeTab === 'paste' ? (
           <div className="space-y-4">

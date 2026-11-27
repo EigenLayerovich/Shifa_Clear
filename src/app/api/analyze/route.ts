@@ -74,14 +74,12 @@ export async function POST(req: NextRequest) {
 
     let demoCaseId: string | undefined;
     let rawText: string | undefined;
-    let fileBase64: string | undefined;
-    let mimeType: string | undefined;
+    const uploadedFiles: Array<{ base64: string; mimeType: string; fileName: string }> = [];
     let contextInput: Partial<PatientContext> = {};
     let forceLiveAI = false;
 
     if (contentType.includes('multipart/form-data')) {
       const form = await req.formData();
-      const file = form.get('file');
       rawText = (form.get('rawText') as string | null)?.trim() || undefined;
       demoCaseId = (form.get('demoCaseId') as string | null)?.trim() || undefined;
       const ctxStr = form.get('patientContext') as string | null;
@@ -89,16 +87,32 @@ export async function POST(req: NextRequest) {
         contextInput = JSON.parse(ctxStr);
       }
 
-      if (file && file instanceof File && file.size > 0) {
-        if (file.size > 11 * 1024 * 1024) {
+      const rawFileEntries = [...form.getAll('files'), ...form.getAll('file')].filter(
+        (item): item is File => item instanceof File && item.size > 0,
+      );
+
+      if (rawFileEntries.length > 6) {
+        return NextResponse.json(
+          { error: 'Please upload up to 6 documents/photos at once.' },
+          { status: 400 },
+        );
+      }
+
+      let totalBytes = 0;
+      for (const file of rawFileEntries) {
+        totalBytes += file.size;
+        if (file.size > 11 * 1024 * 1024 || totalBytes > 20 * 1024 * 1024) {
           return NextResponse.json(
-            { error: 'File exceeds the 10 MB limit. Please upload a smaller image or PDF.' },
+            { error: 'Uploaded files exceed the size limit. Try smaller images or fewer PDFs.' },
             { status: 400 },
           );
         }
         const buffer = Buffer.from(await file.arrayBuffer());
-        fileBase64 = buffer.toString('base64');
-        mimeType = file.type || 'image/jpeg';
+        uploadedFiles.push({
+          base64: buffer.toString('base64'),
+          mimeType: file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'),
+          fileName: file.name,
+        });
       }
     } else {
       const body = await req.json();
@@ -149,10 +163,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(payload);
     }
 
-    // Path B: Live Upload (Photo / PDF) or Pasted Clinical Text
-    if (!fileBase64 && !rawText) {
+    // Path B: Live Upload (1–6 Photos / PDFs) or Pasted Clinical Text
+    if (uploadedFiles.length === 0 && !rawText) {
       return NextResponse.json(
-        { error: 'Please upload a lab/prescription file, paste clinical text, or pick a UAE demo case.' },
+        { error: 'Please upload one or more lab/prescription files, paste clinical text, or pick a UAE demo case.' },
         { status: 400 },
       );
     }
@@ -175,8 +189,7 @@ export async function POST(req: NextRequest) {
       extracted = await extractClinicalDocumentWithGemini({
         apiKey,
         rawText,
-        fileBase64,
-        mimeType,
+        files: uploadedFiles,
       });
       usedLiveAI = true;
     } catch (extractErr) {

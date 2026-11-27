@@ -114,11 +114,22 @@ export async function extractClinicalDocumentWithGemini(params: {
   rawText?: string;
   fileBase64?: string;
   mimeType?: string;
+  files?: Array<{ base64: string; mimeType: string; fileName?: string }>;
 }): Promise<RawExtractedDocument> {
   const client = createClient(params.apiKey);
 
+  const allFiles: Array<{ base64: string; mimeType: string; fileName?: string }> = [
+    ...(params.files || []),
+    ...(params.fileBase64 && params.mimeType
+      ? [{ base64: params.fileBase64, mimeType: params.mimeType }]
+      : []),
+  ];
+
   const instructionText = [
     'You are a precision clinical document OCR & structured extraction engine for a UAE hospital app.',
+    allFiles.length > 1
+      ? `You are given ${allFiles.length} separate pages/documents belonging to the SAME patient visit (for example, Hematology PDF + Biochemistry PDF + Prescription photo). Merge ALL biomarkers and medications across ALL attached documents into one unified clinical JSON response without duplicating identical rows.`
+      : 'Extract all lab biomarkers and medications from the attached medical document or medication photo.',
     '1. Extract patient demographics from the header if printed: patientAgeYears (numeric years — use decimals for infants/babies, e.g. "11 Mth 11 Days" -> 0.95, "6 Months" -> 0.5), patientAgeLabel (exact text like "11 Mth 11 Days"), and patientSex ("male" or "female").',
     '2. Extract EVERY numeric lab biomarker (name, numeric value, exact unit printed, exact rawReferenceRange printed on the report) and EVERY medication (brandName, genericName if visible, dose, frequency shorthand like OD/BD/TDS, timingNotes, duration).',
     '3. For CBC differential counts: keep "%" in the name for percentage rows (e.g., "Neutrophils %", "Lymphocytes %", "Monocytes %") so they stay distinct from absolute counts ("Neutrophils", "Lymphocytes" in 10^9/L). Never duplicate identical rows.',
@@ -130,16 +141,16 @@ export async function extractClinicalDocumentWithGemini(params: {
       type: 'text',
       text: params.rawText
         ? `${instructionText}\n\nCLINICAL TEXT TO EXTRACT:\n${params.rawText}`
-        : `${instructionText}\n\nExtract all lab biomarkers and medications from the attached medical document or medication photo.`,
+        : instructionText,
     },
   ];
 
-  if (params.fileBase64 && params.mimeType) {
-    const isPdf = params.mimeType === 'application/pdf';
+  for (const f of allFiles) {
+    const isPdf = f.mimeType === 'application/pdf';
     inputParts.push({
       type: isPdf ? 'document' : 'image',
-      data: params.fileBase64,
-      mime_type: params.mimeType,
+      data: f.base64,
+      mime_type: f.mimeType,
     });
   }
 

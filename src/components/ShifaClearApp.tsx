@@ -133,13 +133,41 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
     }
   };
 
-  const handleAnalyzeFile = async (file: File) => {
+  const compressLargeImageIfNeeded = async (file: File): Promise<File> => {
+    if (!file.type.startsWith('image/') || file.size <= 1.2 * 1024 * 1024) {
+      return file;
+    }
+    try {
+      const bitmap = await createImageBitmap(file);
+      const maxDim = 1600;
+      const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return file;
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/jpeg', 0.82),
+      );
+      if (!blob) return file;
+      return new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+    } catch {
+      return file;
+    }
+  };
+
+  const handleAnalyzeFiles = async (files: File[]) => {
+    if (files.length === 0) return;
     stopAnyAudio();
     setErrorMessage(null);
     setIsLoading(true);
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      for (const f of files) {
+        const readyFile = await compressLargeImageIfNeeded(f);
+        formData.append('files', readyFile);
+      }
       formData.append(
         'patientContext',
         JSON.stringify({ age, sex, unitSystem, language }),
@@ -151,7 +179,7 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
         body: formData,
       });
       const data = (await res.json()) as ShifaClearAnalysisResponse & { error?: string };
-      if (!res.ok) throw new Error(data.error || 'Could not analyze uploaded document.');
+      if (!res.ok) throw new Error(data.error || 'Could not analyze uploaded document(s).');
       if (data.evaluation?.patientContext?.autoDetectedFromReport) {
         setAge(Math.max(1, Math.round(data.evaluation.patientContext.age)));
         setSex(data.evaluation.patientContext.sex);
@@ -409,7 +437,7 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
             onSexChange={setSex}
             isLoading={isLoading}
             errorMessage={errorMessage}
-            onAnalyzeFile={handleAnalyzeFile}
+            onAnalyzeFiles={handleAnalyzeFiles}
             onAnalyzeText={handleAnalyzeText}
             onSelectDemoCase={(id) => runDemoCase(id)}
             onQuickDrugCheck={handleQuickDrugCheck}
