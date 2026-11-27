@@ -349,16 +349,15 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
   };
 
   const handleSelectFamilyProfile = (profile: 'self' | 'parent' | 'child') => {
-    const presets: Record<'self' | 'parent' | 'child', { age: number; sex: BiologicalSex; elder: boolean }> = {
-      self: { age: 35, sex: 'male', elder: false },
-      parent: { age: 72, sex: 'female', elder: true },
-      child: { age: 5, sex: 'female', elder: false },
+    const presets: Record<'self' | 'parent' | 'child', { age: number; sex: BiologicalSex }> = {
+      self: { age: 35, sex: 'male' },
+      parent: { age: 72, sex: 'female' },
+      child: { age: 5, sex: 'female' },
     };
     const next = presets[profile];
     setFamilyProfile(profile);
     setAge(next.age);
     setSex(next.sex);
-    setElderMode(next.elder);
 
     // Deterministically re-evaluate the currently open report under the new age/sex bounds in <2ms
     if (analysis) {
