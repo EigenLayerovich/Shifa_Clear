@@ -174,7 +174,7 @@ struct WatchMedsView: View {
                         Text(med.brandName)
                             .font(.system(size: 13, weight: .bold))
                             .strikethrough(isTaken)
-                            .foregroundStyle(isTaken ? .secondary : .white)
+                            .foregroundStyle(isTaken ? Color.gray : Color.white)
                         Text("\(med.genericName) • \(med.dose)")
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(teal)
