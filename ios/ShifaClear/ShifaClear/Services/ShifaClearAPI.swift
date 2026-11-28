@@ -65,10 +65,9 @@ final class ShifaClearAPI {
         return try await perform(req)
     }
 
-    func analyzeImageData(
-        _ imageData: Data,
-        fileName: String = "scan.jpg",
-        mimeType: String = "image/jpeg",
+    /// Uploads 1 to 6 PDFs or photos together (supports multi-page scans & longitudinal reports!)
+    func analyzeFiles(
+        _ files: [UploadPayloadFile],
         context: PatientContext
     ) async throws -> ShifaClearAnalysisResponse {
         let url = try endpoint("/api/analyze")
@@ -86,12 +85,14 @@ final class ShifaClearAPI {
         body.append(ctxJSON)
         body.append("\r\n".data(using: .utf8)!)
 
-        // file part
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
-        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
-        body.append(imageData)
-        body.append("\r\n".data(using: .utf8)!)
+        for file in files.prefix(6) {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"files\"; filename=\"\(file.fileName)\"\r\n".data(using: .utf8)!)
+            body.append("Content-Type: \(file.mimeType)\r\n\r\n".data(using: .utf8)!)
+            body.append(file.data)
+            body.append("\r\n".data(using: .utf8)!)
+        }
+
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 
         req.httpBody = body
@@ -100,9 +101,10 @@ final class ShifaClearAPI {
 
     func translate(
         language: SupportedLanguage,
+        readingLevel: ReadingLevel,
         demoCaseId: String?,
         evaluation: VerifiedClinicalEvaluation
-    ) async throws -> PatientNarrative {
+    ) async throws -> TranslateResponse {
         let url = try endpoint("/api/translate")
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
@@ -110,12 +112,14 @@ final class ShifaClearAPI {
 
         struct Body: Encodable {
             let language: SupportedLanguage
+            let readingLevel: ReadingLevel
             let demoCaseId: String?
             let evaluation: VerifiedClinicalEvaluation
         }
-        req.httpBody = try JSONEncoder().encode(Body(language: language, demoCaseId: demoCaseId, evaluation: evaluation))
-        let response: TranslateResponse = try await perform(req)
-        return response.narrative
+        req.httpBody = try JSONEncoder().encode(
+            Body(language: language, readingLevel: readingLevel, demoCaseId: demoCaseId, evaluation: evaluation)
+        )
+        return try await perform(req)
     }
 
     func askClinicalQuestion(

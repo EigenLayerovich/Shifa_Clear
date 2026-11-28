@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var vm = ShifaClearViewModel()
-    private let teal = Color(red: 15/255, green: 118/255, blue: 110/255)
 
     var body: some View {
         NavigationStack {
@@ -13,9 +12,25 @@ struct ContentView: View {
                     IntakeView(vm: vm)
                 }
             }
-            .navigationTitle("ShifaClear")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Button {
+                        vm.resetToIntake()
+                    } label: {
+                        HStack(spacing: 3) {
+                            Text("Shifa")
+                                .font(.system(size: 19, weight: .medium, design: .serif))
+                                .foregroundStyle(ShifaTheme.ink)
+                            Text("Clear")
+                                .font(.system(size: 19, weight: .medium, design: .serif))
+                                .italic()
+                                .foregroundStyle(ShifaTheme.tealText)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
                         ForEach(SupportedLanguage.allCases) { lang in
@@ -32,10 +47,11 @@ struct ContentView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "globe")
+                                .font(.caption)
                             Text(vm.language.nativeLabel)
                                 .font(.caption.bold())
                         }
-                        .foregroundStyle(teal)
+                        .foregroundStyle(ShifaTheme.tealText)
                     }
                 }
 
@@ -44,26 +60,47 @@ struct ContentView: View {
                         vm.unitSystem = vm.unitSystem == .SI ? .US : .SI
                     } label: {
                         Text(vm.unitSystem.rawValue)
-                            .font(.caption.bold())
+                            .font(.caption2.bold())
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(teal.opacity(0.12), in: Capsule())
-                            .foregroundStyle(teal)
+                            .background(ShifaTheme.tealSoft, in: Capsule())
+                            .foregroundStyle(ShifaTheme.tealText)
                     }
+
+                    Menu {
+                        ForEach(AppThemeMode.allCases) { mode in
+                            Button {
+                                vm.themeMode = mode
+                            } label: {
+                                if mode == vm.themeMode {
+                                    Label(mode.label, systemImage: "checkmark")
+                                } else {
+                                    Label(mode.label, systemImage: mode.icon)
+                                }
+                            }
+                        }
+                    } label: {
+                        Image(systemName: vm.themeMode.icon)
+                            .font(.subheadline)
+                            .foregroundStyle(ShifaTheme.tealText)
+                    }
+                    .accessibilityLabel("Select Light, Dark, or System Theme")
 
                     Button {
                         vm.elderMode.toggle()
                     } label: {
                         Image(systemName: vm.elderMode ? "textformat.size.larger" : "textformat.size")
-                            .foregroundStyle(vm.elderMode ? .white : teal)
+                            .font(.subheadline)
+                            .foregroundStyle(vm.elderMode ? .white : ShifaTheme.tealText)
                             .padding(6)
-                            .background(vm.elderMode ? teal : Color.clear, in: Circle())
+                            .background(vm.elderMode ? ShifaTheme.tealBrand : Color.clear, in: Circle())
                     }
                     .accessibilityLabel("Toggle Elder Large-Print Mode")
                 }
             }
         }
+        .preferredColorScheme(vm.themeMode.colorScheme)
         .environment(\.layoutDirection, vm.language.isRTL ? .rightToLeft : .leftToRight)
-        .tint(teal)
+        .tint(ShifaTheme.tealText)
     }
 }

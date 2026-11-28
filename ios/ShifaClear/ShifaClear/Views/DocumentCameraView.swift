@@ -1,10 +1,10 @@
 import SwiftUI
 import VisionKit
 
-/// Native Apple VisionKit document scanner that auto-detects lab report / prescription edges
-/// and perspective-corrects them before sending to ShifaClear's clinical backend.
+/// Native Apple VisionKit multi-page document scanner that auto-detects lab report / prescription edges
+/// and perspective-corrects up to 6 pages before uploading to ShifaClear's clinical backend.
 struct DocumentCameraView: UIViewControllerRepresentable {
-    var onScanComplete: (UIImage) -> Void
+    var onScanComplete: ([UIImage]) -> Void
     @Environment(\.dismiss) private var dismiss
 
     func makeCoordinator() -> Coordinator {
@@ -30,9 +30,12 @@ struct DocumentCameraView: UIViewControllerRepresentable {
             _ controller: VNDocumentCameraViewController,
             didFinishWith scan: VNDocumentCameraScan
         ) {
-            if scan.pageCount > 0 {
-                let firstPage = scan.imageOfPage(at: 0)
-                parent.onScanComplete(firstPage)
+            var pages: [UIImage] = []
+            for idx in 0..<min(scan.pageCount, 6) {
+                pages.append(scan.imageOfPage(at: idx))
+            }
+            if !pages.isEmpty {
+                parent.onScanComplete(pages)
             }
             parent.dismiss()
         }

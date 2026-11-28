@@ -1,4 +1,144 @@
 import Foundation
+import SwiftUI
+import UIKit
+
+// MARK: - Warm Editorial Clinic Adaptive Palette (Alabaster Light <-> Warm Obsidian Dark)
+enum ShifaTheme {
+    private static func dynamic(light: UIColor, dark: UIColor) -> Color {
+        Color(UIColor { traits in
+            traits.userInterfaceStyle == .dark ? dark : light
+        })
+    }
+
+    static let canvas = dynamic(
+        light: UIColor(red: 250/255, green: 249/255, blue: 246/255, alpha: 1), // #FAF9F6
+        dark: UIColor(red: 19/255, green: 18/255, blue: 16/255, alpha: 1)     // #131210
+    )
+    static let surface = dynamic(
+        light: UIColor.white,                                                 // #FFFFFF
+        dark: UIColor(red: 29/255, green: 28/255, blue: 25/255, alpha: 1)     // #1D1C19
+    )
+    static let surfaceSubtle = dynamic(
+        light: UIColor(red: 243/255, green: 241/255, blue: 236/255, alpha: 1), // #F3F1EC
+        dark: UIColor(red: 38/255, green: 36/255, blue: 32/255, alpha: 1)      // #262420
+    )
+    static let border = dynamic(
+        light: UIColor(red: 231/255, green: 227/255, blue: 218/255, alpha: 1), // #E7E3DA
+        dark: UIColor(red: 51/255, green: 48/255, blue: 43/255, alpha: 1)      // #33302B
+    )
+    static let ink = dynamic(
+        light: UIColor(red: 24/255, green: 24/255, blue: 27/255, alpha: 1),    // #18181B
+        dark: UIColor(red: 244/255, green: 241/255, blue: 234/255, alpha: 1)   // #F4F1EA
+    )
+    static let inkMuted = dynamic(
+        light: UIColor(red: 87/255, green: 83/255, blue: 78/255, alpha: 1),    // #57534E
+        dark: UIColor(red: 198/255, green: 192/255, blue: 181/255, alpha: 1)   // #C6C0B5
+    )
+    static let tealBrand = Color(red: 13/255, green: 92/255, blue: 86/255)     // #0D5C56 (CTA buttons)
+    static let tealText = dynamic(
+        light: UIColor(red: 13/255, green: 92/255, blue: 86/255, alpha: 1),    // #0D5C56
+        dark: UIColor(red: 94/255, green: 234/255, blue: 212/255, alpha: 1)    // #5EEAD4
+    )
+    static let tealSoft = dynamic(
+        light: UIColor(red: 242/255, green: 247/255, blue: 245/255, alpha: 1), // #F2F7F5
+        dark: UIColor(red: 19/255, green: 40/255, blue: 37/255, alpha: 1)      // #132825
+    )
+    static let roseSoft = dynamic(
+        light: UIColor(red: 255/255, green: 241/255, blue: 242/255, alpha: 1), // #FFF1F2
+        dark: UIColor(red: 44/255, green: 21/255, blue: 26/255, alpha: 1)      // #2C151A
+    )
+    static let roseInk = dynamic(
+        light: UIColor(red: 159/255, green: 18/255, blue: 57/255, alpha: 1),   // #9F1239
+        dark: UIColor(red: 253/255, green: 164/255, blue: 175/255, alpha: 1)   // #FDA4AF
+    )
+    static let amberSoft = dynamic(
+        light: UIColor(red: 254/255, green: 243/255, blue: 199/255, alpha: 1), // #FEF3C7
+        dark: UIColor(red: 43/255, green: 31/255, blue: 16/255, alpha: 1)      // #2B1F10
+    )
+    static let amberInk = dynamic(
+        light: UIColor(red: 146/255, green: 64/255, blue: 14/255, alpha: 1),   // #92400E
+        dark: UIColor(red: 252/255, green: 211/255, blue: 77/255, alpha: 1)    // #FCD34D
+    )
+    static let emeraldSoft = dynamic(
+        light: UIColor(red: 209/255, green: 250/255, blue: 229/255, alpha: 1),
+        dark: UIColor(red: 18/255, green: 40/255, blue: 33/255, alpha: 1)
+    )
+    static let emeraldInk = dynamic(
+        light: UIColor(red: 6/255, green: 95/255, blue: 70/255, alpha: 1),
+        dark: UIColor(red: 110/255, green: 231/255, blue: 183/255, alpha: 1)
+    )
+}
+
+enum AppThemeMode: String, CaseIterable, Identifiable {
+    case system, light, dark
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .system: return "System"
+        case .light: return "Light"
+        case .dark: return "Dark"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .system: return "circle.lefthalf.filled"
+        case .light: return "sun.max.fill"
+        case .dark: return "moon.fill"
+        }
+    }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+}
+
+enum FamilyProfile: String, CaseIterable, Identifiable {
+    case me, parent, child
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .me: return "Self"
+        case .parent: return "Parent"
+        case .child: return "Child"
+        }
+    }
+
+    var presetAge: Int {
+        switch self {
+        case .me: return 35
+        case .parent: return 72
+        case .child: return 5
+        }
+    }
+
+    var presetSex: BiologicalSex {
+        switch self {
+        case .me: return .male
+        case .parent: return .female
+        case .child: return .female
+        }
+    }
+}
+
+enum ReadingLevel: String, CaseIterable, Identifiable, Codable {
+    case simple, standard, clinical
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .simple: return "Simple"
+        case .standard: return "Standard"
+        case .clinical: return "Clinical"
+        }
+    }
+}
 
 enum SupportedLanguage: String, CaseIterable, Identifiable, Codable {
     case en, ar, ur, tl, hi
@@ -55,6 +195,7 @@ struct PatientContext: Codable {
     var sex: BiologicalSex
     var unitSystem: UnitSystem
     var language: SupportedLanguage
+    var readingLevel: ReadingLevel?
     var autoDetectedFromReport: Bool?
 }
 
@@ -150,6 +291,17 @@ struct ClinicalAuditStep: Codable, Identifiable {
     var id: Int { stepNumber }
 }
 
+struct FactPreservationReport: Codable {
+    let verified: Bool
+    let scorePercent: Int
+    let criticalAlertsPreserved: Int
+    let criticalAlertsTotal: Int
+    let abnormalMarkersCovered: Int
+    let abnormalMarkersTotal: Int
+    let inventedNumbersCount: Int
+    let summary: String
+}
+
 struct VerifiedClinicalEvaluation: Codable {
     let documentType: String
     let reportDate: String?
@@ -161,6 +313,7 @@ struct VerifiedClinicalEvaluation: Codable {
     let medications: [EvaluatedMedication]
     let alerts: [ClinicalAlert]
     let auditTrail: [ClinicalAuditStep]
+    var factCheck: FactPreservationReport?
 }
 
 struct BiomarkerExplanation: Codable {
@@ -207,6 +360,7 @@ struct ShifaClearAnalysisResponse: Codable {
 
 struct TranslateResponse: Codable {
     let narrative: PatientNarrative
+    let factCheck: FactPreservationReport?
 }
 
 struct QaResponse: Codable {
@@ -228,6 +382,12 @@ struct QaTurn: Identifiable {
     let provider: String
 }
 
+struct UploadPayloadFile {
+    let data: Data
+    let fileName: String
+    let mimeType: String
+}
+
 struct DemoCaseCard: Identifiable {
     let id: String
     let badge: String
@@ -242,8 +402,8 @@ struct DemoCaseCard: Identifiable {
         DemoCaseCard(
             id: "uae-cardiometabolic",
             badge: "Lab Panel + 12-Month Trend",
-            title: "Case 1: Abu Dhabi Cardiometabolic & Vitamin D",
-            subtitle: "54M • SEHA Ambulatory Clinic • Mixed US/SI units",
+            title: "Abu Dhabi Cardiometabolic & Vitamin D",
+            subtitle: "54M · SEHA Ambulatory Clinic · Mixed US/SI units",
             highlights: [
                 "Auto-converts Fasting Glucose (142 mg/dL → 7.9 mmol/L)",
                 "Tracks 12-month HbA1c drop (9.1% → 8.4% → 7.2%)",
@@ -255,13 +415,13 @@ struct DemoCaseCard: Identifiable {
         ),
         DemoCaseCard(
             id: "uae-polypharmacy",
-            badge: "Polypharmacy • Year of the Family",
-            title: "Case 2: Elderly Parent Multi-Drug Rx",
-            subtitle: "71F • Abu Dhabi Caregiver View • 6 UAE brands",
+            badge: "Polypharmacy · Year of the Family",
+            title: "Elderly Parent Multi-Drug Rx",
+            subtitle: "71F · Abu Dhabi Caregiver View · 6 UAE brands",
             highlights: [
                 "Catches Triple Whammy AKI (Cozaar + Lasix + Voltaren)",
-                "Auto-separates Euthyrox & Calcium-D3 by 4 hours",
-                "1-tap Elder Mode + Voice timetable"
+                "Auto-separates Euthyrox & Caltrate by 4 hours",
+                "Syncs 4-hour split countdown to Apple Watch Ultra 2"
             ],
             defaultAge: 71,
             defaultSex: .female,
@@ -269,13 +429,13 @@ struct DemoCaseCard: Identifiable {
         ),
         DemoCaseCard(
             id: "uae-critical-hyperkalemia",
-            badge: "Critical Panic Value • UAE 998",
-            title: "Case 3: Urgent Hyperkalemia & Kidney Drop",
-            subtitle: "62M • Post-Dehydration Labs + Glucophage",
+            badge: "Critical Panic Value · UAE 998",
+            title: "Urgent Hyperkalemia & Kidney Drop",
+            subtitle: "62M · Post-Dehydration Labs + Glucophage",
             highlights: [
                 "Potassium 6.3 mmol/L triggers UAE 998 Emergency Alert",
                 "eGFR 27 triggers cross-domain Metformin safety hold",
-                "Deterministic guardrails — never relies on LLM luck"
+                "Verified by deterministic rule engine (Non-LLM)"
             ],
             defaultAge: 62,
             defaultSex: .male,
