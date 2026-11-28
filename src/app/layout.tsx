@@ -46,7 +46,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: 'ShifaClear | Multilingual Med & Lab Demystifier',
   description:
-    'Physician-engineered UAE health translator combining Gemini 3.8 Flash multimodal extraction with deterministic clinical safety guardrails across English, Arabic, Urdu, Tagalog, and Hindi.',
+    'MD-validated UAE health translator combining Gemini 3.8 Flash multimodal extraction with deterministic clinical safety guardrails across English, Arabic, Urdu, Tagalog, and Hindi.',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,

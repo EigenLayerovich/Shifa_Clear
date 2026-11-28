@@ -121,7 +121,7 @@ export interface UIStrings {
 export const UI_STRINGS: Record<SupportedLanguage, UIStrings> = {
   en: {
     tagline: 'Multilingual Med & Lab Demystifier',
-    subtitle: 'AI extracts & translates • Physician-validated clinical guardrails verify every threshold',
+    subtitle: 'AI extracts & translates • MD-validated clinical guardrails verify every threshold',
     skipToMain: 'Skip to main content',
     elderMode: 'Elder Mode',
     elderModeHint: 'Large text & icon pill schedule',
@@ -142,7 +142,7 @@ export const UI_STRINGS: Record<SupportedLanguage, UIStrings> = {
     male: 'Male',
     female: 'Female',
     demoCasesHeading: 'UAE Flagship Clinical Cases (Instant Demo)',
-    demoCasesSub: 'Runs live through our deterministic clinical safety engine — zero risk of stage failure',
+    demoCasesSub: 'Runs live through our deterministic clinical safety engine',
     openCaseBtn: 'Inspect Case',
     newScanBtn: 'New Scan',
     urgentBannerCall: 'Call 998 (UAE National Ambulance) or visit Emergency',

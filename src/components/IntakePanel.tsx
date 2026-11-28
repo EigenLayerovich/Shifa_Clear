@@ -96,7 +96,7 @@ export function IntakePanel({
         <div className="space-y-5 lg:col-span-7">
           <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#57534E]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#0D5C56]" aria-hidden="true" />
-            <span>Khalifa University · Physician-Validated Clinical Clarity</span>
+            <span>Khalifa University · MD-Validated Clinical Clarity</span>
           </p>
 
           <h1
