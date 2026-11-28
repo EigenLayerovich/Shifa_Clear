@@ -365,7 +365,9 @@ struct ReportDashboardView: View {
             ("morning", "Morning (07:00–09:00)", "sun.max.fill", .orange),
             ("afternoon", "Afternoon (12:30–14:30)", "cloud.sun.fill", .blue),
             ("evening", "Evening (18:30–20:30)", "sunset.fill", .pink),
-            ("bedtime", "Bedtime (21:30–23:00)", "moon.stars.fill", .indigo)
+            ("bedtime", "Bedtime (21:30–23:00)", "moon.stars.fill", .indigo),
+            ("weekly", "Once Weekly ONLY (Not Daily)", "calendar.badge.exclamationmark", .purple),
+            ("as_needed", "As Needed (PRN / STAT)", "cross.case.fill", .teal)
         ]
 
         return VStack(alignment: .leading, spacing: 12) {

@@ -27,7 +27,7 @@ final class ShifaClearAPI {
         let cfg = URLSessionConfiguration.default
         cfg.timeoutIntervalForRequest = 55
         cfg.timeoutIntervalForResource = 65
-        return cfg
+        return URLSession(configuration: cfg)
     }()
 
     private func endpoint(_ path: String) throws -> URL {

@@ -32,7 +32,7 @@ struct IntakeView: View {
                     Text("Multilingual Med & Lab Demystifier")
                         .font(.headline)
                         .foregroundStyle(.white.opacity(0.92))
-                    Text("AI extracts & translates • Physician-validated deterministic guardrails verify every threshold & drug interaction.")
+                    Text("AI extracts & translates • MD-validated deterministic guardrails verify every threshold & drug interaction.")
                         .font(.footnote)
                         .foregroundStyle(.white.opacity(0.84))
                 }
