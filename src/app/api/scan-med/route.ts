@@ -1,15 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { identifyMedicationBoxWithGemini, resolveApiKey } from '@/lib/ai/gemini';
 import { UAE_DRUG_REGISTRY } from '@/lib/clinical/drugRegistry';
+import { checkRateLimit } from '@/lib/security/rateLimit';
 
 export const maxDuration = 30;
+const MAX_BOX_IMAGE_BYTES = 4.2 * 1024 * 1024;
 
 function matchRegistry(brandName: string, genericName?: string) {
+  if (genericName) {
+    const cleanGeneric = genericName.trim().toLowerCase();
+    const exact = UAE_DRUG_REGISTRY.find((d) => d.genericName.toLowerCase() === cleanGeneric);
+    if (exact) return exact;
+  }
+
   const haystack = `${brandName} ${genericName || ''}`.toLowerCase();
   let best: { profile: (typeof UAE_DRUG_REGISTRY)[number]; len: number } | undefined;
   for (const drug of UAE_DRUG_REGISTRY) {
     for (const alias of drug.aliases) {
-      if (haystack.includes(alias.toLowerCase()) && (!best || alias.length > best.len)) {
+      const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const boundaryRegex = new RegExp(`(?:^|[^a-z0-9])${escaped}(?:$|[^a-z0-9])`, 'i');
+      if (boundaryRegex.test(haystack) && (!best || alias.length > best.len)) {
         best = { profile: drug, len: alias.length };
       }
     }
@@ -19,6 +29,14 @@ function matchRegistry(brandName: string, genericName?: string) {
 
 export async function POST(req: NextRequest) {
   try {
+    const rate = checkRateLimit(req, 'scan-med', 15, 60_000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many scan requests. Please wait a moment.' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSec) } },
+      );
+    }
+
     const apiKey = resolveApiKey(req.headers.get('x-gemini-api-key'));
     if (!apiKey) {
       return NextResponse.json(
@@ -27,10 +45,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const formData = await req.formData();
+    let formData: FormData;
+    try {
+      formData = await req.formData();
+    } catch {
+      return NextResponse.json({ error: 'Invalid multipart upload payload.' }, { status: 400 });
+    }
+
     const file = formData.get('file');
-    if (!(file instanceof File)) {
+    if (!(file instanceof File) || file.size === 0) {
       return NextResponse.json({ error: 'No medication photo provided.' }, { status: 400 });
+    }
+    if (file.size > MAX_BOX_IMAGE_BYTES) {
+      return NextResponse.json(
+        { error: 'Medication photo exceeds the 4.2 MB limit. Try a smaller image.' },
+        { status: 413 },
+      );
     }
 
     const bytes = await file.arrayBuffer();
@@ -56,7 +86,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ medications: resolved });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Could not scan medication photo.';
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('[ShifaClear /api/scan-med] Error:', err);
+    return NextResponse.json(
+      { error: 'Could not scan medication photo right now. Please try again.' },
+      { status: 500 },
+    );
   }
 }

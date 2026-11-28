@@ -6,9 +6,10 @@ Built for the **KUEC Sandbox Series — Vibe Coding Hackathon (Khalifa Universit
 1. **Multimodal Intake:** Upload lab reports (JPG/PNG/PDF), prescription photos, pasted clinical text, or launch 3 UAE flagship clinical cases.
 2. **Deterministic MD Safety Engine (`src/lib/clinical/`):**
    - SI ↔ Conventional unit normalization (`mmol/L` ↔ `mg/dL`, `µmol/L` ↔ `mg/dL`, `nmol/L` ↔ `ng/mL`, `g/L` ↔ `g/dL`).
-   - Age- and sex-specific clinical reference ranges across 25+ biomarkers with LOINC tags.
-   - Hard-coded Critical ("Panic") Value alerts with immediate **UAE 998 Ambulance** escalation.
-   - UAE pharmacy brand-to-generic registry, duplicate therapy check, "Triple Whammy" AKI detection, Levothyroxine/Calcium 4-hour separation auto-scheduling, and cross-domain Metformin + low eGFR screening.
+   - Age- and sex-specific clinical reference ranges across **77 LOINC-coded biomarkers** (10 organ groups, adult + pediatric ranges) with strict specimen, unit, and physiological plausibility guards.
+   - Hard-coded Critical ("Panic") Value alerts with immediate **UAE 998 Ambulance** escalation, **JCI IPSG.1 Wrong-Patient Merge Blocker**, and **Post-Generation Fact-Preservation Guardrail**.
+   - **150 clinical drug profiles / 620+ UAE & Gulf brands**, **40 deterministic clinical rules** (RxList contraindications, duplicate therapy, "Triple Whammy" AKI, Levothyroxine/Alendronate 4-hour separation, CKD-EPI 2021 auto-eGFR, and pediatric guardrails).
+   - **On-device UAE PDPL PII scrubbing** for pasted/dictated text, **Zod 4** extraction validation, **HL7 FHIR R4 (Malaffi)** export, and **33 unit & clinical safety regression tests** (`npm test`).
 3. **Multilingual & Family Accessibility:** English, Arabic (RTL), Urdu (RTL), Tagalog, and Hindi + **Elder Mode** + **Gemini 3.8 Flash-Lite TTS** (with automatic Web Speech fallback).
 
 ## Local Setup

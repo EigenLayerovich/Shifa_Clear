@@ -16,18 +16,19 @@ import type {
   ShifaClearAnalysisResponse,
   SupportedLanguage,
 } from '@/lib/clinical/types';
+import { isValidLanguage, isValidReadingLevel } from '@/lib/clinical/validation';
 import { getDemoCaseById } from '@/lib/demo/cases';
+import { checkRateLimit } from '@/lib/security/rateLimit';
+
+export const maxDuration = 60;
+const MAX_VERCEL_SAFE_BYTES = 4.2 * 1024 * 1024;
 
 function parseContext(raw?: Partial<PatientContext>): PatientContext {
-  const validLangs: SupportedLanguage[] = ['en', 'ar', 'ur', 'tl', 'hi'];
-  const lang = validLangs.includes(raw?.language as SupportedLanguage)
-    ? (raw?.language as SupportedLanguage)
-    : 'en';
-  const validLevels: ReadingLevel[] = ['simple', 'standard', 'clinical'];
-  const readingLevel = validLevels.includes(raw?.readingLevel as ReadingLevel)
-    ? (raw?.readingLevel as ReadingLevel)
+  const lang: SupportedLanguage = isValidLanguage(raw?.language) ? raw.language : 'en';
+  const readingLevel: ReadingLevel = isValidReadingLevel(raw?.readingLevel)
+    ? raw.readingLevel
     : 'standard';
-  const age = typeof raw?.age === 'number' && raw.age >= 0 && raw.age < 120 ? raw.age : 45;
+  const age = typeof raw?.age === 'number' && Number.isFinite(raw.age) && raw.age >= 0 && raw.age < 120 ? raw.age : 45;
   return {
     age,
     ageLabel: raw?.ageLabel,
@@ -76,6 +77,14 @@ function buildFallbackNarrative(
 
 export async function POST(req: NextRequest) {
   try {
+    const rate = checkRateLimit(req, 'analyze', 25, 60_000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a moment and try again.' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSec) } },
+      );
+    }
+
     const contentType = req.headers.get('content-type') || '';
     const sessionApiKey = req.headers.get('x-gemini-api-key');
     const apiKey = resolveApiKey(sessionApiKey);
@@ -87,12 +96,21 @@ export async function POST(req: NextRequest) {
     let forceLiveAI = false;
 
     if (contentType.includes('multipart/form-data')) {
-      const form = await req.formData();
+      let form: FormData;
+      try {
+        form = await req.formData();
+      } catch {
+        return NextResponse.json({ error: 'Invalid multipart upload payload.' }, { status: 400 });
+      }
       rawText = (form.get('rawText') as string | null)?.trim() || undefined;
       demoCaseId = (form.get('demoCaseId') as string | null)?.trim() || undefined;
       const ctxStr = form.get('patientContext') as string | null;
       if (ctxStr) {
-        contextInput = JSON.parse(ctxStr);
+        try {
+          contextInput = JSON.parse(ctxStr);
+        } catch {
+          return NextResponse.json({ error: 'Invalid patientContext JSON.' }, { status: 400 });
+        }
       }
 
       const rawFileEntries = [...form.getAll('files'), ...form.getAll('file')].filter(
@@ -109,10 +127,13 @@ export async function POST(req: NextRequest) {
       let totalBytes = 0;
       for (const file of rawFileEntries) {
         totalBytes += file.size;
-        if (file.size > 11 * 1024 * 1024 || totalBytes > 20 * 1024 * 1024) {
+        if (totalBytes > MAX_VERCEL_SAFE_BYTES) {
           return NextResponse.json(
-            { error: 'Uploaded files exceed the size limit. Try smaller images or fewer PDFs.' },
-            { status: 400 },
+            {
+              error:
+                'Uploaded files exceed the 4.2 MB serverless upload limit. Try compressing large PDFs or uploading fewer photos at once.',
+            },
+            { status: 413 },
           );
         }
         const buffer = Buffer.from(await file.arrayBuffer());
@@ -123,10 +144,27 @@ export async function POST(req: NextRequest) {
         });
       }
     } else {
-      const body = await req.json();
-      demoCaseId = body.demoCaseId;
+      let body: Record<string, unknown>;
+      try {
+        body = await req.json();
+      } catch {
+        return NextResponse.json({ error: 'Malformed JSON request body.' }, { status: 400 });
+      }
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        return NextResponse.json({ error: 'Request body must be a JSON object.' }, { status: 400 });
+      }
+      demoCaseId = typeof body.demoCaseId === 'string' ? body.demoCaseId : undefined;
       rawText = typeof body.rawText === 'string' ? body.rawText.trim() : undefined;
-      contextInput = body.patientContext || {};
+      contextInput =
+        body.patientContext && typeof body.patientContext === 'object'
+          ? (body.patientContext as Partial<PatientContext>)
+          : {};
+      if (contextInput.language !== undefined && !isValidLanguage(contextInput.language)) {
+        return NextResponse.json(
+          { error: 'Unsupported language code. Use en, ar, ur, tl, or hi.' },
+          { status: 400 },
+        );
+      }
       forceLiveAI = Boolean(body.forceLiveAI);
     }
 
@@ -189,11 +227,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!apiKey) {
+    // Photos/PDFs require vision OCR via Gemini; pasted text works offline via our deterministic parser!
+    if (!apiKey && uploadedFiles.length > 0) {
       return NextResponse.json(
         {
           error:
-            'No GEMINI_API_KEY configured for live photo/text scanning. Add your Google AI Studio key in the QR & API dialog (or .env.local), or explore any of the 3 instant UAE Clinical Cases.',
+            'No GEMINI_API_KEY configured for photo/PDF OCR. Add your Google AI Studio key in the QR & API dialog (or .env.local), paste clinical text for offline deterministic parsing, or explore the 3 instant UAE Clinical Cases.',
         },
         { status: 401 },
       );
@@ -204,19 +243,23 @@ export async function POST(req: NextRequest) {
     let extracted: RawExtractedDocument;
     let usedLiveAI = false;
 
-    try {
-      extracted = await extractClinicalDocumentWithGemini({
-        apiKey,
-        rawText: scrubbedText,
-        files: uploadedFiles,
-      });
-      usedLiveAI = true;
-    } catch (extractErr) {
-      if (scrubbedText) {
-        console.warn('[ShifaClear /api/analyze] Using deterministic text parser fallback:', extractErr);
-        extracted = parseClinicalTextDeterministically(scrubbedText);
-      } else {
-        throw extractErr;
+    if (!apiKey && scrubbedText) {
+      extracted = parseClinicalTextDeterministically(scrubbedText);
+    } else {
+      try {
+        extracted = await extractClinicalDocumentWithGemini({
+          apiKey: apiKey!,
+          rawText: scrubbedText,
+          files: uploadedFiles,
+        });
+        usedLiveAI = true;
+      } catch (extractErr) {
+        if (scrubbedText) {
+          console.warn('[ShifaClear /api/analyze] Using deterministic text parser fallback:', extractErr);
+          extracted = parseClinicalTextDeterministically(scrubbedText);
+        } else {
+          throw extractErr;
+        }
       }
     }
 
@@ -238,15 +281,19 @@ export async function POST(req: NextRequest) {
     const evaluation = evaluateClinicalDocument(extracted, effectiveContext);
 
     let narrative: PatientNarrative;
-    try {
-      narrative = await generatePatientNarrativeWithGemini({
-        apiKey,
-        evaluation,
-        language: context.language,
-        readingLevel: context.readingLevel,
-      });
-      usedLiveAI = true;
-    } catch {
+    if (apiKey) {
+      try {
+        narrative = await generatePatientNarrativeWithGemini({
+          apiKey,
+          evaluation,
+          language: context.language,
+          readingLevel: context.readingLevel,
+        });
+        usedLiveAI = true;
+      } catch {
+        narrative = buildFallbackNarrative(evaluation, context.language);
+      }
+    } else {
       narrative = buildFallbackNarrative(evaluation, context.language);
     }
 
@@ -262,7 +309,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(payload);
   } catch (err) {
     console.error('[ShifaClear /api/analyze] Error:', err);
-    const message = err instanceof Error ? err.message : 'Unexpected analysis error.';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Unable to complete clinical analysis right now. Please try again.' },
+      { status: 500 },
+    );
   }
 }

@@ -83,9 +83,27 @@ export function evaluateClinicalDocument(
   }
 
   const evaluatedBiomarkers: EvaluatedBiomarker[] = [];
-  const seenKeys = new Set<string>();
+  const seenMap = new Map<string, { index: number; evaluated: EvaluatedBiomarker; rule?: ReturnType<typeof evaluateBiomarker>['rule'] }>();
   const panicAlerts: ClinicalAlert[] = [];
   let convertedCount = 0;
+
+  const severityRank = (s: EvaluatedBiomarker['status']): number => {
+    switch (s) {
+      case 'critical_low':
+      case 'critical_high':
+        return 4;
+      case 'low':
+      case 'high':
+        return 3;
+      case 'borderline_low':
+      case 'borderline_high':
+        return 2;
+      case 'normal':
+        return 1;
+      default:
+        return 0;
+    }
+  };
 
   if (isPatientIdentityMismatch) {
     const patientDescriptions =
@@ -125,10 +143,6 @@ export function evaluateClinicalDocument(
 
   for (const rawBio of rawDoc.biomarkers) {
     const key = normalizeBiomarkerKey(rawBio.name, rawBio.unit);
-    // Prevent duplicate rows from OCR extracting the same marker twice
-    if (seenKeys.has(key)) continue;
-    seenKeys.add(key);
-
     const prior = priorMap.get(key);
     const { evaluated, rule } = evaluateBiomarker(
       rawBio,
@@ -137,7 +151,61 @@ export function evaluateClinicalDocument(
       rawDoc.reportDate,
       effectivePriorReportDate,
     );
+
+    const existingEntry = seenMap.get(key);
+    if (existingEntry) {
+      const prevEval = existingEntry.evaluated;
+      const denom = Math.max(Math.abs(prevEval.siValue), Math.abs(evaluated.siValue), 0.001);
+      const relDiff = Math.abs(prevEval.siValue - evaluated.siValue) / denom;
+      // Exact or near-identical OCR duplicate -> ignore safely
+      if (relDiff <= 0.02) continue;
+
+      // Conflicting duplicate values on the same report -> fail-safe to more severe reading + alert!
+      const incomingMoreSevere =
+        severityRank(evaluated.status) > severityRank(prevEval.status) ||
+        (severityRank(evaluated.status) === severityRank(prevEval.status) &&
+          Math.abs(evaluated.siValue) > Math.abs(prevEval.siValue));
+
+      if (incomingMoreSevere) {
+        evaluatedBiomarkers[existingEntry.index] = evaluated;
+        seenMap.set(key, { index: existingEntry.index, evaluated, rule });
+      }
+
+      const conflictAlertId = `alert-conflict-${key}`;
+      if (!panicAlerts.some((a) => a.id === conflictAlertId)) {
+        panicAlerts.push({
+          id: conflictAlertId,
+          severity: 'major',
+          category: 'panic_value',
+          title: `Conflicting Duplicate Value Detected: ${evaluated.displayName}`,
+          clinicalRationale: `Two conflicting readings were extracted for ${evaluated.displayName} on the same report (${prevEval.siValue} ${prevEval.siUnit} vs ${evaluated.siValue} ${evaluated.siUnit}). ShifaClear retained the higher-risk reading for safety — confirm the printed value on your original lab sheet.`,
+          recommendedAction:
+            'Verify the exact printed number on your laboratory report and share it with your physician or lab.',
+          involvedItems: [
+            `${prevEval.displayName}: ${prevEval.siValue} ${prevEval.siUnit}`,
+            `${evaluated.displayName}: ${evaluated.siValue} ${evaluated.siUnit}`,
+          ],
+          ruleId: 'CONF_DUPLICATE_BIOMARKER',
+        });
+
+        auditTrail.push({
+          stepNumber: stepCounter++,
+          stage: 'panic_check',
+          title: `Conflicting Duplicate Flagged: ${evaluated.displayName}`,
+          detail: `Detected conflicting values (${prevEval.siValue} vs ${evaluated.siValue} ${evaluated.siUnit}) for the same analyte; kept higher-risk value for safety.`,
+          status: 'flagged',
+        });
+      }
+      continue;
+    }
+
+    const idx = evaluatedBiomarkers.length;
     evaluatedBiomarkers.push(evaluated);
+    seenMap.set(key, { index: idx, evaluated, rule });
+  }
+
+  for (const entry of seenMap.values()) {
+    const { evaluated, rule } = entry;
 
     if (evaluated.wasUnitConverted) {
       convertedCount++;
@@ -183,9 +251,16 @@ export function evaluateClinicalDocument(
     }
   }
 
-  // CKD-EPI 2021 (Race-Free) Auto-eGFR Calculation when Creatinine is present without printed eGFR
+  // CKD-EPI 2021 (Race-Free) Auto-eGFR Calculation ONLY from verified, plausible adult Serum Creatinine
   const hasPrintedEgfr = evaluatedBiomarkers.some((b) => b.canonicalId === 'egfr');
-  const creatinineBio = evaluatedBiomarkers.find((b) => b.canonicalId === 'creatinine');
+  const creatinineBio = evaluatedBiomarkers.find(
+    (b) =>
+      b.canonicalId === 'creatinine' &&
+      b.status !== 'unknown' &&
+      Number.isFinite(b.usValue) &&
+      b.usValue > 0 &&
+      b.usValue <= 40,
+  );
   if (!hasPrintedEgfr && creatinineBio && context.age >= 18) {
     const computedEgfr = calculateCkdEpi2021Egfr(
       creatinineBio.usValue,

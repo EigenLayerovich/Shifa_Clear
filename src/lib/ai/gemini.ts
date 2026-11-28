@@ -6,6 +6,7 @@ import type {
   SupportedLanguage,
   VerifiedClinicalEvaluation,
 } from '@/lib/clinical/types';
+import { validateExtractedDocument } from '@/lib/clinical/validation';
 import { LANGUAGE_MAP } from '@/lib/i18n/uiStrings';
 
 const MODEL_FALLBACK_CHAIN = Array.from(
@@ -16,27 +17,44 @@ const MODEL_FALLBACK_CHAIN = Array.from(
   ]),
 );
 const DEFAULT_TTS_MODEL = process.env.GEMINI_TTS_MODEL || 'gemini-3.8-flash-lite-tts';
-const MODEL_TIMEOUT_MS = 18000;
+const MODEL_TIMEOUT_MS = 14000;
+const STAGE_BUDGET_MS = 24000;
 
-async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+async function withAbortableTimeout<T>(
+  runner: (signal: AbortSignal) => Promise<T>,
+  ms: number,
+  label: string,
+): Promise<T> {
+  const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeoutPromise = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new Error(`${label} timed out after ${ms}ms`));
+    }, ms);
   });
   try {
-    return await Promise.race([promise, timeoutPromise]);
+    return await Promise.race([runner(controller.signal), timeoutPromise]);
   } finally {
     if (timer) clearTimeout(timer);
   }
 }
 
 async function runWithModelFallback<T>(
-  runner: (model: string) => Promise<T>,
+  runner: (model: string, signal: AbortSignal) => Promise<T>,
 ): Promise<{ result: T; modelUsed: string }> {
   let lastError: unknown;
+  const stageDeadline = Date.now() + STAGE_BUDGET_MS;
   for (const model of MODEL_FALLBACK_CHAIN) {
+    const remainingMs = stageDeadline - Date.now();
+    if (remainingMs < 3000) break;
+    const perAttemptMs = Math.min(MODEL_TIMEOUT_MS, remainingMs);
     try {
-      const result = await withTimeout(runner(model), MODEL_TIMEOUT_MS, model);
+      const result = await withAbortableTimeout(
+        (signal) => runner(model, signal),
+        perAttemptMs,
+        model,
+      );
       return { result, modelUsed: model };
     } catch (err) {
       lastError = err;
@@ -282,7 +300,7 @@ export async function extractClinicalDocumentWithGemini(params: {
     return s;
   };
 
-  const parsed = JSON.parse(text) as RawExtractedDocument;
+  const parsed = validateExtractedDocument(JSON.parse(text));
   const rawAge = typeof parsed.patientAgeYears === 'number' && parsed.patientAgeYears >= 0 && parsed.patientAgeYears < 120
     ? Math.round(parsed.patientAgeYears * 100) / 100
     : undefined;

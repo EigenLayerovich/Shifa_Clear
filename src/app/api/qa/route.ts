@@ -7,6 +7,8 @@ import type {
   SupportedLanguage,
   VerifiedClinicalEvaluation,
 } from '@/lib/clinical/types';
+import { isValidLanguage } from '@/lib/clinical/validation';
+import { checkRateLimit } from '@/lib/security/rateLimit';
 
 function buildDeterministicQaFallback(
   question: string,
@@ -41,12 +43,44 @@ function buildDeterministicQaFallback(
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const question = typeof body.question === 'string' ? body.question.trim() : '';
-    const language = (body.language || 'en') as SupportedLanguage;
-    const evaluation = body.evaluation as VerifiedClinicalEvaluation | undefined;
+    const rate = checkRateLimit(req, 'qa', 20, 60_000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many follow-up questions. Please wait a moment.' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSec) } },
+      );
+    }
 
-    if (!question || !evaluation) {
+    let body: Record<string, unknown>;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: 'Malformed JSON request body.' }, { status: 400 });
+    }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return NextResponse.json({ error: 'Request body must be a JSON object.' }, { status: 400 });
+    }
+
+    const question = typeof body.question === 'string' ? body.question.trim().slice(0, 800) : '';
+    const rawLang = body.language ?? 'en';
+    if (!isValidLanguage(rawLang)) {
+      return NextResponse.json(
+        { error: 'Unsupported language code. Use en, ar, ur, tl, or hi.' },
+        { status: 400 },
+      );
+    }
+    const language: SupportedLanguage = rawLang;
+    const evaluation =
+      body.evaluation && typeof body.evaluation === 'object'
+        ? (body.evaluation as VerifiedClinicalEvaluation)
+        : undefined;
+
+    if (
+      !question ||
+      !evaluation ||
+      !Array.isArray(evaluation.biomarkers) ||
+      !Array.isArray(evaluation.alerts)
+    ) {
       return NextResponse.json(
         { error: 'Question and verified evaluation are required.' },
         { status: 400 },

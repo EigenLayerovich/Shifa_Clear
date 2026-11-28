@@ -7,15 +7,53 @@ import type {
   SupportedLanguage,
   VerifiedClinicalEvaluation,
 } from '@/lib/clinical/types';
+import { isValidLanguage, isValidReadingLevel } from '@/lib/clinical/validation';
 import { getDemoCaseById } from '@/lib/demo/cases';
+import { checkRateLimit } from '@/lib/security/rateLimit';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const language = (body.language || 'en') as SupportedLanguage;
-    const readingLevel = (body.readingLevel || 'standard') as ReadingLevel;
-    const demoCaseId = body.demoCaseId as string | undefined;
-    const evaluation = body.evaluation as VerifiedClinicalEvaluation | undefined;
+    const rate = checkRateLimit(req, 'translate', 25, 60_000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many translation requests. Please wait a moment.' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSec) } },
+      );
+    }
+
+    let body: Record<string, unknown>;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: 'Malformed JSON request body.' }, { status: 400 });
+    }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return NextResponse.json({ error: 'Request body must be a JSON object.' }, { status: 400 });
+    }
+
+    const rawLang = body.language ?? 'en';
+    if (!isValidLanguage(rawLang)) {
+      return NextResponse.json(
+        { error: 'Unsupported language code. Use en, ar, ur, tl, or hi.' },
+        { status: 400 },
+      );
+    }
+    const language: SupportedLanguage = rawLang;
+
+    const rawLevel = body.readingLevel ?? 'standard';
+    if (!isValidReadingLevel(rawLevel)) {
+      return NextResponse.json(
+        { error: 'Unsupported reading level. Use simple, standard, or clinical.' },
+        { status: 400 },
+      );
+    }
+    const readingLevel: ReadingLevel = rawLevel;
+
+    const demoCaseId = typeof body.demoCaseId === 'string' ? body.demoCaseId : undefined;
+    const evaluation =
+      body.evaluation && typeof body.evaluation === 'object'
+        ? (body.evaluation as VerifiedClinicalEvaluation)
+        : undefined;
     const apiKey = resolveApiKey(req.headers.get('x-gemini-api-key'));
 
     if (demoCaseId && readingLevel === 'standard') {
@@ -27,15 +65,20 @@ export async function POST(req: NextRequest) {
           language,
           source: 'verified_demo_cache',
         };
-        const factCheck = evaluation
-          ? verifyNarrativeFactPreservation(evaluation, narrative).report
-          : undefined;
+        const factCheck =
+          evaluation && Array.isArray(evaluation.alerts) && Array.isArray(evaluation.biomarkers)
+            ? verifyNarrativeFactPreservation(evaluation, narrative).report
+            : undefined;
         return NextResponse.json({ narrative, factCheck });
       }
     }
 
-    if (!evaluation) {
-      return NextResponse.json({ error: 'Missing evaluation payload.' }, { status: 400 });
+    if (
+      !evaluation ||
+      !Array.isArray(evaluation.biomarkers) ||
+      !Array.isArray(evaluation.alerts)
+    ) {
+      return NextResponse.json({ error: 'Missing or invalid evaluation payload.' }, { status: 400 });
     }
 
     if (!apiKey) {
@@ -64,7 +107,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ narrative, factCheck });
   } catch (err) {
     console.error('[ShifaClear /api/translate] Error:', err);
-    const message = err instanceof Error ? err.message : 'Translation failed.';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Translation service is temporarily unavailable. Please try again.' },
+      { status: 500 },
+    );
   }
 }

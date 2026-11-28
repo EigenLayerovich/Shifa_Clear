@@ -173,9 +173,9 @@ export function ClinicalAuditDrawer({
               <ClipboardCheck className="h-5 w-5" aria-hidden="true" />
             </span>
             <div>
-              <h1 id="audit-dialog-title" className="text-base font-extrabold text-slate-900 sm:text-lg">
+              <h2 id="audit-dialog-title" className="text-base font-extrabold text-slate-900 sm:text-lg">
                 Clinical Audit, Validation Benchmark &amp; HL7 FHIR R4
-              </h1>
+              </h2>
               <p className="text-xs text-slate-600">
                 Inspect MD rules, run 12 gold-standard clinical vignettes live, &amp; export Malaffi FHIR R4
               </p>

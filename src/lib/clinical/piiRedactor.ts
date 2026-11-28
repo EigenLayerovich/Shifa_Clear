@@ -33,29 +33,59 @@ export function redactClinicalPII(rawText: string): PiiRedactionResult {
   // 1. UAE Emirates ID (784-YYYY-NNNNNNN-C or 15 digits starting with 784)
   applyMask(/\b784[-\s]?\d{4}[-\s]?\d{7}[-\s]?\d\b/g, '[REDACTED_EMIRATES_ID]', 'Emirates ID');
 
-  // 2. Email addresses
+  // 2. Passport Numbers (Passport No / Passport #: alphanumeric 6-12 chars)
+  applyMask(
+    /\b(Passport(?:\s*(?:No\.?|Number|#))?)\s*([:#-]?)\s*([A-Z0-9]{6,12})\b/gi,
+    (_m, label, sep) => `${label}${sep ? `${sep} ` : ' '}[REDACTED_PASSPORT]`,
+    'Passport',
+  );
+
+  // 3. Email addresses
   applyMask(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[REDACTED_EMAIL]', 'Email');
 
-  // 3. UAE Mobile & Landline Numbers (+971 5x..., 00971..., 05x-xxx-xxxx)
+  // 4. UAE Mobile & Landline Numbers (+971..., 00971..., 05x..., 02/03/04/06/07/09 landlines)
   applyMask(
-    /(?:\+971|00971)[-\s]?(?:5[024568]|[234679])[-\s]?\d{3}[-\s]?\d{4}\b|\b05[024568][-\s]?\d{3}[-\s]?\d{4}\b/g,
+    /(?:\+971|00971)[-\s]?(?:5[024568]|[234679])[-\s]?\d{3}[-\s]?\d{4}\b|\b0(?:5[024568]|[234679])[-\s]?\d{3}[-\s]?\d{4}\b/g,
     '[REDACTED_PHONE]',
     'Phone',
   );
 
-  // 4. Hospital MRN / Patient ID / File No / UHID
+  // 5. Hospital MRN / Patient ID / File No / UHID
   applyMask(
-    /\b(MRN|Patient\s*ID|File\s*No\.?|UHID|Sample\s*ID)\s*([:#-]?)\s*([A-Z]{0,6}\d[A-Z0-9-]{3,18})\b/gi,
+    /\b(MRN|Patient\s*ID|File\s*No\.?|UHID|Sample\s*ID|Encounter\s*ID)\s*([:#-]?)\s*([A-Z]{0,6}\d[A-Z0-9-]{3,18})\b/gi,
     (_m, label, sep) => `${label}${sep ? `${sep} ` : ' '}[REDACTED_MRN]`,
     'MRN / Patient ID',
   );
 
-  // 5. Explicit Patient Name headers (stops at newline, comma, Age, Sex, or DOB)
+  // 6. Dates of Birth (DOB / Date of Birth / Birth Date)
   applyMask(
-    /\b(Patient\s*Name|Full\s*Name|Name)\s*:\s*(?!\[REDACTED)((?:Mr\.?|Mrs\.?|Ms\.?|Miss\.?|Dr\.?\s+)?[A-Za-z][A-Za-z.' -]{1,36}?)(?=\s*(?:,|\n|\r|\bAge\b|\bSex\b|\bGender\b|\bDOB\b|\bMRN\b|$))/gi,
+    /\b(DOB|Date\s*of\s*Birth|Birth\s*Date)\s*[:=-]?\s*(?:\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}|\d{1,2}\s+[A-Za-z]{3,9}\s+\d{2,4})\b/gi,
+    (_m, label) => `${label}: [REDACTED_DOB]`,
+    'Date of Birth',
+  );
+
+  // 7. Explicit Patient Name headers ("Patient Name:", "Patient:", "Full Name:", "Name:")
+  applyMask(
+    /\b(Patient\s*Name|Full\s*Name|Patient|Name)\s*:\s*(?!\[REDACTED)((?:Mr\.?|Mrs\.?|Ms\.?|Miss\.?|Dr\.?\s+)?[A-Za-z][A-Za-z.' -]{1,42}?)(?=\s*(?:,|\n|\r|\bAge\b|\bSex\b|\bGender\b|\bDOB\b|\bMRN\b|$))/gi,
     (_m, label) => `${label}: [REDACTED_NAME]`,
     'Patient Name',
   );
+
+  // 8. Clinician / Ordering Doctor Names
+  applyMask(
+    /\b(Doctor|Physician|Ordering\s*Physician|Ordered\s*by|Requested\s*by|Attending(?:\s*Doctor)?|Consultant)\s*:\s*(?!\[REDACTED)((?:Dr\.?\s+)?[A-Za-z][A-Za-z.' -]{1,42}?)(?=\s*(?:,|\n|\r|$))/gi,
+    (_m, label) => `${label}: [REDACTED_DOCTOR]`,
+    'Doctor Name',
+  );
+  applyMask(/\bDr\.?\s+[A-Z][a-z]+(?:\s+[A-Z][a-z.'-]+){1,2}\b/g, '[REDACTED_DOCTOR]', 'Doctor Name');
+
+  // 9. Physical Addresses & P.O. Boxes
+  applyMask(
+    /\b(Address|Home\s*Address|Residence)\s*:\s*(?!\[REDACTED)([^\n\r]{4,90})/gi,
+    (_m, label) => `${label}: [REDACTED_ADDRESS]`,
+    'Address',
+  );
+  applyMask(/\bP\.?\s*O\.?\s*Box\s*#?\s*\d{2,8}\b/gi, '[REDACTED_ADDRESS]', 'Address');
 
   return {
     sanitizedText: text,

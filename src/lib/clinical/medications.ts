@@ -33,7 +33,8 @@ function resolveDrugProfile(brandName: string, genericHint?: string): DrugProfil
     for (const alias of entry.aliases) {
       const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const boundaryRegex = new RegExp(`(?:^|[^a-z0-9])${escaped}(?:$|[^a-z0-9])`, 'i');
-      if (boundaryRegex.test(haystack) || haystack.includes(alias)) {
+      // Strict word-boundary match ONLY (prevents unknown "Proxenol" matching "proxen" / Naproxen)
+      if (boundaryRegex.test(haystack)) {
         if (!bestMatch || alias.length > bestMatch.aliasLen) {
           bestMatch = { profile: entry, aliasLen: alias.length };
         }
@@ -46,13 +47,32 @@ function resolveDrugProfile(brandName: string, genericHint?: string): DrugProfil
 export function parseScheduleSlots(frequency: string, timingNotes = '', drugClass = ''): TimeSlot[] {
   const text = `${frequency} ${timingNotes}`.toLowerCase();
 
-  if (/\b(qid|q6h|4\s*times|four\s*times)\b/.test(text)) {
+  // Support standard Gulf / South Asian / European numeric dosing notation (e.g. "1-0-1", "1-1-1", "1-1-1-1", "0-0-1")
+  const numeric4 = text.match(/(?:^|[^\d])([0-9])\s*[-/]\s*([0-9])\s*[-/]\s*([0-9])\s*[-/]\s*([0-9])(?:$|[^\d])/);
+  if (numeric4) {
+    const slots: TimeSlot[] = [];
+    if (Number(numeric4[1]) > 0) slots.push('morning');
+    if (Number(numeric4[2]) > 0) slots.push('afternoon');
+    if (Number(numeric4[3]) > 0) slots.push('evening');
+    if (Number(numeric4[4]) > 0) slots.push('bedtime');
+    if (slots.length > 0) return slots;
+  }
+  const numeric3 = text.match(/(?:^|[^\d])([0-9])\s*[-/]\s*([0-9])\s*[-/]\s*([0-9])(?:$|[^\d])/);
+  if (numeric3) {
+    const slots: TimeSlot[] = [];
+    if (Number(numeric3[1]) > 0) slots.push('morning');
+    if (Number(numeric3[2]) > 0) slots.push('afternoon');
+    if (Number(numeric3[3]) > 0) slots.push('evening');
+    if (slots.length > 0) return slots;
+  }
+
+  if (/\b(qid|q6h|every\s*6\s*(?:h|hr|hrs|hours?)|4\s*times|four\s*times)\b/.test(text)) {
     return ['morning', 'afternoon', 'evening', 'bedtime'];
   }
-  if (/\b(tds|tid|q8h|3\s*times|three\s*times)\b/.test(text)) {
+  if (/\b(tds|tid|q8h|every\s*8\s*(?:h|hr|hrs|hours?)|3\s*times|three\s*times)\b/.test(text)) {
     return ['morning', 'afternoon', 'evening'];
   }
-  if (/\b(bd|bid|q12h|twice|2\s*times|two\s*times)\b/.test(text)) {
+  if (/\b(bd|bid|q12h|every\s*12\s*(?:h|hr|hrs|hours?)|twice|2\s*times|two\s*times)\b/.test(text)) {
     return ['morning', 'evening'];
   }
   if (/\b(bedtime|hs|qhs|at night|before sleep|night)\b/.test(text)) {

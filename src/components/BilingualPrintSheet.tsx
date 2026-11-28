@@ -31,9 +31,9 @@ export function BilingualPrintSheet({
       {/* Hospital Header */}
       <div className="flex items-start justify-between border-b-2 border-teal-800 pb-3">
         <div>
-          <h1 className="text-lg font-extrabold text-teal-900">
+          <h2 className="text-lg font-extrabold text-teal-900">
             ShifaClear — Bilingual Patient &amp; Caregiver Discharge Summary
-          </h1>
+          </h2>
           <p className="text-[11px] text-slate-600">
             {evaluation.facilityName || 'Clinical Summary'} • Date:{' '}
             {evaluation.reportDate || new Date().toISOString().slice(0, 10)} • Patient:{' '}

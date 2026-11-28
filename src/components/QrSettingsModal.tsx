@@ -115,9 +115,9 @@ export function QrSettingsModal({
               <QrCode className="h-5 w-5" aria-hidden="true" />
             </span>
             <div>
-              <h1 id="qr-dialog-title" className="text-base font-extrabold text-slate-900">
+              <h2 id="qr-dialog-title" className="text-base font-extrabold text-slate-900">
                 Judge Live QR &amp; Gemini API Settings
-              </h1>
+              </h2>
               <p className="text-xs text-slate-600">
                 Scan on mobile during your KUEC pitch or configure a session API key
               </p>

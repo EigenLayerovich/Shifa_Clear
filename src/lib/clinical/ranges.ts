@@ -1113,6 +1113,7 @@ function formatRangeLabel(
 }
 
 export function classifyStatus(siValue: number, bounds: ReferenceBoundsSI): BiomarkerStatus {
+  if (!Number.isFinite(siValue) || siValue < 0) return 'unknown';
   if (bounds.criticalLow !== undefined && siValue <= bounds.criticalLow) return 'critical_low';
   if (bounds.criticalHigh !== undefined && siValue >= bounds.criticalHigh) return 'critical_high';
   if (bounds.low !== undefined && siValue < bounds.low) return 'low';
@@ -1120,6 +1121,35 @@ export function classifyStatus(siValue: number, bounds: ReferenceBoundsSI): Biom
   if (bounds.borderlineLow !== undefined && siValue < bounds.borderlineLow) return 'borderline_low';
   if (bounds.borderlineHigh !== undefined && siValue >= bounds.borderlineHigh) return 'borderline_high';
   return 'normal';
+}
+
+/**
+ * Physiological plausibility ceiling in SI units for high-alert analytes.
+ * Prevents OCR decimal drops or non-serum units from triggering false 998 panic alerts.
+ */
+const PHYSIOLOGICAL_MAX_SI: Record<string, number> = {
+  potassium: 20,
+  sodium: 250,
+  calcium: 10,
+  hemoglobin: 300,
+  glucose_fasting: 150,
+  hba1c: 30,
+  creatinine: 4000,
+  egfr: 250,
+  inr: 30,
+  platelets: 5000,
+  wbc: 1000,
+  bicarbonate: 80,
+  chloride: 200,
+  magnesium: 15,
+};
+
+function distanceOutsideTarget(siValue: number, b: ReferenceBoundsSI): number {
+  const targetLow = b.borderlineLow ?? b.low;
+  const targetHigh = b.borderlineHigh ?? b.high;
+  if (targetLow !== undefined && siValue < targetLow) return targetLow - siValue;
+  if (targetHigh !== undefined && siValue > targetHigh) return siValue - targetHigh;
+  return 0;
 }
 
 /**
@@ -1175,8 +1205,20 @@ export function evaluateBiomarker(
   let refLabelSI = raw.rawReferenceRange || 'See lab sheet';
   let refLabelUS = raw.rawReferenceRange || 'See lab sheet';
 
-  if (rule) {
+  const isFiniteNonNegative = Number.isFinite(raw.value) && raw.value >= 0;
+  const maxPlausible = PHYSIOLOGICAL_MAX_SI[canonicalId];
+  const isPhysiologicallyPlausible =
+    isFiniteNonNegative &&
+    Number.isFinite(converted.siValue) &&
+    converted.siValue >= 0 &&
+    (maxPlausible === undefined || converted.siValue <= maxPlausible);
+
+  const canApplyRule = Boolean(rule && converted.unitRecognized && isPhysiologicallyPlausible);
+  let activeBounds: ReferenceBoundsSI | undefined;
+
+  if (canApplyRule && rule) {
     const b = rule.bounds(context.sex, context.age);
+    activeBounds = b;
     status = classifyStatus(converted.siValue, b);
     const span = Math.max(b.scaleMax - b.scaleMin, 0.001);
     const rawPct = ((converted.siValue - b.scaleMin) / span) * 100;
@@ -1200,8 +1242,15 @@ export function evaluateBiomarker(
       b.borderlineHigh !== undefined ? b.borderlineHigh * factor : undefined,
       b.borderlineLow !== undefined ? b.borderlineLow * factor : undefined,
     );
-  } else {
-    // Fallback: deterministically parse the lab's own printed Reference Interval!
+  } else if (isFiniteNonNegative) {
+    if (rule && !converted.unitRecognized) {
+      refLabelSI = raw.rawReferenceRange || 'Unit unverified — confirm on lab report';
+      refLabelUS = raw.rawReferenceRange || 'Unit unverified — confirm on lab report';
+    } else if (rule && !isPhysiologicallyPlausible) {
+      refLabelSI = 'Value outside plausible blood range — verify on report';
+      refLabelUS = 'Value outside plausible blood range — verify on report';
+    }
+    // Fallback: deterministically parse the lab's own printed Reference Interval (never fires 998)!
     const parsed = parseRawReferenceRange(raw.rawReferenceRange);
     if (parsed) {
       const val = raw.value;
@@ -1223,6 +1272,9 @@ export function evaluateBiomarker(
       refLowUS = parsed.low;
       refHighUS = parsed.high;
     }
+  } else {
+    refLabelSI = 'Invalid value — verify on lab report';
+    refLabelUS = 'Invalid value — verify on lab report';
   }
 
   let priorSiValue: number | undefined;
@@ -1230,25 +1282,51 @@ export function evaluateBiomarker(
   let trendDirection: EvaluatedBiomarker['trendDirection'];
   let trendDeltaText: string | undefined;
 
-  if (priorRaw) {
+  if (priorRaw && isFiniteNonNegative && Number.isFinite(priorRaw.value) && priorRaw.value >= 0) {
     const priorConverted = convertToSIAndUS(canonicalId, priorRaw.value, priorRaw.unit);
-    priorSiValue = priorConverted.siValue;
-    priorUsValue = priorConverted.usValue;
-    const diff = converted.siValue - priorConverted.siValue;
-    const relChange = priorConverted.siValue !== 0 ? Math.abs(diff / priorConverted.siValue) : 0;
+    if (!rule || (converted.unitRecognized && priorConverted.unitRecognized)) {
+      priorSiValue = priorConverted.siValue;
+      priorUsValue = priorConverted.usValue;
+      const diff = converted.siValue - priorConverted.siValue;
+      const relChange = priorConverted.siValue !== 0 ? Math.abs(diff / priorConverted.siValue) : 0;
 
-    if (relChange < 0.03) {
-      trendDirection = 'stable';
-      trendDeltaText = 'Stable';
-    } else if (rule?.higherIsBetter) {
-      trendDirection = diff > 0 ? 'improving' : 'worsening';
-      trendDeltaText = diff > 0 ? 'Improving ↑' : 'Declining ↓';
-    } else if (status === 'low' || status === 'critical_low' || status === 'borderline_low') {
-      trendDirection = diff > 0 ? 'improving' : 'worsening';
-      trendDeltaText = diff > 0 ? 'Recovering ↑' : 'Dropping ↓';
-    } else {
-      trendDirection = diff < 0 ? 'improving' : 'worsening';
-      trendDeltaText = diff < 0 ? 'Improving ↓' : 'Rising ↑';
+      if (relChange < 0.03) {
+        trendDirection = 'stable';
+        trendDeltaText = 'Stable';
+      } else if (rule?.higherIsBetter) {
+        trendDirection = diff > 0 ? 'improving' : 'worsening';
+        trendDeltaText = diff > 0 ? 'Improving ↑' : 'Declining ↓';
+      } else if (activeBounds) {
+        const priorDist = distanceOutsideTarget(priorConverted.siValue, activeBounds);
+        const currDist = distanceOutsideTarget(converted.siValue, activeBounds);
+        const priorStatus = classifyStatus(priorConverted.siValue, activeBounds);
+        const wasLow =
+          priorStatus === 'low' ||
+          priorStatus === 'critical_low' ||
+          priorStatus === 'borderline_low';
+        const isLow =
+          status === 'low' || status === 'critical_low' || status === 'borderline_low';
+
+        if (priorDist === 0 && currDist === 0) {
+          trendDirection = 'stable';
+          trendDeltaText = diff > 0 ? 'Within Normal ↑' : 'Within Normal ↓';
+        } else if (currDist < priorDist) {
+          trendDirection = 'improving';
+          trendDeltaText = wasLow || diff > 0 ? 'Recovering ↑' : 'Improving ↓';
+        } else if (currDist > priorDist) {
+          trendDirection = 'worsening';
+          trendDeltaText = isLow || diff < 0 ? 'Dropping ↓' : 'Rising ↑';
+        } else {
+          trendDirection = 'stable';
+          trendDeltaText = 'Stable';
+        }
+      } else if (status === 'low' || status === 'critical_low' || status === 'borderline_low') {
+        trendDirection = diff > 0 ? 'improving' : 'worsening';
+        trendDeltaText = diff > 0 ? 'Recovering ↑' : 'Dropping ↓';
+      } else {
+        trendDirection = diff < 0 ? 'improving' : 'worsening';
+        trendDeltaText = diff < 0 ? 'Improving ↓' : 'Rising ↑';
+      }
     }
   }
 

@@ -771,6 +771,18 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
                   }
                 : undefined
             }
+            onClearOfflineReport={
+              savedOfflineReport
+                ? () => {
+                    try {
+                      window.localStorage.removeItem('shifaclear_last_report_v1');
+                    } catch {
+                      // ignore storage error
+                    }
+                    setSavedOfflineReport(null);
+                  }
+                : undefined
+            }
           />
         ) : (
           <div className="space-y-7">

@@ -22,11 +22,8 @@ export const BIOMARKER_NAME_ALIASES: Record<string, string> = {
   'fasting blood glucose': 'glucose_fasting',
   'fasting blood sugar': 'glucose_fasting',
   'blood glucose': 'glucose_fasting',
-  'random glucose': 'glucose_fasting',
-  'random blood sugar': 'glucose_fasting',
   fbs: 'glucose_fasting',
   fbg: 'glucose_fasting',
-  rbs: 'glucose_fasting',
   glu: 'glucose_fasting',
 
   // Lipids
@@ -995,13 +992,77 @@ export function roundClinical(value: number, decimals: number): number {
   return Math.round(value * factor) / factor;
 }
 
-export function normalizeBiomarkerKey(rawName: string, rawUnit = ''): string {
-  const unitClean = (rawUnit || '').trim();
-  const hasPct = rawName.includes('%') || unitClean === '%';
+/**
+ * Detects non-blood specimens (urine, CSF, stool, fluid) or ratios/clearances so they are
+ * NEVER evaluated against serum/blood panic thresholds or fed into CKD-EPI eGFR.
+ */
+const NON_SERUM_SPECIMEN_REGEX =
+  /\b(urine|urinary|spot\s*urine|24\s*-?\s*(?:h|hr|hrs|hour|hours)|csf|cerebrospinal|stool|fecal|faecal|saliva|pleural|ascitic|synovial|sputum|swab|ratio|uacr|acr|upcr|pcr|clearance|crcl|microalbumin|albumin\s*\/\s*creatinine|protein\s*\/\s*creatinine)\b/i;
 
-  const cleaned = rawName
-    .toLowerCase()
-    .replace(/\(.*?\)/g, '')
+const NON_SERUM_UNIT_REGEX =
+  /(?:\/\s*24\s*h|mg\s*\/\s*g|mg\s*\/\s*mmol|g\s*\/\s*24|mmol\s*\/\s*24|ml\s*\/\s*min(?!.*1\.73))/i;
+
+export function isNonSerumSpecimen(rawName: string, rawUnit = ''): boolean {
+  const nameLower = (rawName || '').toLowerCase();
+  const unitLower = (rawUnit || '').toLowerCase();
+  if (NON_SERUM_SPECIMEN_REGEX.test(nameLower)) return true;
+  if (/^u[-\s]?(?:na|k|cl|cr|creatinine|sodium|potassium|calcium|albumin|protein)\b/i.test(nameLower.trim())) {
+    return true;
+  }
+  if (unitLower && NON_SERUM_UNIT_REGEX.test(unitLower) && !/\begfr\b/i.test(nameLower)) {
+    return true;
+  }
+  return false;
+}
+
+export function normalizeBiomarkerKey(rawName: string, rawUnit = ''): string {
+  const fullLower = (rawName || '').toLowerCase().trim();
+  const unitClean = (rawUnit || '').trim();
+  const hasPct = fullLower.includes('%') || unitClean === '%';
+
+  // 1. Guard: Never map urine, CSF, stool, ratios, or clearance tests to serum blood ranges!
+  if (isNonSerumSpecimen(rawName, rawUnit)) {
+    const slug = fullLower
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+    return `non_serum_${slug || 'unknown'}`;
+  }
+
+  // 2. Guard: Preserve clinically distinct sub-analytes BEFORE stripping parenthetical text!
+  if (/\b(ionized|ionised|free)\b/.test(fullLower) && /\b(calcium|ca2?\+?)\b/.test(fullLower)) {
+    return 'calcium_ionized';
+  }
+  if (/\bnon[-\s]?hdl\b/.test(fullLower)) {
+    return 'non_hdl_cholesterol';
+  }
+  if (/\bvldl\b/.test(fullLower)) {
+    return 'vldl_cholesterol';
+  }
+  if (
+    /\b(random|rbs|post[-\s]?prandial|ppbs|2\s*-?\s*(?:h|hr|hour)|ogtt|non[-\s]?fasting)\b/.test(fullLower) &&
+    /\b(glucose|sugar|rbs|ppbs|ogtt)\b/.test(fullLower)
+  ) {
+    return 'glucose_random';
+  }
+  if (/\b(bilirubin|bil)\b/.test(fullLower) && /\b(direct|conjugated|dbil)\b/.test(fullLower)) {
+    return 'bilirubin_direct';
+  }
+  if (/\b(bilirubin|bil)\b/.test(fullLower) && /\b(indirect|unconjugated|ibil)\b/.test(fullLower)) {
+    return 'bilirubin_indirect';
+  }
+  if (/\b(free)\b/.test(fullLower) && /\b(testosterone)\b/.test(fullLower)) {
+    return 'testosterone_free';
+  }
+  if (/\b(total)\b/.test(fullLower) && /\b(t4|thyroxine)\b/.test(fullLower)) {
+    return 'total_t4';
+  }
+  if (/\b(total)\b/.test(fullLower) && /\b(t3|triiodothyronine)\b/.test(fullLower)) {
+    return 'total_t3';
+  }
+
+  // Keep parenthetical text spaced instead of blindly deleting clinically important qualifiers
+  const cleaned = fullLower
+    .replace(/[()]/g, ' ')
     .replace(/[^a-z0-9+\-%\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -1047,6 +1108,7 @@ export function convertToSIAndUS(
   usValue: number;
   usUnit: string;
   wasConvertedFromUS: boolean;
+  unitRecognized: boolean;
 } {
   const def = UNIT_DEFINITIONS[canonicalId];
   if (!def) {
@@ -1056,22 +1118,17 @@ export function convertToSIAndUS(
       usValue: rawValue,
       usUnit: rawUnit || 'units',
       wasConvertedFromUS: false,
+      unitRecognized: Boolean((rawUnit || '').trim()),
     };
   }
 
   const normalizedUnit = (rawUnit || '').toLowerCase().replace(/\s+/g, '');
-  const matchesSI = def.siUnitAliases.some((a) => normalizedUnit === a.toLowerCase());
-  const matchesUS = def.usUnitAliases.some((a) => normalizedUnit === a.toLowerCase());
-
-  // Heuristic safeguard for common UAE unit ambiguity
-  let treatAsUS = matchesUS && !matchesSI;
-  if (!matchesSI && !matchesUS) {
-    if (canonicalId === 'hemoglobin' && rawValue < 30) treatAsUS = true;
-    if (canonicalId === 'glucose_fasting' && rawValue > 40) treatAsUS = true;
-    if (canonicalId === 'creatinine' && rawValue < 15) treatAsUS = true;
-    if (canonicalId === 'd_dimer' && rawValue > 20) treatAsUS = true;
-    if (canonicalId === 'testosterone_total' && rawValue > 60) treatAsUS = true;
-  }
+  const matchesSI =
+    normalizedUnit.length > 0 &&
+    def.siUnitAliases.some((a) => normalizedUnit === a.toLowerCase().replace(/\s+/g, ''));
+  const matchesUS =
+    normalizedUnit.length > 0 &&
+    def.usUnitAliases.some((a) => normalizedUnit === a.toLowerCase().replace(/\s+/g, ''));
 
   // Convert conventional Troponin (ng/mL or µg/L) -> High-Sensitivity ng/L (× 1000)
   if (
@@ -1085,22 +1142,12 @@ export function convertToSIAndUS(
       usValue: ngPerL,
       usUnit: 'pg/mL',
       wasConvertedFromUS: true,
+      unitRecognized: true,
     };
   }
 
-  if (treatAsUS && def.siToUsFactor !== 1) {
-    const siRaw = rawValue / def.siToUsFactor;
-    return {
-      siValue: roundClinical(siRaw, def.decimalsSI),
-      siUnit: def.siUnit,
-      usValue: roundClinical(rawValue, def.decimalsUS),
-      usUnit: def.usUnit,
-      wasConvertedFromUS: true,
-    };
-  }
-
-  // Handle HbA1c IFCC mmol/mol -> NGSP % conversion automatically if needed
-  if (canonicalId === 'hba1c' && (normalizedUnit.includes('mmol/mol') || rawValue > 25)) {
+  // Handle HbA1c IFCC mmol/mol -> NGSP % conversion automatically when unit is mmol/mol
+  if (canonicalId === 'hba1c' && normalizedUnit.includes('mmol/mol')) {
     const ngsp = 0.0915 * rawValue + 2.15;
     const rounded = roundClinical(ngsp, 1);
     return {
@@ -1109,6 +1156,45 @@ export function convertToSIAndUS(
       usValue: rounded,
       usUnit: '%',
       wasConvertedFromUS: true,
+      unitRecognized: true,
+    };
+  }
+
+  // Explicitly allow dimensionless INR (often printed with blank unit or "ratio"/"inr")
+  if (canonicalId === 'inr' && (normalizedUnit === '' || normalizedUnit === 'inr' || normalizedUnit === 'ratio')) {
+    return {
+      siValue: roundClinical(rawValue, def.decimalsSI),
+      siUnit: def.siUnit,
+      usValue: roundClinical(rawValue, def.decimalsUS),
+      usUnit: def.usUnit,
+      wasConvertedFromUS: false,
+      unitRecognized: true,
+    };
+  }
+
+  // Safety Guard: If unit is missing OR unrecognized for a known marker (e.g. "Triglycerides 150",
+  // "Urea 40", "Calcium 9.5", or "Albumin 30 mg/L"), NEVER silently treat it as SI and fire 998!
+  if (!matchesSI && !matchesUS) {
+    return {
+      siValue: rawValue,
+      siUnit: rawUnit.trim() || 'unverified unit',
+      usValue: rawValue,
+      usUnit: rawUnit.trim() || 'unverified unit',
+      wasConvertedFromUS: false,
+      unitRecognized: false,
+    };
+  }
+
+  const treatAsUS = matchesUS && !matchesSI;
+  if (treatAsUS && def.siToUsFactor !== 1) {
+    const siRaw = rawValue / def.siToUsFactor;
+    return {
+      siValue: roundClinical(siRaw, def.decimalsSI),
+      siUnit: def.siUnit,
+      usValue: roundClinical(rawValue, def.decimalsUS),
+      usUnit: def.usUnit,
+      wasConvertedFromUS: true,
+      unitRecognized: true,
     };
   }
 
@@ -1119,5 +1205,6 @@ export function convertToSIAndUS(
     usValue: roundClinical(usRaw, def.decimalsUS),
     usUnit: def.usUnit,
     wasConvertedFromUS: false,
+    unitRecognized: true,
   };
 }

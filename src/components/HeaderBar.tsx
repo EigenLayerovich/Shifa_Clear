@@ -63,22 +63,22 @@ export function HeaderBar({
 
       <div className="mx-auto flex max-w-6xl flex-col gap-2.5 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
         {/* Brand lockup */}
-        <div className="flex shrink-0 items-center justify-between gap-3">
+        <div className="flex min-w-0 shrink-0 items-center justify-between gap-2">
           <button
             type="button"
             onClick={onResetHome}
-            className="group flex items-center gap-2.5 rounded-xl text-start transition hover:opacity-95"
+            className="group flex shrink-0 items-center gap-1.5 rounded-xl text-start transition hover:opacity-95 sm:gap-2.5"
           >
             <ShifaClearLogo
-              size={38}
-              className="shadow-xs transition-transform duration-200 group-hover:scale-[1.03]"
+              size={30}
+              className="shrink-0 shadow-xs transition-transform duration-200 group-hover:scale-[1.03] sm:h-[36px] sm:w-[36px]"
             />
-            <span>
+            <span className="shrink-0">
               <span className="flex items-baseline gap-2">
-                <span className="font-editorial text-[23px] font-medium leading-none tracking-tight text-[#18181B]">
+                <span className="font-editorial text-[18px] font-medium leading-none tracking-tight text-[#18181B] sm:text-[23px]">
                   Shifa<em className="italic text-[#0D5C56]">Clear</em>
                 </span>
-                <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap border-s border-[#DDD8CE] ps-2 text-[10px] font-semibold uppercase tracking-wider text-[#0D5C56]">
+                <span className="hidden shrink-0 items-center gap-1 whitespace-nowrap border-s border-[#DDD8CE] ps-2 text-[10px] font-semibold uppercase tracking-wider text-[#0D5C56] sm:inline-flex">
                   <ShieldCheck className="h-3 w-3 shrink-0" aria-hidden="true" />
                   MD Guardrails
                 </span>
@@ -86,12 +86,12 @@ export function HeaderBar({
             </span>
           </button>
 
-          {/* Compact mobile action buttons */}
-          <div className="flex items-center gap-1.5 lg:hidden">
+          {/* Compact mobile action buttons (fits cleanly inside 390px viewport with crisp spacing) */}
+          <div className="flex shrink-0 items-center gap-1 lg:hidden">
             <button
               type="button"
               onClick={onOpenDrugChecker}
-              className="inline-flex min-h-[38px] items-center gap-1 rounded-lg bg-[#0D5C56] px-2.5 text-xs font-semibold text-white hover:bg-[#094742]"
+              className="inline-flex min-h-[34px] items-center gap-1 rounded-lg bg-[#0D5C56] px-2 text-[11px] font-semibold text-white hover:bg-[#094742]"
             >
               <Pill className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Drugs</span>
@@ -99,33 +99,33 @@ export function HeaderBar({
             <button
               type="button"
               onClick={onOpenAudit}
-              className="inline-flex min-h-[38px] items-center gap-1 rounded-lg border border-[#E2DDD2] bg-white px-2.5 text-xs font-medium text-[#18181B] hover:bg-[#F3F1EC]"
+              className="inline-flex min-h-[34px] items-center gap-1 rounded-lg border border-[#E2DDD2] bg-white px-2 text-[11px] font-medium text-[#18181B] hover:bg-[#F3F1EC]"
             >
               <ClipboardCheck className="h-3.5 w-3.5 text-[#0D5C56]" aria-hidden="true" />
-              <span>{hasEvaluation ? t.auditTrailBtn : '12/12'}</span>
+              <span>{hasEvaluation ? 'Audit' : '12/12'}</span>
             </button>
             <button
               type="button"
               onClick={onToggleTheme}
               title="Toggle light or dark theme"
-              className="inline-flex min-h-[38px] min-w-[38px] items-center justify-center rounded-lg border border-[#E2DDD2] bg-white text-[#18181B] hover:bg-[#F3F1EC]"
+              className="inline-flex min-h-[34px] min-w-[34px] items-center justify-center rounded-lg border border-[#E2DDD2] bg-white text-[#18181B] hover:bg-[#F3F1EC]"
             >
               <span className="theme-show-when-light inline-flex items-center">
-                <Moon className="h-4 w-4 text-[#0D5C56]" aria-hidden="true" />
+                <Moon className="h-3.5 w-3.5 text-[#0D5C56]" aria-hidden="true" />
                 <span className="visually-hidden">Switch to dark theme</span>
               </span>
               <span className="theme-show-when-dark items-center">
-                <Sun className="h-4 w-4 text-[#0D5C56]" aria-hidden="true" />
+                <Sun className="h-3.5 w-3.5 text-[#0D5C56]" aria-hidden="true" />
                 <span className="visually-hidden">Switch to light theme</span>
               </span>
             </button>
             <button
               type="button"
               onClick={onOpenQrSettings}
-              className="inline-flex min-h-[38px] items-center gap-1 rounded-lg border border-[#E2DDD2] bg-white px-2.5 text-xs font-medium text-[#18181B] hover:bg-[#F3F1EC]"
+              className="inline-flex min-h-[34px] min-w-[34px] items-center justify-center rounded-lg border border-[#E2DDD2] bg-white text-xs font-medium text-[#18181B] hover:bg-[#F3F1EC]"
               aria-label={t.qrSettingsBtn}
             >
-              <QrCode className="h-4 w-4 text-[#0D5C56]" aria-hidden="true" />
+              <QrCode className="h-3.5 w-3.5 text-[#0D5C56]" aria-hidden="true" />
             </button>
           </div>
         </div>

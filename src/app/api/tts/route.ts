@@ -1,12 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveApiKey, synthesizeSpeechWithGemini } from '@/lib/ai/gemini';
 import type { SupportedLanguage } from '@/lib/clinical/types';
+import { isValidLanguage } from '@/lib/clinical/validation';
+import { checkRateLimit } from '@/lib/security/rateLimit';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const text = typeof body.text === 'string' ? body.text.trim() : '';
-    const language = (body.language || 'en') as SupportedLanguage;
+    const rate = checkRateLimit(req, 'tts', 20, 60_000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many voice requests. Please wait a moment.' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSec) } },
+      );
+    }
+
+    let body: Record<string, unknown>;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: 'Malformed JSON request body.' }, { status: 400 });
+    }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return NextResponse.json({ error: 'Request body must be a JSON object.' }, { status: 400 });
+    }
+
+    const text = typeof body.text === 'string' ? body.text.trim().slice(0, 2000) : '';
+    const rawLang = body.language ?? 'en';
+    if (!isValidLanguage(rawLang)) {
+      return NextResponse.json(
+        { error: 'Unsupported language code. Use en, ar, ur, tl, or hi.' },
+        { status: 400 },
+      );
+    }
+    const language: SupportedLanguage = rawLang;
 
     if (!text) {
       return NextResponse.json({ error: 'No text provided for speech synthesis.' }, { status: 400 });

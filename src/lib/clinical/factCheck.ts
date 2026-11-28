@@ -6,9 +6,39 @@ import type {
 } from './types';
 
 /**
+ * Multilingual false-reassurance phrases that MUST NEVER appear alongside an URGENT evaluation.
+ * Covers English, Arabic, Urdu, Tagalog, and Hindi.
+ */
+const FALSE_REASSURANCE_REGEX =
+  /\b(all (?:your )?(?:lab )?results are (?:looking )?(?:healthy and )?normal|no urgent alerts|nothing to worry|no need to worry|don'?t worry|do not worry|relax at home|rest at home|stay at home|wait for (?:a |your )?routine|everything (?:is|looks) (?:fine|normal|good|okay)|completely normal|walang dapat ipag-?alala|magpahinga sa bahay)\b|لا داعي للقلق|كل شيء طبيعي|نتائجك طبيعية|ارتاح في المنزل|پریشان ہونے کی ضرورت نہیں|سب کچھ نارمل|گھر پر آرام|चिंता की कोई बात नहीं|सब कुछ सामान्य|घर पर आराम/i;
+
+/** Language-independent UAE emergency number recognition (ASCII + Arabic-Indic + Eastern Arabic + Devanagari) */
+const EMERGENCY_998_REGEX = /(?:998|٩٩٨|۹۹۸|९९८)/;
+
+/**
+ * Strips non-clinical numeric expressions (dates, durations, frequencies, percentages in timing advice,
+ * emergency numbers, and counts) so clinical-value verification catches invented integers & decimals
+ * (e.g. "potassium is 4" when K+ is 6.8) without false positives on "wait 30 minutes" or "call 998".
+ */
+function stripNonClinicalNumericPhrases(text: string): string {
+  return text
+    .replace(/\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b/g, ' ')
+    .replace(/\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b/g, ' ')
+    .replace(/\b(?:19|20)\d{2}\b/g, ' ')
+    .replace(/\b\d{1,2}:\d{2}\b/g, ' ')
+    .replace(/\b(?:998|999|911|112)\b/g, ' ')
+    .replace(
+      /\b\d+(?:\.\d+)?(?:\s*[-–—]\s*\d+(?:\.\d+)?)?\s*(?:hours?|hrs?|h\b|minutes?|mins?|min\b|days?|weeks?|wks?|months?|mos?|years?|yrs?|y\b|times?|doses?|pills?|tablets?|capsules?|glasses?|cups?|sips?|steps?|questions?|markers?|biomarkers?|medications?|meds?|alerts?|checks?|languages?|points?|percent)\b/gi,
+      ' ',
+    )
+    .replace(/\b(?:type\s*[12]|stage\s*[1-5]|grade\s*[1-4]|phase\s*[1-4]|vitamin\s*(?:b12|b6|d3|d2|d|k2|k)|b12|d3|a1c|t3|t4|ft3|ft4|k\+|ca2\+|hco3|cyp\d[a-z]\d+|pde5|25-oh|ckd-epi|ipsg\.?1)\b/gi, ' ');
+}
+
+/**
  * Post-Generation Deterministic Fact-Preservation Guardrail (inspired by OpenGATE).
  * Verifies that the AI-generated narrative preserves every critical alert, covers abnormal
- * lab markers, never contradicts urgent risk status, and introduces zero ungrounded clinical numbers.
+ * lab markers, enforces language-independent 998 escalation on urgent cases, never gives false
+ * reassurance, and introduces zero ungrounded clinical numbers across ALL narrative fields.
  */
 export function verifyNarrativeFactPreservation(
   evaluation: VerifiedClinicalEvaluation,
@@ -19,54 +49,86 @@ export function verifyNarrativeFactPreservation(
     (b) => b.status !== 'normal' && b.status !== 'unknown',
   );
 
-  const combinedText = [
+  const medTexts = Object.values(narrative.medicationExplanations || {}).map(
+    (m) => `${m.plainPurpose} ${m.howToTake} ${m.watchOutFor}`,
+  );
+  const bioTexts = Object.values(narrative.biomarkerExplanations || {}).map(
+    (b) => `${b.plainTitle} ${b.whatYourLevelMeans} ${b.practicalTip}`,
+  );
+  const alertTexts = Object.values(narrative.alertTranslations || {}).map(
+    (a) => `${a.title} ${a.explanation} ${a.action}`,
+  );
+
+  const primaryNarrativeText = [
     narrative.headline,
     narrative.overallSummary,
     narrative.spokenSummaryScript,
     narrative.caregiverWhatsappSummary,
-    ...Object.values(narrative.alertTranslations || {}).map((a) => `${a.title} ${a.explanation} ${a.action}`),
-  ]
-    .join(' ')
-    .toLowerCase();
+  ].join(' ');
 
-  // 1. Verify critical alerts are preserved (never minimized or omitted)
+  const allNarrativeText = [
+    primaryNarrativeText,
+    ...alertTexts,
+    ...medTexts,
+    ...bioTexts,
+  ].join(' ');
+
+  const combinedLower = allNarrativeText.toLowerCase();
+
+  // 1. Ensure an urgent evaluation is NEVER contradicted by false-reassurance phrasing (5 languages)
+  const falseReassurance =
+    evaluation.overallRisk === 'urgent' && FALSE_REASSURANCE_REGEX.test(allNarrativeText);
+
+  // 2. Verify critical alerts are genuinely preserved (language-independent 998 check for emergency alerts!)
+  const hasEmergencyAlert = criticalAlerts.some((a) => a.emergencyNumber === '998');
+  const mentionsEmergency998 = EMERGENCY_998_REGEX.test(allNarrativeText);
   let criticalPreserved = 0;
+
   for (const alert of criticalAlerts) {
-    const hasTranslation = Boolean(narrative.alertTranslations?.[alert.id]);
-    const hasEmergencyCode = alert.emergencyNumber ? combinedText.includes(alert.emergencyNumber) : false;
-    const hasKeyword = alert.involvedItems.some((item) => {
-      const token = item.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
-      return token.length >= 3 && combinedText.includes(token);
-    });
-    if (hasTranslation || hasEmergencyCode || hasKeyword) {
-      criticalPreserved++;
+    const trans = narrative.alertTranslations?.[alert.id];
+    const transText = trans ? `${trans.title} ${trans.explanation} ${trans.action}` : '';
+    const transHasFalseReassurance = transText ? FALSE_REASSURANCE_REGEX.test(transText) : false;
+
+    if (alert.emergencyNumber === '998') {
+      // Language-independent safety bar: emergency alert MUST preserve 998 (or localized digits) and not reassure!
+      const preservedEmergency =
+        !transHasFalseReassurance &&
+        (EMERGENCY_998_REGEX.test(transText) || EMERGENCY_998_REGEX.test(primaryNarrativeText));
+      if (preservedEmergency) {
+        criticalPreserved++;
+      }
+    } else {
+      const hasSubstantiveTranslation = Boolean(trans && transText.trim().length >= 12 && !transHasFalseReassurance);
+      const hasKeyword = alert.involvedItems.some((item) => {
+        const token = item.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+        return token.length >= 3 && combinedLower.includes(token);
+      });
+      if (!falseReassurance && (hasSubstantiveTranslation || hasKeyword)) {
+        criticalPreserved++;
+      }
     }
   }
 
-  // Ensure an urgent evaluation is never contradicted by "all normal" language
-  const falseReassurance =
-    evaluation.overallRisk === 'urgent' &&
-    /\b(all (?:your )?(?:lab )?results are (?:looking )?(?:healthy and )?normal|no urgent alerts)\b/i.test(
-      `${narrative.headline} ${narrative.overallSummary}`,
-    );
-
-  // 2. Verify abnormal marker coverage
+  // 3. Verify abnormal marker coverage
   let abnormalCovered = 0;
   for (const bio of abnormalMarkers) {
     const hasCardExp = Boolean(narrative.biomarkerExplanations?.[bio.canonicalId]);
     const nameToken = bio.displayName.split(' (')[0].toLowerCase();
-    const inSummary = combinedText.includes(nameToken) || combinedText.includes(bio.canonicalId.replace(/_/g, ' '));
+    const inSummary =
+      combinedLower.includes(nameToken) || combinedLower.includes(bio.canonicalId.replace(/_/g, ' '));
     if (hasCardExp || inSummary) {
       abnormalCovered++;
     }
   }
 
-  // 3. Collect all grounded numbers from the deterministic evaluation
+  // 4. Collect all grounded numbers from the deterministic evaluation
   const biomarkerNumbers: number[] = [];
   for (const b of evaluation.biomarkers) {
-    biomarkerNumbers.push(b.siValue, b.usValue, b.originalValue);
-    if (b.priorSiValue !== undefined) biomarkerNumbers.push(b.priorSiValue);
-    if (b.priorUsValue !== undefined) biomarkerNumbers.push(b.priorUsValue);
+    if (Number.isFinite(b.siValue)) biomarkerNumbers.push(b.siValue);
+    if (Number.isFinite(b.usValue)) biomarkerNumbers.push(b.usValue);
+    if (Number.isFinite(b.originalValue)) biomarkerNumbers.push(b.originalValue);
+    if (b.priorSiValue !== undefined && Number.isFinite(b.priorSiValue)) biomarkerNumbers.push(b.priorSiValue);
+    if (b.priorUsValue !== undefined && Number.isFinite(b.priorUsValue)) biomarkerNumbers.push(b.priorUsValue);
     if (b.refLowSI !== undefined) biomarkerNumbers.push(b.refLowSI);
     if (b.refHighSI !== undefined) biomarkerNumbers.push(b.refHighSI);
     if (b.refLowUS !== undefined) biomarkerNumbers.push(b.refLowUS);
@@ -76,39 +138,54 @@ export function verifyNarrativeFactPreservation(
     const doseNums = m.dose.match(/\d+(?:\.\d+)?/g) || [];
     for (const n of doseNums) biomarkerNumbers.push(Number(n));
   }
+  if (Number.isFinite(evaluation.patientContext.age)) {
+    biomarkerNumbers.push(evaluation.patientContext.age);
+  }
 
-  // Scan decimal clinical numbers inside headline + overallSummary for ungrounded invented numbers
-  const summaryNums = `${narrative.headline} ${narrative.overallSummary}`.match(/\b\d+\.\d+\b/g) || [];
+  // Scan ALL clinical numbers (both decimals AND integers) across headline, summary, and medication instructions!
+  const textToAuditNumbers = stripNonClinicalNumericPhrases(
+    [narrative.headline, narrative.overallSummary, ...medTexts].join(' '),
+  );
+  const extractedNums = textToAuditNumbers.match(/\b\d+(?:\.\d+)?\b/g) || [];
   let inventedCount = 0;
-  for (const numStr of summaryNums) {
+
+  for (const numStr of extractedNums) {
     const nVal = Number(numStr);
-    const matched = biomarkerNumbers.some(
-      (gVal) => !Number.isNaN(gVal) && Math.abs(gVal - nVal) <= 0.11,
-    );
+    const isDecimal = numStr.includes('.');
+    const matched = biomarkerNumbers.some((gVal) => {
+      if (!Number.isFinite(gVal)) return false;
+      return isDecimal ? Math.abs(gVal - nVal) <= 0.11 : Math.abs(gVal - nVal) <= 0.05;
+    });
     if (!matched) {
       inventedCount++;
     }
   }
 
+  const emergencyEscPreserved = !hasEmergencyAlert || mentionsEmergency998;
   const verified =
     !falseReassurance &&
+    emergencyEscPreserved &&
     criticalPreserved === criticalAlerts.length &&
     inventedCount === 0;
 
-  const totalChecks = Math.max(1, criticalAlerts.length + Math.min(abnormalMarkers.length, 5) + 1);
+  const totalChecks = Math.max(
+    1,
+    criticalAlerts.length + Math.min(abnormalMarkers.length, 5) + 2,
+  );
   const passedChecks =
     criticalPreserved +
     Math.min(abnormalCovered, Math.min(abnormalMarkers.length, 5)) +
-    (inventedCount === 0 && !falseReassurance ? 1 : 0);
-  const scorePercent = Math.round((passedChecks / totalChecks) * 100);
+    (inventedCount === 0 ? 1 : 0) +
+    (!falseReassurance && emergencyEscPreserved ? 1 : 0);
+  const scorePercent = verified ? 100 : Math.min(95, Math.round((passedChecks / totalChecks) * 100));
 
   const summary = verified
     ? `100% critical facts preserved (${criticalPreserved}/${criticalAlerts.length} critical alerts, ${abnormalCovered}/${abnormalMarkers.length} flagged markers covered, 0 invented numbers).`
-    : `Fact-preservation check flagged ${inventedCount} ungrounded number(s) or missing critical context — deterministic cards remain authoritative.`;
+    : `Fact-preservation check flagged ${inventedCount} ungrounded number(s)${falseReassurance ? ', false-reassurance wording' : ''}${!emergencyEscPreserved ? ', missing UAE 998 escalation' : ''} — deterministic cards remain authoritative.`;
 
   const report: FactPreservationReport = {
     verified,
-    scorePercent: verified ? 100 : scorePercent,
+    scorePercent,
     criticalAlertsPreserved: criticalPreserved,
     criticalAlertsTotal: criticalAlerts.length,
     abnormalMarkersCovered: abnormalCovered,

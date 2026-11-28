@@ -228,9 +228,9 @@ export function QuickDrugCheckerModal({
               <Pill className="h-5 w-5" aria-hidden="true" />
             </span>
             <div>
-              <h1 id="drug-checker-dialog-title" className="text-base font-extrabold text-slate-900 sm:text-lg">
+              <h2 id="drug-checker-dialog-title" className="text-base font-extrabold text-slate-900 sm:text-lg">
                 Quick Drug Interaction &amp; CKD-EPI Checker
-              </h1>
+              </h2>
               <p className="text-xs text-slate-600">
                 150 drug profiles • 620+ UAE/Gulf brands • 40 RxList, pediatric &amp; cross-domain rules (&lt; 10ms)
               </p>

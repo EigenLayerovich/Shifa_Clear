@@ -36,6 +36,7 @@ interface IntakePanelProps {
   onSelectDemoCase: (caseId: string) => void;
   savedOfflineHeadline?: string | null;
   onRestoreOfflineReport?: () => void;
+  onClearOfflineReport?: () => void;
 }
 
 export function IntakePanel({
@@ -53,6 +54,7 @@ export function IntakePanel({
   onSelectDemoCase,
   savedOfflineHeadline,
   onRestoreOfflineReport,
+  onClearOfflineReport,
 }: IntakePanelProps) {
   const t = UI_STRINGS[language];
   const langMeta = LANGUAGE_MAP[language];
@@ -223,7 +225,7 @@ export function IntakePanel({
         </div>
       </section>
 
-      {/* Offline Cached Report Resume Banner */}
+      {/* Offline Cached Report Resume & Privacy Clear Banner */}
       {savedOfflineHeadline && onRestoreOfflineReport && !isLoading && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#DCE5E2] bg-[#F2F7F5] px-4 py-2.5">
           <div className="flex items-center gap-2.5 text-xs">
@@ -233,14 +235,26 @@ export function IntakePanel({
               <span className="font-semibold text-[#0D5C56]">{savedOfflineHeadline}</span>
             </span>
           </div>
-          <button
-            type="button"
-            onClick={onRestoreOfflineReport}
-            className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg bg-[#0D5C56] px-3.5 text-xs font-semibold text-white transition hover:bg-[#094742]"
-          >
-            <span>Resume Report</span>
-            <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {onClearOfflineReport && (
+              <button
+                type="button"
+                onClick={onClearOfflineReport}
+                className="inline-flex min-h-[34px] items-center gap-1 rounded-lg border border-[#DDD8CE] bg-white px-3 text-xs font-semibold text-[#57534E] transition hover:border-rose-300 hover:text-rose-700"
+              >
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>Clear Saved Data</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onRestoreOfflineReport}
+              className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg bg-[#0D5C56] px-3.5 text-xs font-semibold text-white transition hover:bg-[#094742]"
+            >
+              <span>Resume Report</span>
+              <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -515,7 +529,7 @@ export function IntakePanel({
               <p className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#78716C]">
                 <Lock className="h-3 w-3 shrink-0 text-[#0D5C56]" aria-hidden="true" />
                 <span>
-                  Privacy tip: you may crop out your full name or Emirates ID before uploading — only age, sex, and lab values are needed.
+                  Privacy notice: pasted/dictated text is PII-redacted on-device before AI. Uploaded photos/PDFs are sent directly to Gemini OCR — crop or cover names &amp; Emirates IDs first if desired.
                 </span>
               </p>
             </div>
