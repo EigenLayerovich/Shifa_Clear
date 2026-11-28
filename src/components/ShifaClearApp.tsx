@@ -25,7 +25,7 @@ import { BiomarkerDashboard } from './BiomarkerDashboard';
 import { ClinicalAuditDrawer } from './ClinicalAuditDrawer';
 import { ClinicalQaPanel } from './ClinicalQaPanel';
 import { DoctorPrepAndVoice } from './DoctorPrepAndVoice';
-import { HeaderBar, type FamilyProfileKey } from './HeaderBar';
+import { HeaderBar, type FamilyProfileKey, type ThemePreference } from './HeaderBar';
 import { IntakePanel } from './IntakePanel';
 import { LongitudinalTrendChart } from './LongitudinalTrendChart';
 import { MedicationTimetable } from './MedicationTimetable';
@@ -56,6 +56,8 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
   const [qrOpen, setQrOpen] = useState(false);
   const [drugCheckerOpen, setDrugCheckerOpen] = useState(false);
   const [sessionApiKey, setSessionApiKey] = useState('');
+  const [themePreference, setThemePreference] = useState<ThemePreference>('system');
+  const [systemIsDark, setSystemIsDark] = useState(false);
 
   // Audio playback & live teleprompter state
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -80,6 +82,96 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
       document.documentElement.dataset.elder = 'false';
     };
   }, [elderMode]);
+
+  // Sync color-scheme <meta>, localStorage, cross-tab storage events, and OS preference changes
+  const applyColorSchemeMeta = (pref: ThemePreference) => {
+    if (typeof document === 'undefined') return;
+    const metas = Array.from(
+      document.querySelectorAll('meta[name="color-scheme"]'),
+    ) as HTMLMetaElement[];
+    const content = pref === 'system' ? 'light dark' : pref;
+    if (metas.length === 0) {
+      const meta = document.createElement('meta');
+      meta.name = 'color-scheme';
+      meta.content = content;
+      document.head.appendChild(meta);
+    } else {
+      metas[0].content = content;
+      // Remove any duplicate <meta name="color-scheme"> tags so CSS :has() stays unambiguous
+      for (let i = 1; i < metas.length; i++) {
+        metas[i].remove();
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    setSystemIsDark(mq.matches);
+
+    const readStoredTheme = (): ThemePreference => {
+      try {
+        const stored = window.localStorage.getItem('color-scheme');
+        if (stored === 'light' || stored === 'dark') return stored;
+      } catch {
+        // Storage unavailable; stay on system preference
+      }
+      return 'system';
+    };
+
+    const initial = readStoredTheme();
+    setThemePreference(initial);
+    applyColorSchemeMeta(initial);
+
+    // Track OS preference changes (never retroactively delete a pinned user override)
+    const onMqChange = (e: MediaQueryListEvent) => {
+      setSystemIsDark(e.matches);
+    };
+    mq.addEventListener('change', onMqChange);
+
+    // Stay in sync if theme changes in another tab
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'color-scheme' || e.key === null) {
+        const next = readStoredTheme();
+        setThemePreference(next);
+        applyColorSchemeMeta(next);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      mq.removeEventListener('change', onMqChange);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, []);
+
+  const handleSelectThemePreference = (next: ThemePreference) => {
+    setThemePreference(next);
+    applyColorSchemeMeta(next);
+    try {
+      if (next === 'system') {
+        window.localStorage.removeItem('color-scheme');
+      } else {
+        window.localStorage.setItem('color-scheme', next);
+      }
+    } catch {
+      // Theme still applied to DOM even if storage is blocked
+    }
+  };
+
+  // Two-state header toggle per modern-web-guidance:
+  // Target = opposite of currently rendered scheme; revert to system (remove stored) when target matches OS
+  const handleToggleTheme = () => {
+    const renderedDark =
+      themePreference === 'dark' || (themePreference === 'system' && systemIsDark);
+    const target: 'light' | 'dark' = renderedDark ? 'light' : 'dark';
+    const osScheme: 'light' | 'dark' = systemIsDark ? 'dark' : 'light';
+    if (target === osScheme) {
+      handleSelectThemePreference('system');
+    } else {
+      handleSelectThemePreference(target);
+    }
+  };
 
   // Register Offline PWA Service Worker & hydrate last cached clinical report
   useEffect(() => {
@@ -628,6 +720,7 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
         familyProfile={familyProfile}
         onSelectFamilyProfile={handleSelectFamilyProfile}
         hasEvaluation={Boolean(analysis)}
+        onToggleTheme={handleToggleTheme}
         onOpenDrugChecker={() => setDrugCheckerOpen(true)}
         onOpenAudit={() => setAuditOpen(true)}
         onOpenQrSettings={() => setQrOpen(true)}
@@ -936,6 +1029,9 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
         hasServerApiKey={hasServerApiKey}
         sessionApiKey={sessionApiKey}
         onSessionApiKeyChange={setSessionApiKey}
+        themePreference={themePreference}
+        systemIsDark={systemIsDark}
+        onSelectThemePreference={handleSelectThemePreference}
       />
     </div>
   );

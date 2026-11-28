@@ -8,14 +8,261 @@
 }
 
 :root {
-  --clinical-teal: #0d5c56;
+  /* Raw Warm Editorial Light & Obsidian Dark tokens */
+  --sc-bg-light: #faf9f6;
+  --sc-bg-dark: #131210;
+  --sc-bg-end-light: #f6f4ee;
+  --sc-bg-end-dark: #181714;
+  --sc-surface-light: #ffffff;
+  --sc-surface-dark: #1d1c19;
+  --sc-surface-subtle-light: #fcfbf9;
+  --sc-surface-subtle-dark: #181714;
+  --sc-limestone-light: #f3f1ec;
+  --sc-limestone-dark: #262420;
+  --sc-border-light: #e7e3da;
+  --sc-border-dark: #33302b;
+  --sc-border-strong-light: #d6d0c4;
+  --sc-border-strong-dark: #454039;
+  --sc-ink-light: #18181b;
+  --sc-ink-dark: #f4f1ea;
+  --sc-ink-muted-light: #57534e;
+  --sc-ink-muted-dark: #c6c0b5;
+  --sc-ink-subtle-light: #78716c;
+  --sc-ink-subtle-dark: #9e978d;
+  --sc-teal-light: #0d5c56;
+  --sc-teal-dark: #2db5a8;
+  --sc-teal-text-light: #0d5c56;
+  --sc-teal-text-dark: #5eead4;
+  --sc-teal-soft-light: #f2f7f5;
+  --sc-teal-soft-dark: #132825;
+  --sc-teal-border-light: #dce5e2;
+  --sc-teal-border-dark: #244a45;
+  --sc-pill-active-bg-light: #18181b;
+  --sc-pill-active-bg-dark: #f4f1ea;
+  --sc-pill-active-ink-light: #faf9f6;
+  --sc-pill-active-ink-dark: #18181b;
+  --sc-rose-soft-light: #fff1f2;
+  --sc-rose-soft-dark: #2c151a;
+  --sc-rose-border-light: #fecdd3;
+  --sc-rose-border-dark: #7f2233;
+  --sc-rose-ink-light: #9f1239;
+  --sc-rose-ink-dark: #fda4af;
+  --sc-amber-soft-light: #fef3c7;
+  --sc-amber-soft-dark: #2b1f10;
+  --sc-amber-border-light: #fde68a;
+  --sc-amber-border-dark: #6e4514;
+  --sc-amber-ink-light: #92400e;
+  --sc-amber-ink-dark: #fcd34d;
+  --sc-emerald-soft-light: #d1fae5;
+  --sc-emerald-soft-dark: #122821;
+  --sc-emerald-border-light: #a7f3d0;
+  --sc-emerald-border-dark: #1f5343;
+  --sc-emerald-ink-light: #065f46;
+  --sc-emerald-ink-dark: #6ee7b7;
+  --sc-sky-soft-light: #f0f9ff;
+  --sc-sky-soft-dark: #112233;
+  --sc-sky-border-light: #bae6fd;
+  --sc-sky-border-dark: #1e4b73;
+  --sc-sky-ink-light: #0c4a6e;
+  --sc-sky-ink-dark: #7dd3fc;
+  --sc-indigo-soft-light: #eef2ff;
+  --sc-indigo-soft-dark: #1a1c33;
+  --sc-indigo-border-light: #c7d2fe;
+  --sc-indigo-border-dark: #333b7a;
+  --sc-indigo-ink-light: #312e81;
+  --sc-indigo-ink-dark: #a5b4fc;
+  --sc-purple-soft-light: #faf5ff;
+  --sc-purple-soft-dark: #231731;
+  --sc-purple-border-light: #e9d5ff;
+  --sc-purple-border-dark: #5b3185;
+  --sc-purple-ink-light: #581c87;
+  --sc-purple-ink-dark: #d8b4fe;
+  --sc-header-bg-light: rgba(250, 249, 246, 0.92);
+  --sc-header-bg-dark: rgba(19, 18, 16, 0.92);
+  --sc-scrollbar-track-light: #f3f1ec;
+  --sc-scrollbar-track-dark: #1b1a17;
+  --sc-scrollbar-thumb-light: #a8a29e;
+  --sc-scrollbar-thumb-dark: #57534e;
+
+  /* Default (light) fallback tokens for browsers without light-dark() */
+  --sc-bg: var(--sc-bg-light);
+  --sc-bg-end: var(--sc-bg-end-light);
+  --sc-surface: var(--sc-surface-light);
+  --sc-surface-subtle: var(--sc-surface-subtle-light);
+  --sc-limestone: var(--sc-limestone-light);
+  --sc-border: var(--sc-border-light);
+  --sc-border-strong: var(--sc-border-strong-light);
+  --sc-ink: var(--sc-ink-light);
+  --sc-ink-muted: var(--sc-ink-muted-light);
+  --sc-ink-subtle: var(--sc-ink-subtle-light);
+  --sc-teal: var(--sc-teal-light);
+  --sc-teal-text: var(--sc-teal-text-light);
+  --sc-teal-soft: var(--sc-teal-soft-light);
+  --sc-teal-border: var(--sc-teal-border-light);
+  --sc-pill-active-bg: var(--sc-pill-active-bg-light);
+  --sc-pill-active-ink: var(--sc-pill-active-ink-light);
+  --sc-rose-soft: var(--sc-rose-soft-light);
+  --sc-rose-border: var(--sc-rose-border-light);
+  --sc-rose-ink: var(--sc-rose-ink-light);
+  --sc-amber-soft: var(--sc-amber-soft-light);
+  --sc-amber-border: var(--sc-amber-border-light);
+  --sc-amber-ink: var(--sc-amber-ink-light);
+  --sc-emerald-soft: var(--sc-emerald-soft-light);
+  --sc-emerald-border: var(--sc-emerald-border-light);
+  --sc-emerald-ink: var(--sc-emerald-ink-light);
+  --sc-sky-soft: var(--sc-sky-soft-light);
+  --sc-sky-border: var(--sc-sky-border-light);
+  --sc-sky-ink: var(--sc-sky-ink-light);
+  --sc-indigo-soft: var(--sc-indigo-soft-light);
+  --sc-indigo-border: var(--sc-indigo-border-light);
+  --sc-indigo-ink: var(--sc-indigo-ink-light);
+  --sc-purple-soft: var(--sc-purple-soft-light);
+  --sc-purple-border: var(--sc-purple-border-light);
+  --sc-purple-ink: var(--sc-purple-ink-light);
+  --sc-header-bg: var(--sc-header-bg-light);
+  --sc-scrollbar-track: var(--sc-scrollbar-track-light);
+  --sc-scrollbar-thumb: var(--sc-scrollbar-thumb-light);
+
+  /* Fallback media query for browsers without light-dark() */
+  @media (prefers-color-scheme: dark) {
+    --sc-bg: var(--sc-bg-dark);
+    --sc-bg-end: var(--sc-bg-end-dark);
+    --sc-surface: var(--sc-surface-dark);
+    --sc-surface-subtle: var(--sc-surface-subtle-dark);
+    --sc-limestone: var(--sc-limestone-dark);
+    --sc-border: var(--sc-border-dark);
+    --sc-border-strong: var(--sc-border-strong-dark);
+    --sc-ink: var(--sc-ink-dark);
+    --sc-ink-muted: var(--sc-ink-muted-dark);
+    --sc-ink-subtle: var(--sc-ink-subtle-dark);
+    --sc-teal: var(--sc-teal-dark);
+    --sc-teal-text: var(--sc-teal-text-dark);
+    --sc-teal-soft: var(--sc-teal-soft-dark);
+    --sc-teal-border: var(--sc-teal-border-dark);
+    --sc-pill-active-bg: var(--sc-pill-active-bg-dark);
+    --sc-pill-active-ink: var(--sc-pill-active-ink-dark);
+    --sc-rose-soft: var(--sc-rose-soft-dark);
+    --sc-rose-border: var(--sc-rose-border-dark);
+    --sc-rose-ink: var(--sc-rose-ink-dark);
+    --sc-amber-soft: var(--sc-amber-soft-dark);
+    --sc-amber-border: var(--sc-amber-border-dark);
+    --sc-amber-ink: var(--sc-amber-ink-dark);
+    --sc-emerald-soft: var(--sc-emerald-soft-dark);
+    --sc-emerald-border: var(--sc-emerald-border-dark);
+    --sc-emerald-ink: var(--sc-emerald-ink-dark);
+    --sc-sky-soft: var(--sc-sky-soft-dark);
+    --sc-sky-border: var(--sc-sky-border-dark);
+    --sc-sky-ink: var(--sc-sky-ink-dark);
+    --sc-indigo-soft: var(--sc-indigo-soft-dark);
+    --sc-indigo-border: var(--sc-indigo-border-dark);
+    --sc-indigo-ink: var(--sc-indigo-ink-dark);
+    --sc-purple-soft: var(--sc-purple-soft-dark);
+    --sc-purple-border: var(--sc-purple-border-dark);
+    --sc-purple-ink: var(--sc-purple-ink-dark);
+    --sc-header-bg: var(--sc-header-bg-dark);
+    --sc-scrollbar-track: var(--sc-scrollbar-track-dark);
+    --sc-scrollbar-thumb: var(--sc-scrollbar-thumb-dark);
+  }
+
+  /* Modern light-dark() tokens keyed automatically off :root color-scheme */
+  @supports (color: light-dark(white, black)) {
+    --sc-bg: light-dark(var(--sc-bg-light), var(--sc-bg-dark));
+    --sc-bg-end: light-dark(var(--sc-bg-end-light), var(--sc-bg-end-dark));
+    --sc-surface: light-dark(var(--sc-surface-light), var(--sc-surface-dark));
+    --sc-surface-subtle: light-dark(var(--sc-surface-subtle-light), var(--sc-surface-subtle-dark));
+    --sc-limestone: light-dark(var(--sc-limestone-light), var(--sc-limestone-dark));
+    --sc-border: light-dark(var(--sc-border-light), var(--sc-border-dark));
+    --sc-border-strong: light-dark(var(--sc-border-strong-light), var(--sc-border-strong-dark));
+    --sc-ink: light-dark(var(--sc-ink-light), var(--sc-ink-dark));
+    --sc-ink-muted: light-dark(var(--sc-ink-muted-light), var(--sc-ink-muted-dark));
+    --sc-ink-subtle: light-dark(var(--sc-ink-subtle-light), var(--sc-ink-subtle-dark));
+    --sc-teal: light-dark(var(--sc-teal-light), var(--sc-teal-dark));
+    --sc-teal-text: light-dark(var(--sc-teal-text-light), var(--sc-teal-text-dark));
+    --sc-teal-soft: light-dark(var(--sc-teal-soft-light), var(--sc-teal-soft-dark));
+    --sc-teal-border: light-dark(var(--sc-teal-border-light), var(--sc-teal-border-dark));
+    --sc-pill-active-bg: light-dark(var(--sc-pill-active-bg-light), var(--sc-pill-active-bg-dark));
+    --sc-pill-active-ink: light-dark(var(--sc-pill-active-ink-light), var(--sc-pill-active-ink-dark));
+    --sc-rose-soft: light-dark(var(--sc-rose-soft-light), var(--sc-rose-soft-dark));
+    --sc-rose-border: light-dark(var(--sc-rose-border-light), var(--sc-rose-border-dark));
+    --sc-rose-ink: light-dark(var(--sc-rose-ink-light), var(--sc-rose-ink-dark));
+    --sc-amber-soft: light-dark(var(--sc-amber-soft-light), var(--sc-amber-soft-dark));
+    --sc-amber-border: light-dark(var(--sc-amber-border-light), var(--sc-amber-border-dark));
+    --sc-amber-ink: light-dark(var(--sc-amber-ink-light), var(--sc-amber-ink-dark));
+    --sc-emerald-soft: light-dark(var(--sc-emerald-soft-light), var(--sc-emerald-soft-dark));
+    --sc-emerald-border: light-dark(var(--sc-emerald-border-light), var(--sc-emerald-border-dark));
+    --sc-emerald-ink: light-dark(var(--sc-emerald-ink-light), var(--sc-emerald-ink-dark));
+    --sc-sky-soft: light-dark(var(--sc-sky-soft-light), var(--sc-sky-soft-dark));
+    --sc-sky-border: light-dark(var(--sc-sky-border-light), var(--sc-sky-border-dark));
+    --sc-sky-ink: light-dark(var(--sc-sky-ink-light), var(--sc-sky-ink-dark));
+    --sc-indigo-soft: light-dark(var(--sc-indigo-soft-light), var(--sc-indigo-soft-dark));
+    --sc-indigo-border: light-dark(var(--sc-indigo-border-light), var(--sc-indigo-border-dark));
+    --sc-indigo-ink: light-dark(var(--sc-indigo-ink-light), var(--sc-indigo-ink-dark));
+    --sc-purple-soft: light-dark(var(--sc-purple-soft-light), var(--sc-purple-soft-dark));
+    --sc-purple-border: light-dark(var(--sc-purple-border-light), var(--sc-purple-border-dark));
+    --sc-purple-ink: light-dark(var(--sc-purple-ink-light), var(--sc-purple-ink-dark));
+    --sc-header-bg: light-dark(var(--sc-header-bg-light), var(--sc-header-bg-dark));
+    --sc-scrollbar-track: light-dark(var(--sc-scrollbar-track-light), var(--sc-scrollbar-track-dark));
+    --sc-scrollbar-thumb: light-dark(var(--sc-scrollbar-thumb-light), var(--sc-scrollbar-thumb-dark));
+  }
+
+  /* Legacy alias tokens */
+  --clinical-teal: var(--sc-teal);
   --clinical-teal-dark: #094742;
-  --clinical-surface: #ffffff;
-  --clinical-bg: #faf9f6;
-  --clinical-limestone: #f3f1ec;
-  --clinical-border: #e7e3da;
-  --clinical-ink: #18181b;
-  --focus-color: #0d5c56;
+  --clinical-surface: var(--sc-surface);
+  --clinical-bg: var(--sc-bg);
+  --clinical-limestone: var(--sc-limestone);
+  --clinical-border: var(--sc-border);
+  --clinical-ink: var(--sc-ink);
+  --focus-color: var(--sc-teal);
+
+  /* MANDATORY: Base color-scheme stays light dark so OS preference works without JS */
+  color-scheme: light dark;
+  accent-color: var(--sc-teal);
+  scrollbar-color: var(--sc-scrollbar-thumb) var(--sc-scrollbar-track);
+
+  &:has(> head > meta[name="color-scheme"][content="dark"]) {
+    color-scheme: dark;
+  }
+
+  &:has(> head > meta[name="color-scheme"][content="light"]) {
+    color-scheme: light;
+  }
+}
+
+/* Legacy scrollbar fallback for browsers without scrollbar-color */
+@supports not (scrollbar-color: auto) {
+  :root::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  :root::-webkit-scrollbar-thumb {
+    background: var(--sc-scrollbar-thumb);
+  }
+  :root::-webkit-scrollbar-track {
+    background: var(--sc-scrollbar-track);
+  }
+}
+
+/* Pure-CSS non-color branching for the 2-state Header theme toggle (works even without JS) */
+.theme-show-when-dark {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(:has(> head > meta[name="color-scheme"][content="light"])) .theme-show-when-light {
+    display: none;
+  }
+  :root:not(:has(> head > meta[name="color-scheme"][content="light"])) .theme-show-when-dark {
+    display: inline-flex;
+  }
+}
+
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .theme-show-when-light {
+  display: none;
+}
+
+:root:has(> head > meta[name="color-scheme"][content="dark"]) .theme-show-when-dark {
+  display: inline-flex;
 }
 
 /* Editorial serif headline utility (preserves crisp Arabic/Urdu/Hindi scripts in RTL/Devanagari) */
@@ -34,11 +281,11 @@
 
 /* Elevated Boutique Clinic Paper Sheet */
 .editorial-sheet {
-  background-color: #ffffff;
-  border: 1px solid #e7e3da;
+  background-color: var(--sc-surface);
+  border: 1px solid var(--sc-border);
   box-shadow:
-    0 1px 2px rgba(24, 24, 27, 0.03),
-    0 14px 36px -16px rgba(24, 24, 27, 0.08);
+    0 1px 2px rgba(24, 24, 27, 0.04),
+    0 14px 36px -16px rgba(24, 24, 27, 0.09);
 }
 
 /* Visually hidden utility (accessible skip links & SR labels) */
@@ -416,9 +663,9 @@ input[type="range"].clinical-whatif-slider:focus-visible {
   min-height: 36px;
   align-items: center;
   border-radius: 0.625rem;
-  border: 1px solid #e2ddd2;
-  background-color: #ffffff;
-  color: #18181b;
+  border: 1px solid var(--sc-border);
+  background-color: var(--sc-surface);
+  color: var(--sc-ink);
   font-size: 0.75rem;
   font-weight: 600;
   padding: 0.375rem 0.65rem;
@@ -426,20 +673,20 @@ input[type="range"].clinical-whatif-slider:focus-visible {
 }
 
 .clinical-lang-select:hover {
-  border-color: #0d5c56;
-  background-color: #f4f7f6;
+  border-color: var(--sc-teal);
+  background-color: var(--sc-teal-soft);
 }
 
 .clinical-lang-select::picker(select) {
   border-radius: 0.75rem;
-  border: 1px solid #e2ddd2;
-  background-color: #ffffff;
+  border: 1px solid var(--sc-border);
+  background-color: var(--sc-surface);
   padding: 0.35rem;
-  box-shadow: 0 12px 30px -8px rgba(24, 24, 27, 0.14);
+  box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.22);
 }
 
 .clinical-lang-select::picker-icon {
-  color: #0d5c56;
+  color: var(--sc-teal-text);
 }
 
 .clinical-lang-select option {
@@ -447,16 +694,16 @@ input[type="range"].clinical-whatif-slider:focus-visible {
   border-radius: 0.5rem;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #18181b;
+  color: var(--sc-ink);
   cursor: pointer;
 }
 
 .clinical-lang-select option:hover {
-  background-color: #f4f7f6;
+  background-color: var(--sc-teal-soft);
 }
 
 .clinical-lang-select option::checkmark {
-  color: #0d5c56;
+  color: var(--sc-teal-text);
 }
 
 /* Elder / Grandparent Mode: scale root html font-size so ALL Tailwind rem sizes jump unmistakably */
@@ -471,8 +718,8 @@ html[data-elder="true"] {
 }
 
 html[data-elder="true"] body {
-  background-color: #fffef7;
-  color: #020617;
+  background-color: var(--sc-bg);
+  color: var(--sc-ink);
   line-height: 1.7;
 }
 
@@ -498,9 +745,9 @@ html[data-elder="true"] textarea {
 
 [data-elder="true"] .elder-card {
   border-width: 2.5px;
-  border-color: #0f766e;
-  background-color: #ffffff;
-  box-shadow: 0 8px 24px -4px rgba(15, 118, 110, 0.18);
+  border-color: var(--sc-teal);
+  background-color: var(--sc-surface);
+  box-shadow: 0 8px 24px -4px rgba(15, 118, 110, 0.22);
 }
 
 [data-elder="true"] .elder-value {
@@ -508,19 +755,365 @@ html[data-elder="true"] textarea {
   line-height: 1.1;
 }
 
-/* Warm editorial alabaster surface (no generic SaaS radial glow) */
+/* Warm editorial surface (alabaster in light mode, warm obsidian in dark mode) */
 .clinical-grid-bg {
-  background-color: #faf9f6;
-  background-image: linear-gradient(180deg, #faf9f6 0%, #f6f4ee 100%);
+  background-color: var(--sc-bg);
+  background-image: linear-gradient(180deg, var(--sc-bg) 0%, var(--sc-bg-end) 100%);
 }
 
-/* Clean printable clinical report */
+/* =========================================================================
+   Warm Editorial Light/Dark Automatic Token Adaptation (@layer utilities)
+   Keeps hover:, group-hover:, focus: specificity intact while adapting all
+   surfaces, borders, text, and charts seamlessly via :root color-scheme.
+   ========================================================================= */
+@layer utilities {
+  .bg-white,
+  .bg-white\/90,
+  .bg-white\/85,
+  .bg-white\/80,
+  .bg-white\/75,
+  .bg-white\/60 {
+    background-color: var(--sc-surface);
+  }
+
+  .bg-\[\#FAF9F6\],
+  .bg-\[\#FAF9F6\]\/70 {
+    background-color: var(--sc-bg);
+  }
+
+  .bg-\[\#FAF9F6\]\/92 {
+    background-color: var(--sc-header-bg);
+  }
+
+  .bg-\[\#FCFBF9\],
+  .bg-slate-50,
+  .bg-slate-50\/80,
+  .bg-slate-50\/70,
+  .bg-slate-50\/60,
+  .bg-slate-50\/50 {
+    background-color: var(--sc-surface-subtle);
+  }
+
+  .bg-\[\#F3F1EC\],
+  .bg-\[\#F5F2EB\],
+  .bg-\[\#EFECE5\],
+  .bg-slate-100,
+  .bg-slate-200 {
+    background-color: var(--sc-limestone);
+  }
+
+  .bg-\[\#F2F7F5\],
+  .bg-\[\#F2F7F5\]\/70,
+  .bg-\[\#EDF5F4\],
+  .bg-\[\#F5F8F7\],
+  .bg-teal-50,
+  .bg-teal-50\/70,
+  .bg-teal-50\/60,
+  .bg-teal-50\/40,
+  .bg-teal-50\/30,
+  .bg-teal-100 {
+    background-color: var(--sc-teal-soft);
+  }
+
+  .bg-\[\#18181B\] {
+    background-color: var(--sc-pill-active-bg);
+  }
+
+  .text-\[\#FAF9F6\] {
+    color: var(--sc-pill-active-ink);
+  }
+
+  .text-\[\#18181B\],
+  .text-slate-900,
+  .text-slate-800 {
+    color: var(--sc-ink);
+  }
+
+  .text-\[\#57534E\],
+  .text-slate-700,
+  .text-slate-600 {
+    color: var(--sc-ink-muted);
+  }
+
+  .text-\[\#78716C\],
+  .text-\[\#A8A29E\],
+  .text-slate-500,
+  .text-slate-400 {
+    color: var(--sc-ink-subtle);
+  }
+
+  .text-\[\#0D5C56\],
+  .text-\[\#094742\],
+  .text-teal-950,
+  .text-teal-900,
+  .text-teal-800,
+  .text-teal-700 {
+    color: var(--sc-teal-text);
+  }
+
+  .border-\[\#E7E3DA\],
+  .border-\[\#EFECE5\],
+  .border-\[\#F0EDE6\],
+  .border-\[\#E2DDD2\],
+  .border-\[\#DDD8CE\],
+  .border-slate-100,
+  .border-slate-200,
+  .border-slate-200\/80,
+  .border-black\/10 {
+    border-color: var(--sc-border);
+  }
+
+  .border-\[\#D6D0C4\],
+  .border-\[\#CBC4B6\],
+  .border-slate-300 {
+    border-color: var(--sc-border-strong);
+  }
+
+  .border-\[\#DCE5E2\],
+  .border-\[\#C6DDD7\],
+  .border-teal-200,
+  .border-teal-300 {
+    border-color: var(--sc-teal-border);
+  }
+
+  .ring-\[\#E2DDD2\],
+  .ring-slate-200,
+  .ring-slate-200\/70,
+  .ring-black\/10,
+  .ring-black\/5 {
+    --tw-ring-color: var(--sc-border);
+  }
+
+  .ring-teal-200,
+  .ring-teal-300 {
+    --tw-ring-color: var(--sc-teal-border);
+  }
+
+  /* Semantic clinical alert tints & inks */
+  .bg-rose-50,
+  .bg-rose-50\/90,
+  .bg-rose-50\/40,
+  .bg-rose-100 {
+    background-color: var(--sc-rose-soft);
+  }
+
+  .border-rose-200,
+  .border-rose-300,
+  .border-rose-400,
+  .border-rose-600 {
+    border-color: var(--sc-rose-border);
+  }
+
+  .ring-rose-200 {
+    --tw-ring-color: var(--sc-rose-border);
+  }
+
+  .text-rose-950,
+  .text-rose-900,
+  .text-rose-800,
+  .text-rose-700,
+  .text-rose-700\/80,
+  .text-rose-600 {
+    color: var(--sc-rose-ink);
+  }
+
+  .bg-amber-50,
+  .bg-amber-50\/60,
+  .bg-amber-100 {
+    background-color: var(--sc-amber-soft);
+  }
+
+  .border-amber-200,
+  .border-amber-300,
+  .border-amber-400,
+  .border-amber-500 {
+    border-color: var(--sc-amber-border);
+  }
+
+  .ring-amber-200,
+  .ring-amber-300 {
+    --tw-ring-color: var(--sc-amber-border);
+  }
+
+  .text-amber-950,
+  .text-amber-900,
+  .text-amber-800,
+  .text-amber-700,
+  .text-amber-700\/80,
+  .text-amber-600 {
+    color: var(--sc-amber-ink);
+  }
+
+  .bg-emerald-50,
+  .bg-emerald-50\/70,
+  .bg-emerald-100 {
+    background-color: var(--sc-emerald-soft);
+  }
+
+  .border-emerald-200 {
+    border-color: var(--sc-emerald-border);
+  }
+
+  .ring-emerald-200,
+  .ring-emerald-300 {
+    --tw-ring-color: var(--sc-emerald-border);
+  }
+
+  .text-emerald-950,
+  .text-emerald-900,
+  .text-emerald-800,
+  .text-emerald-700,
+  .text-emerald-700\/90,
+  .text-emerald-600 {
+    color: var(--sc-emerald-ink);
+  }
+
+  .bg-sky-50,
+  .bg-sky-50\/70,
+  .bg-sky-100 {
+    background-color: var(--sc-sky-soft);
+  }
+
+  .border-sky-200,
+  .border-sky-400 {
+    border-color: var(--sc-sky-border);
+  }
+
+  .ring-sky-200 {
+    --tw-ring-color: var(--sc-sky-border);
+  }
+
+  .text-sky-950,
+  .text-sky-900,
+  .text-sky-800,
+  .text-sky-700,
+  .text-sky-600 {
+    color: var(--sc-sky-ink);
+  }
+
+  .bg-indigo-50,
+  .bg-indigo-50\/60,
+  .bg-indigo-100 {
+    background-color: var(--sc-indigo-soft);
+  }
+
+  .border-indigo-200 {
+    border-color: var(--sc-indigo-border);
+  }
+
+  .text-indigo-950,
+  .text-indigo-900,
+  .text-indigo-800,
+  .text-indigo-700 {
+    color: var(--sc-indigo-ink);
+  }
+
+  .bg-purple-50 {
+    background-color: var(--sc-purple-soft);
+  }
+
+  .ring-purple-200 {
+    --tw-ring-color: var(--sc-purple-border);
+  }
+
+  .text-purple-900 {
+    color: var(--sc-purple-ink);
+  }
+
+  /* Hover states adapt automatically */
+  .hover\:bg-white:hover,
+  .hover\:bg-white\/70:hover {
+    background-color: var(--sc-surface);
+  }
+
+  .hover\:bg-\[\#F3F1EC\]:hover,
+  .hover\:bg-slate-50:hover,
+  .hover\:bg-slate-100:hover,
+  .hover\:bg-slate-200:hover {
+    background-color: var(--sc-limestone);
+  }
+
+  .hover\:bg-teal-50:hover,
+  .hover\:bg-teal-100:hover {
+    background-color: var(--sc-teal-border);
+  }
+
+  .hover\:bg-rose-100:hover {
+    background-color: var(--sc-rose-border);
+  }
+
+  .hover\:bg-amber-100:hover {
+    background-color: var(--sc-amber-border);
+  }
+
+  .hover\:bg-sky-100:hover {
+    background-color: var(--sc-sky-border);
+  }
+
+  .hover\:bg-indigo-50:hover {
+    background-color: var(--sc-indigo-border);
+  }
+
+  .hover\:bg-purple-100:hover {
+    background-color: var(--sc-purple-border);
+  }
+
+  .hover\:text-\[\#18181B\]:hover {
+    color: var(--sc-ink);
+  }
+
+  /* SVG trajectory chart fills */
+  .fill-slate-900 {
+    fill: var(--sc-ink);
+  }
+
+  .fill-slate-500,
+  .fill-slate-400 {
+    fill: var(--sc-ink-subtle);
+  }
+
+  .fill-emerald-700 {
+    fill: var(--sc-emerald-ink);
+  }
+}
+
+/* Softly dim hero editorial artwork in dark mode so it blends into obsidian surface */
+@media (prefers-color-scheme: dark) {
+  :root:not(:has(> head > meta[name="color-scheme"][content="light"])) img[src="/images/hero-editorial.jpg"] {
+    filter: brightness(0.88) contrast(1.04);
+  }
+}
+
+:root:has(> head > meta[name="color-scheme"][content="dark"]) img[src="/images/hero-editorial.jpg"] {
+  filter: brightness(0.88) contrast(1.04);
+}
+
+/* Keep scannable QR code surfaces strictly light regardless of dark mode */
+.qr-preserve-light {
+  color-scheme: light;
+  background-color: #ffffff !important;
+  color: #18181b !important;
+}
+
+/* Windows Forced Colors (High Contrast) accessibility support */
+@media (forced-colors: active) {
+  .editorial-sheet {
+    border: 1px solid CanvasText;
+    box-shadow: none;
+  }
+}
+
+/* Clean printable clinical report (always light paper for Doctor Brief PDF) */
 @media print {
+  :root {
+    color-scheme: light !important;
+  }
   .no-print {
     display: none !important;
   }
   body {
     background: #ffffff !important;
+    color: #18181b !important;
   }
   .print-break-avoid {
     break-inside: avoid;

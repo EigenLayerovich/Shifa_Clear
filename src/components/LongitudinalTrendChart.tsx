@@ -183,7 +183,7 @@ export function LongitudinalTrendChart({
                   x2={width - padR}
                   y1={y}
                   y2={y}
-                  stroke="#E2E8F0"
+                  stroke="var(--sc-border)"
                   strokeWidth="1"
                 />
                 <text
@@ -246,7 +246,7 @@ export function LongitudinalTrendChart({
                   cx={pt.x}
                   cy={pt.y}
                   r={idx === coords.length - 1 ? 7 : 5.5}
-                  fill={idx === coords.length - 1 ? '#0F766E' : '#FFFFFF'}
+                  fill={idx === coords.length - 1 ? '#0F766E' : 'var(--sc-surface)'}
                   stroke="#0F766E"
                   strokeWidth="3"
                 />

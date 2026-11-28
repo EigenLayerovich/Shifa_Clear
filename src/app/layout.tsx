@@ -37,7 +37,10 @@ const notoDevanagari = Noto_Sans_Devanagari({
 });
 
 export const viewport: Viewport = {
-  themeColor: '#0D5C56',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#FAF9F6' },
+    { media: '(prefers-color-scheme: dark)', color: '#141311' },
+  ],
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
@@ -68,9 +71,18 @@ export default function RootLayout({
     <html
       lang="en"
       dir="ltr"
+      suppressHydrationWarning
       className={`${newsreader.variable} ${plusJakarta.variable} ${notoArabic.variable} ${notoDevanagari.variable}`}
     >
-      <body className="min-h-screen bg-[#FAF9F6] text-[#18181B] antialiased selection:bg-[#0D5C56]/15 selection:text-[#0D5C56]">
+      <head>
+        <meta name="color-scheme" content="light dark" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=localStorage.getItem('color-scheme');var ms=document.querySelectorAll('meta[name="color-scheme"]');if(ms.length&&(s==='light'||s==='dark')){ms[0].content=s;for(var i=1;i<ms.length;i++)ms[i].remove();}}catch(e){}})();`,
+          }}
+        />
+      </head>
+      <body className="min-h-screen bg-[var(--sc-bg)] text-[var(--sc-ink)] antialiased selection:bg-[#0D5C56]/20 selection:text-[var(--sc-teal-text)]">
         {children}
       </body>
     </html>

@@ -2,7 +2,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
-import { Check, KeyRound, QrCode, ShieldCheck, X } from 'lucide-react';
+import { Check, KeyRound, Monitor, Moon, QrCode, ShieldCheck, Sun, X } from 'lucide-react';
+import type { ThemePreference } from './HeaderBar';
 
 interface QrSettingsModalProps {
   open: boolean;
@@ -10,6 +11,9 @@ interface QrSettingsModalProps {
   hasServerApiKey: boolean;
   sessionApiKey: string;
   onSessionApiKeyChange: (key: string) => void;
+  themePreference: ThemePreference;
+  systemIsDark: boolean;
+  onSelectThemePreference: (pref: ThemePreference) => void;
 }
 
 export function QrSettingsModal({
@@ -18,6 +22,9 @@ export function QrSettingsModal({
   hasServerApiKey,
   sessionApiKey,
   onSessionApiKeyChange,
+  themePreference,
+  systemIsDark,
+  onSelectThemePreference,
 }: QrSettingsModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
@@ -138,10 +145,10 @@ export function QrSettingsModal({
               <img
                 src={qrDataUrl}
                 alt="QR code to open ShifaClear live demo on a mobile phone"
-                className="my-3 h-44 w-44 rounded-xl border border-slate-200 bg-white p-2 shadow-xs"
+                className="qr-preserve-light my-3 h-44 w-44 rounded-xl border border-slate-200 p-2 shadow-xs"
               />
             ) : (
-              <div className="my-3 flex h-44 w-44 items-center justify-center rounded-xl bg-white text-xs text-slate-400">
+              <div className="qr-preserve-light my-3 flex h-44 w-44 items-center justify-center rounded-xl text-xs text-slate-400">
                 Generating QR…
               </div>
             )}
@@ -153,8 +160,60 @@ export function QrSettingsModal({
             </p>
           </div>
 
-          {/* Gemini API Status & Session Key */}
+          {/* Appearance Theme Selector & Gemini API Status */}
           <div className="flex flex-col justify-between space-y-4">
+            <div className="rounded-2xl border border-[#E7E3DA] bg-[#FAF9F6] p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-extrabold text-[#18181B]">Appearance Theme</p>
+                <span className="text-[11px] font-medium text-[#78716C]">
+                  OS: {systemIsDark ? 'Dark' : 'Light'}
+                </span>
+              </div>
+              <div
+                role="group"
+                aria-label="Color theme preference"
+                className="mt-2.5 grid grid-cols-3 gap-1.5 rounded-xl border border-[#E2DDD2] bg-[#F3F1EC] p-1 text-xs font-semibold"
+              >
+                {(
+                  [
+                    {
+                      id: 'system',
+                      label: `System`,
+                      sub: systemIsDark ? 'Dark' : 'Light',
+                      Icon: Monitor,
+                    },
+                    { id: 'light', label: 'Light', sub: null, Icon: Sun },
+                    { id: 'dark', label: 'Dark', sub: null, Icon: Moon },
+                  ] as const
+                ).map(({ id, label, sub, Icon }) => {
+                  const active = themePreference === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => onSelectThemePreference(id)}
+                      className={`inline-flex min-h-[36px] flex-col items-center justify-center rounded-lg px-2 py-1 transition ${
+                        active
+                          ? 'bg-[#0D5C56] text-white shadow-xs'
+                          : 'text-[#57534E] hover:bg-white hover:text-[#18181B]'
+                      }`}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span>{label}</span>
+                      </span>
+                      {sub && (
+                        <span className="text-[9px] font-normal opacity-80">
+                          Currently {sub}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="rounded-2xl border border-teal-200 bg-teal-50/70 p-4">
               <div className="flex items-center gap-2 text-xs font-extrabold text-teal-900">
                 <ShieldCheck className="h-4 w-4 text-teal-700" aria-hidden="true" />

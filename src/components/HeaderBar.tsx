@@ -4,15 +4,18 @@ import React from 'react';
 import {
   ClipboardCheck,
   Globe,
+  Moon,
   Pill,
   QrCode,
   ShieldCheck,
+  Sun,
 } from 'lucide-react';
 import type { SupportedLanguage, UnitSystem } from '@/lib/clinical/types';
 import { LANGUAGES, UI_STRINGS } from '@/lib/i18n/uiStrings';
 import { ShifaClearLogo } from './ShifaClearLogo';
 
 export type FamilyProfileKey = 'self' | 'parent' | 'child' | 'custom';
+export type ThemePreference = 'system' | 'light' | 'dark';
 
 interface HeaderBarProps {
   language: SupportedLanguage;
@@ -24,6 +27,7 @@ interface HeaderBarProps {
   familyProfile: FamilyProfileKey;
   onSelectFamilyProfile: (profile: 'self' | 'parent' | 'child') => void;
   hasEvaluation: boolean;
+  onToggleTheme: () => void;
   onOpenDrugChecker: () => void;
   onOpenAudit: () => void;
   onOpenQrSettings: () => void;
@@ -40,6 +44,7 @@ export function HeaderBar({
   familyProfile,
   onSelectFamilyProfile,
   hasEvaluation,
+  onToggleTheme,
   onOpenDrugChecker,
   onOpenAudit,
   onOpenQrSettings,
@@ -98,6 +103,21 @@ export function HeaderBar({
             >
               <ClipboardCheck className="h-3.5 w-3.5 text-[#0D5C56]" aria-hidden="true" />
               <span>{hasEvaluation ? t.auditTrailBtn : '12/12'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              title="Toggle light or dark theme"
+              className="inline-flex min-h-[38px] min-w-[38px] items-center justify-center rounded-lg border border-[#E2DDD2] bg-white text-[#18181B] hover:bg-[#F3F1EC]"
+            >
+              <span className="theme-show-when-light inline-flex items-center">
+                <Moon className="h-4 w-4 text-[#0D5C56]" aria-hidden="true" />
+                <span className="visually-hidden">Switch to dark theme</span>
+              </span>
+              <span className="theme-show-when-dark items-center">
+                <Sun className="h-4 w-4 text-[#0D5C56]" aria-hidden="true" />
+                <span className="visually-hidden">Switch to light theme</span>
+              </span>
             </button>
             <button
               type="button"
@@ -233,6 +253,21 @@ export function HeaderBar({
             >
               <ClipboardCheck className="h-3.5 w-3.5 text-[#0D5C56]" aria-hidden="true" />
               <span>{hasEvaluation ? t.auditTrailBtn : '12/12'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              title="Toggle light or dark theme"
+              className="inline-flex min-h-[34px] min-w-[34px] items-center justify-center rounded-lg border border-[#E2DDD2] bg-white text-[#57534E] transition hover:bg-[#F3F1EC] hover:text-[#18181B]"
+            >
+              <span className="theme-show-when-light inline-flex items-center">
+                <Moon className="h-3.5 w-3.5 text-[#0D5C56]" aria-hidden="true" />
+                <span className="visually-hidden">Switch to dark theme</span>
+              </span>
+              <span className="theme-show-when-dark items-center">
+                <Sun className="h-3.5 w-3.5 text-[#0D5C56]" aria-hidden="true" />
+                <span className="visually-hidden">Switch to light theme</span>
+              </span>
             </button>
             <button
               type="button"
