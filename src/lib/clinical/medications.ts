@@ -45,10 +45,24 @@ function resolveDrugProfile(brandName: string, genericHint?: string): DrugProfil
 }
 
 export function parseScheduleSlots(frequency: string, timingNotes = '', drugClass = ''): TimeSlot[] {
-  const text = `${frequency} ${timingNotes}`.toLowerCase();
+  // Normalize dotted Latin dosing abbreviations ("b.i.d." -> "bid", "t.i.d." -> "tid", "q.i.d." -> "qid", "o.d." -> "od", "p.r.n." -> "prn")
+  const rawCombined = `${frequency} ${timingNotes}`.toLowerCase();
+  const text = rawCombined.replace(/\b([a-z])\.([a-z])\.([a-z])\.([a-z])\.?/g, '$1$2$3$4')
+    .replace(/\b([a-z])\.([a-z])\.([a-z])\.?/g, '$1$2$3')
+    .replace(/\b([a-z])\.([a-z])\.?/g, '$1$2');
 
-  // Support standard Gulf / South Asian / European numeric dosing notation (e.g. "1-0-1", "1-1-1", "1-1-1-1", "0-0-1")
-  const numeric4 = text.match(/(?:^|[^\d])([0-9])\s*[-/]\s*([0-9])\s*[-/]\s*([0-9])\s*[-/]\s*([0-9])(?:$|[^\d])/);
+  // Weekly / non-daily schedules MUST NOT be placed in the daily morning timetable!
+  if (/\b(weekly|once\s*(?:a\s*)?week|every\s*week|q7d|q1w|qw|ow|every\s*(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b/.test(text)) {
+    return ['weekly'];
+  }
+
+  // PRN / As-Needed / STAT single-dose medications
+  if (/\b(prn|as\s*needed|when\s*needed|when\s*required|if\s*needed|sos|stat|single\s*dose|once\s*only)\b/.test(text)) {
+    return ['as_needed'];
+  }
+
+  // Support standard Gulf / South Asian / European numeric dosing notation (e.g. "1-0-1", "1+0+1", "1/0/1", "1-1-1-1")
+  const numeric4 = text.match(/(?:^|[^\d])([0-9])\s*[-/+]\s*([0-9])\s*[-/+]\s*([0-9])\s*[-/+]\s*([0-9])(?:$|[^\d])/);
   if (numeric4) {
     const slots: TimeSlot[] = [];
     if (Number(numeric4[1]) > 0) slots.push('morning');
@@ -57,7 +71,7 @@ export function parseScheduleSlots(frequency: string, timingNotes = '', drugClas
     if (Number(numeric4[4]) > 0) slots.push('bedtime');
     if (slots.length > 0) return slots;
   }
-  const numeric3 = text.match(/(?:^|[^\d])([0-9])\s*[-/]\s*([0-9])\s*[-/]\s*([0-9])(?:$|[^\d])/);
+  const numeric3 = text.match(/(?:^|[^\d])([0-9])\s*[-/+]\s*([0-9])\s*[-/+]\s*([0-9])(?:$|[^\d])/);
   if (numeric3) {
     const slots: TimeSlot[] = [];
     if (Number(numeric3[1]) > 0) slots.push('morning');
@@ -66,13 +80,13 @@ export function parseScheduleSlots(frequency: string, timingNotes = '', drugClas
     if (slots.length > 0) return slots;
   }
 
-  if (/\b(qid|q6h|every\s*6\s*(?:h|hr|hrs|hours?)|4\s*times|four\s*times)\b/.test(text)) {
+  if (/\b(qid|q4h|q6h|every\s*[46]\s*(?:h|hr|hrs|hours?)|[46]\s*times|four\s*times)\b/.test(text)) {
     return ['morning', 'afternoon', 'evening', 'bedtime'];
   }
-  if (/\b(tds|tid|q8h|every\s*8\s*(?:h|hr|hrs|hours?)|3\s*times|three\s*times)\b/.test(text)) {
+  if (/\b(tds|tid|q8h|every\s*8\s*(?:h|hr|hrs|hours?)|thrice(?:\s*daily)?|3\s*times|three\s*times)\b/.test(text)) {
     return ['morning', 'afternoon', 'evening'];
   }
-  if (/\b(bd|bid|q12h|every\s*12\s*(?:h|hr|hrs|hours?)|twice|2\s*times|two\s*times)\b/.test(text)) {
+  if (/\b(bd|bid|q12h|every\s*12\s*(?:h|hr|hrs|hours?)|twice(?:\s*daily)?|2\s*times|two\s*times)\b/.test(text)) {
     return ['morning', 'evening'];
   }
   if (/\b(bedtime|hs|qhs|at night|before sleep|night)\b/.test(text)) {
@@ -91,6 +105,8 @@ export function parseScheduleSlots(frequency: string, timingNotes = '', drugClas
     if (drugClass === 'calcium_supplement') return ['afternoon'];
     return ['morning'];
   }
+  // Inherently once-weekly drugs (Methotrexate, Alendronate/Fosamax) default to 'weekly', NEVER daily morning!
+  if (drugClass === 'dmard_mtx' || drugClass === 'bisphosphonate') return ['weekly'];
   if (drugClass === 'calcium_supplement') return ['afternoon'];
   if (drugClass === 'sedative_z_drug') return ['bedtime'];
   return ['morning'];
@@ -124,6 +140,15 @@ export function evaluateMedications(
     const slots = parseScheduleSlots(med.frequency, med.timingNotes, drugClass);
     const foodRule = inferFoodRule(med.timingNotes, profile?.defaultFoodRule || 'any');
 
+    // Always preserve high-alert registry safety notes (e.g., Methotrexate "ONCE WEEKLY ONLY")
+    // even when custom prescription timingNotes are provided!
+    const defaultNote = profile?.defaultTimingNote || '';
+    const isHighAlertDefault = /CRITICAL|ONCE WEEKLY|NEVER DAILY/i.test(defaultNote);
+    const timingInstruction =
+      med.timingNotes && isHighAlertDefault && !med.timingNotes.toLowerCase().includes('weekly')
+        ? `${defaultNote} (${med.timingNotes})`
+        : med.timingNotes || defaultNote || 'Take as prescribed by your doctor.';
+
     return {
       profile,
       evaluated: {
@@ -135,7 +160,7 @@ export function evaluateMedications(
         frequencyRaw: med.frequency,
         slots,
         foodRule,
-        timingInstruction: med.timingNotes || profile?.defaultTimingNote || 'Take as prescribed by your doctor.',
+        timingInstruction,
         duration: med.duration,
         hasSafetyFlag: false,
       },
@@ -250,6 +275,38 @@ export function evaluateMedications(
         'Verify immediately with your cardiologist or pharmacist before taking both — one may have been meant to replace the other.',
       involvedItems: involvedLabels(anticoagulants),
       ruleId: 'RX_DUAL_ANTICOAGULANT',
+    });
+  }
+
+  // 1E: ISMP High-Alert Fatal Error — Daily Methotrexate (MUST Be Once Weekly for Non-Oncologic Use!)
+  const methotrexateEntries = byClass('dmard_mtx');
+  const dailyMethotrexate = methotrexateEntries.filter((e) => {
+    const freqText = `${e.evaluated.frequencyRaw} ${e.evaluated.timingInstruction}`.toLowerCase();
+    const explicitlyWeekly = /\b(weekly|once\s*(?:a\s*)?week|every\s*week|q7d|q1w|qw)\b/.test(
+      e.evaluated.frequencyRaw.toLowerCase(),
+    );
+    const hasDailySlot = e.evaluated.slots.some((s) =>
+      ['morning', 'afternoon', 'evening', 'bedtime'].includes(s),
+    );
+    return !explicitlyWeekly && (hasDailySlot || /\b(od|qd|daily|bd|bid|tds|tid|qid|1[-/+]0[-/+]1)\b/.test(freqText));
+  });
+  if (dailyMethotrexate.length > 0) {
+    markFlag(dailyMethotrexate, 'CRITICAL: Daily Methotrexate Fatal Error');
+    // Remove daily Methotrexate from routine daily slots so the UI never tells a patient to take it daily!
+    for (const mtx of dailyMethotrexate) {
+      mtx.evaluated.slots = ['weekly'];
+    }
+    alerts.push({
+      id: 'alert-methotrexate-daily-fatal',
+      severity: 'critical',
+      category: 'drug_interaction',
+      title: 'CRITICAL FATAL DOSING ERROR: Daily Methotrexate Detected (Must Be ONCE WEEKLY)',
+      clinicalRationale: `${names(dailyMethotrexate)} appears scheduled daily ("${dailyMethotrexate[0].evaluated.frequencyRaw}"). For autoimmune conditions (rheumatoid arthritis, psoriasis), taking Methotrexate daily instead of ONCE WEEKLY is a well-documented cause of fatal bone marrow suppression, severe infection, and organ toxicity.`,
+      recommendedAction:
+        'HOLD and verify immediately with your prescribing doctor or pharmacist BEFORE taking another dose. If you have already taken Methotrexate on consecutive days, seek urgent Emergency Department evaluation or call 998 immediately.',
+      involvedItems: involvedLabels(dailyMethotrexate),
+      emergencyNumber: '998',
+      ruleId: 'RX_METHOTREXATE_DAILY_FATAL',
     });
   }
 

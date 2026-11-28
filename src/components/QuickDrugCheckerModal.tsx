@@ -533,7 +533,7 @@ export function QuickDrugCheckerModal({
                         prev.filter((x) => !(x.brandName === m.brandName && x.genericName === m.genericName)),
                       )
                     }
-                    className="rounded-full p-0.5 text-slate-400 hover:bg-slate-100 hover:text-rose-600"
+                    className="inline-flex min-h-[28px] min-w-[28px] items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-rose-600"
                   >
                     <X className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>

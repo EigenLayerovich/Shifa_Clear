@@ -5,7 +5,10 @@ import {
   resolveApiKey,
 } from '@/lib/ai/gemini';
 import { evaluateClinicalDocument } from '@/lib/clinical/engine';
-import { verifyNarrativeFactPreservation } from '@/lib/clinical/factCheck';
+import {
+  getSafeDisplayNarrative,
+  verifyNarrativeFactPreservation,
+} from '@/lib/clinical/factCheck';
 import { redactClinicalPII } from '@/lib/clinical/piiRedactor';
 import { parseClinicalTextDeterministically } from '@/lib/clinical/textParser';
 import type {
@@ -300,6 +303,14 @@ export async function POST(req: NextRequest) {
     const { report: factCheck, auditStep } = verifyNarrativeFactPreservation(evaluation, narrative);
     evaluation.factCheck = factCheck;
     evaluation.auditTrail.push(auditStep);
+    if (!factCheck.verified) {
+      const safe = getSafeDisplayNarrative(evaluation, narrative);
+      narrative = {
+        ...narrative,
+        headline: safe.headline,
+        overallSummary: safe.overallSummary,
+      };
+    }
 
     const payload: ShifaClearAnalysisResponse = {
       evaluation,

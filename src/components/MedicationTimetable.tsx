@@ -27,7 +27,12 @@ interface MedicationTimetableProps {
   onSpeakText: (text: string) => void;
 }
 
-const SLOT_ORDER: TimeSlot[] = ['morning', 'afternoon', 'evening', 'bedtime'];
+const DAILY_SLOTS: Array<'morning' | 'afternoon' | 'evening' | 'bedtime'> = [
+  'morning',
+  'afternoon',
+  'evening',
+  'bedtime',
+];
 
 export function MedicationTimetable({
   medications,
@@ -40,7 +45,7 @@ export function MedicationTimetable({
   const t = UI_STRINGS[language];
 
   const slotMeta: Record<
-    TimeSlot,
+    'morning' | 'afternoon' | 'evening' | 'bedtime',
     { label: string; timeHint: string; bg: string; iconColor: string; Icon: typeof Sun }
   > = {
     morning: {
@@ -94,7 +99,7 @@ export function MedicationTimetable({
 
       {/* 4-Slot Visual Daily Grid */}
       <div className={`grid gap-4 ${elderMode ? 'grid-cols-1' : 'md:grid-cols-2 xl:grid-cols-4'}`}>
-        {SLOT_ORDER.map((slot) => {
+        {DAILY_SLOTS.map((slot) => {
           const slotMeds = medications.filter((m) => m.slots.includes(slot));
           const meta = slotMeta[slot];
           const SlotIcon = meta.Icon;
@@ -190,6 +195,63 @@ export function MedicationTimetable({
           );
         })}
       </div>
+
+      {/* Dedicated Non-Daily Schedule (Once Weekly / As Needed — NEVER mixed into Daily Morning!) */}
+      {medications.some((m) => m.slots.includes('weekly') || m.slots.includes('as_needed')) && (
+        <div className="print-break-avoid rounded-2xl border-2 border-purple-200 bg-purple-50 p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-extrabold text-purple-900">
+              Non-Daily Schedule (Once Weekly / As Needed — DO NOT Take Daily Unless Confirmed)
+            </h3>
+            <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-extrabold text-purple-900 ring-1 ring-purple-200">
+              {medications.filter((m) => m.slots.includes('weekly') || m.slots.includes('as_needed')).length}
+            </span>
+          </div>
+          <ul className="grid gap-3 md:grid-cols-2">
+            {medications
+              .filter((m) => m.slots.includes('weekly') || m.slots.includes('as_needed'))
+              .map((med) => {
+                const exp = explanations[med.id];
+                const isWeekly = med.slots.includes('weekly');
+                return (
+                  <li
+                    key={`special-${med.id}`}
+                    className="elder-card rounded-xl border border-purple-200 bg-white p-3.5 shadow-xs"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="inline-block rounded-md bg-purple-50 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-purple-900 ring-1 ring-purple-200">
+                          {isWeekly ? 'ONCE WEEKLY ONLY' : 'AS NEEDED (PRN / STAT)'}
+                        </span>
+                        <p className="mt-1 text-sm font-extrabold text-slate-900 sm:text-base">
+                          {med.brandName}
+                        </p>
+                        <p className="text-xs font-semibold text-teal-800">
+                          {med.genericName} • {med.dose} ({med.frequencyRaw})
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onSpeakText(
+                            `${med.brandName}, ${med.dose}. ${exp?.howToTake || med.timingInstruction}`,
+                          )
+                        }
+                        aria-label={`Read instructions for ${med.brandName}`}
+                        className="no-print flex min-h-[34px] min-w-[34px] items-center justify-center rounded-lg bg-teal-50 text-teal-700 hover:bg-teal-100"
+                      >
+                        <Volume2 className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-700">
+                      {exp?.howToTake || med.timingInstruction}
+                    </p>
+                  </li>
+                );
+              })}
+          </ul>
+        </div>
+      )}
     </section>
   );
 }

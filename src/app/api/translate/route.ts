@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generatePatientNarrativeWithGemini, resolveApiKey } from '@/lib/ai/gemini';
-import { verifyNarrativeFactPreservation } from '@/lib/clinical/factCheck';
+import {
+  getSafeDisplayNarrative,
+  verifyNarrativeFactPreservation,
+} from '@/lib/clinical/factCheck';
 import type {
   PatientNarrative,
   ReadingLevel,
@@ -104,7 +107,20 @@ export async function POST(req: NextRequest) {
       readingLevel,
     });
     const { report: factCheck } = verifyNarrativeFactPreservation(evaluation, narrative);
-    return NextResponse.json({ narrative, factCheck });
+    const finalNarrative = factCheck.verified
+      ? narrative
+      : (() => {
+          const safe = getSafeDisplayNarrative(
+            { ...evaluation, factCheck },
+            narrative,
+          );
+          return {
+            ...narrative,
+            headline: safe.headline,
+            overallSummary: safe.overallSummary,
+          };
+        })();
+    return NextResponse.json({ narrative: finalNarrative, factCheck });
   } catch (err) {
     console.error('[ShifaClear /api/translate] Error:', err);
     return NextResponse.json(

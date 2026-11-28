@@ -57,27 +57,39 @@ export function redactClinicalPII(rawText: string): PiiRedactionResult {
     'MRN / Patient ID',
   );
 
-  // 6. Dates of Birth (DOB / Date of Birth / Birth Date)
+  // 6. Dates of Birth (DOB / Date of Birth / Birth Date — numeric OR "03-Mar-1971" / "03 Mar 1971")
   applyMask(
-    /\b(DOB|Date\s*of\s*Birth|Birth\s*Date)\s*[:=-]?\s*(?:\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}|\d{1,2}\s+[A-Za-z]{3,9}\s+\d{2,4})\b/gi,
+    /\b(DOB|Date\s*of\s*Birth|Birth\s*Date)\s*[:=-]?\s*(?:\d{1,2}[-/\s][A-Za-z]{3,9}[-/\s]\d{2,4}|\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}|[A-Za-z]{3,9}\s+\d{1,2},?\s+\d{2,4})\b/gi,
     (_m, label) => `${label}: [REDACTED_DOB]`,
     'Date of Birth',
   );
 
-  // 7. Explicit Patient Name headers ("Patient Name:", "Patient:", "Full Name:", "Name:")
+  // 7. Explicit Patient Name headers — Latin (including ALL CAPS) & stops cleanly before Nationality / Ref Doctor / etc.
   applyMask(
-    /\b(Patient\s*Name|Full\s*Name|Patient|Name)\s*:\s*(?!\[REDACTED)((?:Mr\.?|Mrs\.?|Ms\.?|Miss\.?|Dr\.?\s+)?[A-Za-z][A-Za-z.' -]{1,42}?)(?=\s*(?:,|\n|\r|\bAge\b|\bSex\b|\bGender\b|\bDOB\b|\bMRN\b|$))/gi,
+    /\b(Patient\s*Name|Full\s*Name|Patient|Name)\s*:\s*(?!\[REDACTED)((?:Mr\.?|Mrs\.?|Ms\.?|Miss\.?|Dr\.?\s+)?[A-Za-z][A-Za-z.' -]{1,48}?)(?=\s*(?:,|\n|\r|\bAge\b|\bSex\b|\bGender\b|\bDOB\b|\bMRN\b|\bNationality\b|\bRef\.?\s*Doctor\b|\bReferring\b|\bPassport\b|\bPhone\b|\bTel\b|\bEmirates\b|$))/gi,
     (_m, label) => `${label}: [REDACTED_NAME]`,
     'Patient Name',
   );
 
-  // 8. Clinician / Ordering Doctor Names
+  // 7B. Arabic-script Patient Name headers (اسم المريض / المريض / الاسم)
   applyMask(
-    /\b(Doctor|Physician|Ordering\s*Physician|Ordered\s*by|Requested\s*by|Attending(?:\s*Doctor)?|Consultant)\s*:\s*(?!\[REDACTED)((?:Dr\.?\s+)?[A-Za-z][A-Za-z.' -]{1,42}?)(?=\s*(?:,|\n|\r|$))/gi,
+    /(اسم\s*المريض|المريض|الاسم)\s*[:：]\s*(?!\[REDACTED)([\u0600-\u06FF\s]{2,48}?)(?=\s*(?:،|,|\n|\r|العمر|الجنس|تاريخ|رقم|الهوية|الجنسية|$))/gu,
+    (_m, label) => `${label}: [REDACTED_NAME]`,
+    'Patient Name (Arabic)',
+  );
+
+  // 8. Clinician / Ordering / Referring Doctor Names (Latin & Arabic)
+  applyMask(
+    /\b(Ref\.?\s*Doctor|Referring\s*(?:Doctor|Physician)|Doctor|Physician|Ordering\s*Physician|Ordered\s*by|Requested\s*by|Attending(?:\s*Doctor)?|Consultant)\s*:\s*(?!\[REDACTED)((?:Dr\.?\s+)?[A-Za-z][A-Za-z.' -]{1,48}?)(?=\s*(?:,|\n|\r|\bAge\b|\bSex\b|\bDOB\b|\bNationality\b|\bMRN\b|$))/gi,
     (_m, label) => `${label}: [REDACTED_DOCTOR]`,
     'Doctor Name',
   );
-  applyMask(/\bDr\.?\s+[A-Z][a-z]+(?:\s+[A-Z][a-z.'-]+){1,2}\b/g, '[REDACTED_DOCTOR]', 'Doctor Name');
+  applyMask(
+    /(الطبيب(?:\s*المعالج)?|الدكتور|د\.)\s*[:：]?\s*(?!\[REDACTED)([\u0600-\u06FF\s]{2,40}?)(?=\s*(?:،|,|\n|\r|$))/gu,
+    (_m, label) => `${label}: [REDACTED_DOCTOR]`,
+    'Doctor Name (Arabic)',
+  );
+  applyMask(/\bDr\.?\s+[A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z.'-]+){1,2}\b/g, '[REDACTED_DOCTOR]', 'Doctor Name');
 
   // 9. Physical Addresses & P.O. Boxes
   applyMask(

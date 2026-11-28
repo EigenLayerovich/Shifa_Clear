@@ -2,18 +2,101 @@ import type {
   ClinicalAuditStep,
   FactPreservationReport,
   PatientNarrative,
+  SupportedLanguage,
   VerifiedClinicalEvaluation,
 } from './types';
 
 /**
- * Multilingual false-reassurance phrases that MUST NEVER appear alongside an URGENT evaluation.
+ * Multilingual false-reassurance & negated-emergency phrases that MUST NEVER appear alongside an URGENT evaluation.
  * Covers English, Arabic, Urdu, Tagalog, and Hindi.
  */
 const FALSE_REASSURANCE_REGEX =
-  /\b(all (?:your )?(?:lab )?results are (?:looking )?(?:healthy and )?normal|no urgent alerts|nothing to worry|no need to worry|don'?t worry|do not worry|relax at home|rest at home|stay at home|wait for (?:a |your )?routine|everything (?:is|looks) (?:fine|normal|good|okay)|completely normal|walang dapat ipag-?alala|magpahinga sa bahay)\b|لا داعي للقلق|كل شيء طبيعي|نتائجك طبيعية|ارتاح في المنزل|پریشان ہونے کی ضرورت نہیں|سب کچھ نارمل|گھر پر آرام|चिंता की कोई बात नहीं|सब कुछ सामान्य|घर पर आराम/i;
+  /\b(all (?:your )?(?:lab )?results are (?:looking )?(?:healthy and )?normal|no urgent alerts|no need to call\s*998|don'?t call\s*998|do not call\s*998|no need for\s*998|skip\s*998|not (?:an? )?(?:emergency|urgent|concern|concerning|worrying)|nothing to worry|no need to worry|don'?t worry|do not worry|you(?:'re| are) fine|relax at home|rest at home|stay at home|wait for (?:a |your )?routine|everything (?:is|looks) (?:fine|normal|good|okay)|completely normal|walang dapat ipag-?alala|huwag mag-?alala|magpahinga sa bahay)\b|لا داعي للقلق|لا تقلق|لا داعي ل(?:لاتصال|998|٩٩٨)|كل شيء طبيعي|نتائجك طبيعية|ارتاح في المنزل|مش مقلق|پریشان ہونے کی ضرورت نہیں|پریشان نہ ہوں|سب کچھ نارمل|گھر پر آرام|चिंता की कोई बात नहीं|चिंता मत कर|सब कुछ सामान्य|घर पर आराम/i;
 
 /** Language-independent UAE emergency number recognition (ASCII + Arabic-Indic + Eastern Arabic + Devanagari) */
 const EMERGENCY_998_REGEX = /(?:998|٩٩٨|۹۹۸|९९८)/;
+
+/** Detect negated 998 mentions so "no need to call 998" NEVER counts as preserving emergency escalation! */
+const NEGATED_998_REGEX =
+  /(?:no\s+need(?:\s+to\s+call|\s+for)?|don'?t\s+call|do\s+not\s+call|not\s+(?:necessary\s+to\s+call|needed\s+to\s+call)|avoid\s+calling|skip|without\s+calling|لا\s*داعي(?:\s*للاتصال\s*بـ?)?|عدم\s*الاتصال\s*بـ?|ضرورت\s*نہیں|जरूरत\s*नहीं|huwag\s+tumawag)\s*[^.!\n]{0,20}(?:998|٩٩٨|۹۹۸|९९८)/i;
+
+function hasAffirmativeEmergency998(text: string): boolean {
+  if (!EMERGENCY_998_REGEX.test(text)) return false;
+  if (NEGATED_998_REGEX.test(text)) return false;
+  return true;
+}
+
+/**
+ * Fixed, pre-translated urgent templates across all 5 UAE languages.
+ * Used to lock urgent headlines and replace unverified AI narratives when fact-checking fails!
+ */
+export const FIXED_URGENT_TEMPLATES: Record<
+  SupportedLanguage,
+  { headline: string; summaryLead: string; call998Line: string }
+> = {
+  en: {
+    headline: 'URGENT CLINICAL ALERT — Seek Emergency Care or Call 998 Immediately',
+    summaryLead:
+      'Deterministic clinical safety rules flagged one or more critical lab values or high-alert medication hazards. Do not wait for a routine appointment — seek immediate Emergency Department evaluation or call 998 (UAE National Ambulance).',
+    call998Line: 'Call 998 (UAE National Ambulance) or go to the nearest Emergency Department immediately.',
+  },
+  ar: {
+    headline: 'تنبيه سريري عاجل — اطلب الرعاية الطارئة أو اتصل على 998 فوراً',
+    summaryLead:
+      'رصدت قواعد السلامة السريرية قيمة مخبرية حرجة أو خطراً دوائياً عاجلاً. لا تنتظر موعداً روتينياً — توجه فوراً إلى قسم الطوارئ أو اتصل بالإسعاف الوطني على الرقم 998.',
+    call998Line: 'اتصل بالإسعاف الوطني الإماراتي على 998 أو توجه لأقرب قسم طوارئ فوراً.',
+  },
+  ur: {
+    headline: 'فوری طبی انتباہ — فوراً ایمرجنسی میں جائیں یا 998 پر کال کریں',
+    summaryLead:
+      'کلینیکل سیفٹی رولز نے ایک نازک لیب ویلیو یا دوائی کا سنگین خطرہ شناخت کیا ہے۔ معمول کی اپائنٹمنٹ کا انتظار نہ کریں — فوراً ایمرجنسی ڈیپارٹمنٹ جائیں یا UAE ایمبولینس 998 پر کال کریں۔',
+    call998Line: 'فوراً 998 (UAE ایمبولینس) پر کال کریں یا قریبی ایمرجنسی میں جائیں۔',
+  },
+  tl: {
+    headline: 'AGARANG BABALA SA KALUSUGAN — Pumunta sa Emergency o Tumawag sa 998 Ngayon',
+    summaryLead:
+      'May nakitang kritikal na resulta ng lab o mapanganib na babala sa gamot ang clinical safety engine. Huwag maghintay ng routine check-up — pumunta agad sa Emergency Department o tumawag sa 998 (UAE National Ambulance).',
+    call998Line: 'Tumawag agad sa 998 (UAE National Ambulance) o pumunta sa pinakamalapit na Emergency.',
+  },
+  hi: {
+    headline: 'तत्काल क्लिनिकल चेतावनी — तुरंत इमरजेंसी जाएं या 998 पर कॉल करें',
+    summaryLead:
+      'क्लिनिकल सेफ्टी नियमों ने एक गंभीर लैब मान या उच्च-जोखिम दवा चेतावनी की पहचान की है। रूटीन अपॉइंटमेंट का इंतज़ार न करें — तुरंत इमरजेंसी विभाग जाएं या 998 (UAE एम्बुलेंस) पर कॉल करें।',
+    call998Line: 'तुरंत 998 (UAE नेशनल एम्बुलेंस) पर कॉल करें या नजदीकी इमरजेंसी जाएं।',
+  },
+};
+
+export function getSafeDisplayNarrative(
+  evaluation: VerifiedClinicalEvaluation,
+  narrative: PatientNarrative,
+): { headline: string; overallSummary: string; overriddenBySafetyGate: boolean } {
+  const lang: SupportedLanguage = narrative.language || evaluation.patientContext.language || 'en';
+  const tpl = FIXED_URGENT_TEMPLATES[lang] || FIXED_URGENT_TEMPLATES.en;
+
+  // Hard gate: if fact-preservation failed, NEVER show the unverified AI headline/summary!
+  if (evaluation.factCheck && !evaluation.factCheck.verified) {
+    if (evaluation.overallRisk === 'urgent') {
+      const topAlert = evaluation.alerts[0]?.title;
+      return {
+        headline: topAlert ? `${tpl.headline} (${topAlert})` : tpl.headline,
+        overallSummary: tpl.summaryLead,
+        overriddenBySafetyGate: true,
+      };
+    }
+    return {
+      headline: `${evaluation.biomarkers.length} Lab Marker(s) & ${evaluation.alerts.length} Safety Check(s) Verified`,
+      overallSummary:
+        'ShifaClear held the AI prose summary because a number or alert did not pass deterministic verification. The verified lab ranges and medication safety cards below remain authoritative.',
+      overriddenBySafetyGate: true,
+    };
+  }
+
+  return {
+    headline: narrative.headline,
+    overallSummary: narrative.overallSummary,
+    overriddenBySafetyGate: false,
+  };
+}
 
 /**
  * Strips non-clinical numeric expressions (dates, durations, frequencies, percentages in timing advice,
@@ -75,25 +158,29 @@ export function verifyNarrativeFactPreservation(
 
   const combinedLower = allNarrativeText.toLowerCase();
 
-  // 1. Ensure an urgent evaluation is NEVER contradicted by false-reassurance phrasing (5 languages)
+  // 1. Ensure an urgent evaluation is NEVER contradicted by false-reassurance or negated-998 phrasing (5 languages)
   const falseReassurance =
-    evaluation.overallRisk === 'urgent' && FALSE_REASSURANCE_REGEX.test(allNarrativeText);
+    evaluation.overallRisk === 'urgent' &&
+    (FALSE_REASSURANCE_REGEX.test(allNarrativeText) || NEGATED_998_REGEX.test(allNarrativeText));
 
-  // 2. Verify critical alerts are genuinely preserved (language-independent 998 check for emergency alerts!)
+  // 2. Verify critical alerts are genuinely preserved (language-independent affirmative 998 check!)
   const hasEmergencyAlert = criticalAlerts.some((a) => a.emergencyNumber === '998');
-  const mentionsEmergency998 = EMERGENCY_998_REGEX.test(allNarrativeText);
+  const mentionsEmergency998 = hasAffirmativeEmergency998(allNarrativeText);
   let criticalPreserved = 0;
 
   for (const alert of criticalAlerts) {
     const trans = narrative.alertTranslations?.[alert.id];
     const transText = trans ? `${trans.title} ${trans.explanation} ${trans.action}` : '';
-    const transHasFalseReassurance = transText ? FALSE_REASSURANCE_REGEX.test(transText) : false;
+    const transHasFalseReassurance = transText
+      ? FALSE_REASSURANCE_REGEX.test(transText) || NEGATED_998_REGEX.test(transText)
+      : false;
 
     if (alert.emergencyNumber === '998') {
-      // Language-independent safety bar: emergency alert MUST preserve 998 (or localized digits) and not reassure!
+      // Language-independent safety bar: emergency alert MUST affirmatively preserve 998 and never reassure!
       const preservedEmergency =
+        !falseReassurance &&
         !transHasFalseReassurance &&
-        (EMERGENCY_998_REGEX.test(transText) || EMERGENCY_998_REGEX.test(primaryNarrativeText));
+        (hasAffirmativeEmergency998(transText) || hasAffirmativeEmergency998(primaryNarrativeText));
       if (preservedEmergency) {
         criticalPreserved++;
       }
@@ -142,9 +229,9 @@ export function verifyNarrativeFactPreservation(
     biomarkerNumbers.push(evaluation.patientContext.age);
   }
 
-  // Scan ALL clinical numbers (both decimals AND integers) across headline, summary, and medication instructions!
+  // Scan ALL clinical numbers (both decimals AND integers) across headline, summary, biomarker cards, AND medication instructions!
   const textToAuditNumbers = stripNonClinicalNumericPhrases(
-    [narrative.headline, narrative.overallSummary, ...medTexts].join(' '),
+    [narrative.headline, narrative.overallSummary, ...bioTexts, ...medTexts].join(' '),
   );
   const extractedNums = textToAuditNumbers.match(/\b\d+(?:\.\d+)?\b/g) || [];
   let inventedCount = 0;

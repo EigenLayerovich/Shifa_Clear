@@ -28,7 +28,7 @@ export type BiomarkerStatus =
   | 'critical_high'
   | 'unknown';
 
-export type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'bedtime';
+export type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'bedtime' | 'weekly' | 'as_needed';
 
 export type FoodRule =
   | 'empty_stomach_separate'

@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { evaluateClinicalDocument } from '@/lib/clinical/engine';
+import { getSafeDisplayNarrative } from '@/lib/clinical/factCheck';
 import type {
   BiologicalSex,
   RawMedication,
@@ -846,10 +847,16 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
                       <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
                       {analysis.evaluation.auditTrail.length} Deterministic Checks Verified
                     </span>
-                    {analysis.evaluation.factCheck?.verified && (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-900">
-                        Fact Preservation {analysis.evaluation.factCheck.scorePercent}% · 0 Invented
-                      </span>
+                    {analysis.evaluation.factCheck && (
+                      analysis.evaluation.factCheck.verified ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-900">
+                          Fact Preservation {analysis.evaluation.factCheck.scorePercent}% · 0 Invented
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-950">
+                          AI Summary Held · Deterministic Clinical View
+                        </span>
+                      )
                     )}
                     {analysis.aiPowered && (
                       <span className="inline-flex items-center gap-1 rounded-full border border-[#E7E3DA] bg-[#FAF9F6] px-2.5 py-1 text-[11px] font-medium text-[#57534E]">
@@ -859,17 +866,24 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
                     )}
                   </div>
 
-                  <h1
-                    id="main-heading"
-                    tabIndex={-1}
-                    className="font-editorial text-2xl font-medium tracking-tight text-[#18181B] sm:text-3xl"
-                  >
-                    {analysis.narrative.headline}
-                  </h1>
+                  {(() => {
+                    const safeDisplay = getSafeDisplayNarrative(analysis.evaluation, analysis.narrative);
+                    return (
+                      <>
+                        <h1
+                          id="main-heading"
+                          tabIndex={-1}
+                          className="font-editorial text-2xl font-medium tracking-tight text-[#18181B] sm:text-3xl"
+                        >
+                          {safeDisplay.headline}
+                        </h1>
 
-                  <p className="max-w-3xl text-sm leading-relaxed text-[#57534E] sm:text-[15px]">
-                    {analysis.narrative.overallSummary}
-                  </p>
+                        <p className="max-w-3xl text-sm leading-relaxed text-[#57534E] sm:text-[15px]">
+                          {safeDisplay.overallSummary}
+                        </p>
+                      </>
+                    );
+                  })()}
 
                   <div className="flex flex-wrap items-center gap-4 pt-1 text-xs font-semibold text-slate-500">
                     {analysis.evaluation.facilityName &&

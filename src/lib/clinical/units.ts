@@ -415,8 +415,8 @@ export const UNIT_DEFINITIONS: Record<string, UnitDefinition> = {
     siToUsFactor: 0.1,
     decimalsSI: 0,
     decimalsUS: 1,
-    siUnitAliases: ['g/l'],
-    usUnitAliases: ['g/dl', 'gm/dl'],
+    siUnitAliases: ['g/l', 'gm/l'],
+    usUnitAliases: ['g/dl', 'gm/dl', 'gm%', 'g%', 'gr/dl'],
   },
   wbc: {
     siUnit: '×10⁹/L',
@@ -424,8 +424,8 @@ export const UNIT_DEFINITIONS: Record<string, UnitDefinition> = {
     siToUsFactor: 1,
     decimalsSI: 1,
     decimalsUS: 1,
-    siUnitAliases: ['×10⁹/l', '10^9/l', 'x10^9/l', '10e9/l', 'k/ul', 'k/µl'],
-    usUnitAliases: ['k/ul', 'k/µl', '10^3/ul', 'x10^3/ul'],
+    siUnitAliases: ['x10^9/l', '10^9/l', '10e9/l', 'x10e9/l', 'g/l', 'k/ul', 'k/mm3'],
+    usUnitAliases: ['k/ul', '10^3/ul', 'x10^3/ul', '10e3/ul', 'x10e3/ul', '10^3/mm3', 'x10^3/mm3', 'k/mm3', 'thou/ul'],
   },
   platelets: {
     siUnit: '×10⁹/L',
@@ -433,8 +433,8 @@ export const UNIT_DEFINITIONS: Record<string, UnitDefinition> = {
     siToUsFactor: 1,
     decimalsSI: 0,
     decimalsUS: 0,
-    siUnitAliases: ['×10⁹/l', '10^9/l', 'x10^9/l', 'k/ul', 'k/µl'],
-    usUnitAliases: ['k/ul', 'k/µl', '10^3/ul'],
+    siUnitAliases: ['x10^9/l', '10^9/l', '10e9/l', 'x10e9/l', 'k/ul', 'k/mm3'],
+    usUnitAliases: ['k/ul', '10^3/ul', 'x10^3/ul', '10e3/ul', 'x10e3/ul', '10^3/mm3', 'x10^3/mm3', 'k/mm3', 'thou/ul'],
   },
   mcv: {
     siUnit: 'fL',
@@ -1015,10 +1015,36 @@ export function isNonSerumSpecimen(rawName: string, rawUnit = ''): boolean {
   return false;
 }
 
+/**
+ * Normalizes OCR unit strings: strips trailing punctuation ("mmol/L."), converts Unicode
+ * superscripts ("x10³/µL" -> "x10^3/ul"), standardizes ×/* and µ/μ, and collapses scientific E-notation.
+ */
+export function cleanUnitString(rawUnit = ''): string {
+  return (rawUnit || '')
+    .trim()
+    .replace(/[.,;:]+$/g, '')
+    .replace(/\s+/g, '')
+    .replace(/[×*]/g, 'x')
+    .replace(/[µμ]/g, 'u')
+    .replace(/¹²/g, '^12')
+    .replace(/⁹/g, '^9')
+    .replace(/⁶/g, '^6')
+    .replace(/³/g, '^3')
+    .replace(/²/g, '^2')
+    .replace(/10e(\d+)/gi, '10^$1')
+    .toLowerCase();
+}
+
 export function normalizeBiomarkerKey(rawName: string, rawUnit = ''): string {
   const fullLower = (rawName || '').toLowerCase().trim();
   const unitClean = (rawUnit || '').trim();
   const hasPct = fullLower.includes('%') || unitClean === '%';
+
+  // 0. Priority Blood Coagulation Guard: "INR (International Normalized Ratio)" & "Prothrombin Time INR"
+  // MUST map to 'inr' BEFORE the non-serum "ratio" specimen check and BEFORE "prothrombin time" ('pt')!
+  if (/\binr\b|international\s+normali[sz]ed\s+ratio/i.test(fullLower)) {
+    return 'inr';
+  }
 
   // 1. Guard: Never map urine, CSF, stool, ratios, or clearance tests to serum blood ranges!
   if (isNonSerumSpecimen(rawName, rawUnit)) {
@@ -1039,7 +1065,7 @@ export function normalizeBiomarkerKey(rawName: string, rawUnit = ''): string {
     return 'vldl_cholesterol';
   }
   if (
-    /\b(random|rbs|post[-\s]?prandial|ppbs|2\s*-?\s*(?:h|hr|hour)|ogtt|non[-\s]?fasting)\b/.test(fullLower) &&
+    /\b(random|rbs|post[-\s]?prandial|postprandial|ppbs|pp|2\s*-?\s*(?:h|hr|hrs|hour|hours)|after\s*meal|post\s*meal|ogtt|non[-\s]?fasting)\b/.test(fullLower) &&
     /\b(glucose|sugar|rbs|ppbs|ogtt)\b/.test(fullLower)
   ) {
     return 'glucose_random';
@@ -1122,18 +1148,42 @@ export function convertToSIAndUS(
     };
   }
 
-  const normalizedUnit = (rawUnit || '').toLowerCase().replace(/\s+/g, '');
+  const normalizedUnit = cleanUnitString(rawUnit);
   const matchesSI =
     normalizedUnit.length > 0 &&
-    def.siUnitAliases.some((a) => normalizedUnit === a.toLowerCase().replace(/\s+/g, ''));
+    def.siUnitAliases.some((a) => normalizedUnit === cleanUnitString(a));
   const matchesUS =
     normalizedUnit.length > 0 &&
-    def.usUnitAliases.some((a) => normalizedUnit === a.toLowerCase().replace(/\s+/g, ''));
+    def.usUnitAliases.some((a) => normalizedUnit === cleanUnitString(a));
+
+  // Convert absolute cell counts (/cumm, /mm^3, /ul, cells/ul) for Platelets & WBC -> ×10⁹/L (÷ 1000)
+  if (
+    (canonicalId === 'platelets' || canonicalId === 'wbc') &&
+    (normalizedUnit === '/cumm' ||
+      normalizedUnit === 'cumm' ||
+      normalizedUnit === '/mm^3' ||
+      normalizedUnit === '/mm3' ||
+      normalizedUnit === '/ul' ||
+      normalizedUnit === 'cells/ul' ||
+      normalizedUnit === 'cells/cumm' ||
+      normalizedUnit === 'cells/mm^3' ||
+      normalizedUnit === 'cells/mm3')
+  ) {
+    const convertedVal = roundClinical(rawValue / 1000, def.decimalsSI);
+    return {
+      siValue: convertedVal,
+      siUnit: def.siUnit,
+      usValue: roundClinical(convertedVal, def.decimalsUS),
+      usUnit: def.usUnit,
+      wasConvertedFromUS: true,
+      unitRecognized: true,
+    };
+  }
 
   // Convert conventional Troponin (ng/mL or µg/L) -> High-Sensitivity ng/L (× 1000)
   if (
     canonicalId === 'troponin_i' &&
-    (normalizedUnit === 'ng/ml' || normalizedUnit === 'ug/l' || normalizedUnit === 'µg/l' || normalizedUnit === 'μg/l')
+    (normalizedUnit === 'ng/ml' || normalizedUnit === 'ug/l')
   ) {
     const ngPerL = roundClinical(rawValue * 1000, 1);
     return {
@@ -1172,8 +1222,21 @@ export function convertToSIAndUS(
     };
   }
 
-  // Safety Guard: If unit is missing OR unrecognized for a known marker (e.g. "Triglycerides 150",
-  // "Urea 40", "Calcium 9.5", or "Albumin 30 mg/L"), NEVER silently treat it as SI and fire 998!
+  // Unit-invariant analytes (siToUsFactor === 1, e.g., K+, Na+, Cl-, HCO3-, Plt, WBC, eGFR, ALT, AST, TSH):
+  // SI and US numeric scales are IDENTICAL (mmol/L === mEq/L, ×10⁹/L === ×10³/µL), so a blank unit is unambiguous!
+  if (normalizedUnit === '' && def.siToUsFactor === 1) {
+    return {
+      siValue: roundClinical(rawValue, def.decimalsSI),
+      siUnit: def.siUnit,
+      usValue: roundClinical(rawValue, def.decimalsUS),
+      usUnit: def.usUnit,
+      wasConvertedFromUS: false,
+      unitRecognized: true,
+    };
+  }
+
+  // Safety Guard: For unit-variant analytes with missing OR unrecognized unit, mark unitRecognized=false
+  // (ranges.ts still checks whether ALL plausible unit interpretations are critical so real emergencies aren't missed!)
   if (!matchesSI && !matchesUS) {
     return {
       siValue: rawValue,

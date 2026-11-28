@@ -1243,34 +1243,61 @@ export function evaluateBiomarker(
       b.borderlineLow !== undefined ? b.borderlineLow * factor : undefined,
     );
   } else if (isFiniteNonNegative) {
-    if (rule && !converted.unitRecognized) {
-      refLabelSI = raw.rawReferenceRange || 'Unit unverified — confirm on lab report';
-      refLabelUS = raw.rawReferenceRange || 'Unit unverified — confirm on lab report';
-    } else if (rule && !isPhysiologicallyPlausible) {
-      refLabelSI = 'Value outside plausible blood range — verify on report';
-      refLabelUS = 'Value outside plausible blood range — verify on report';
-    }
-    // Fallback: deterministically parse the lab's own printed Reference Interval (never fires 998)!
-    const parsed = parseRawReferenceRange(raw.rawReferenceRange);
-    if (parsed) {
-      const val = raw.value;
-      if (parsed.low !== undefined && val < parsed.low) {
-        status = 'low';
-      } else if (parsed.high !== undefined && val > parsed.high) {
-        status = 'high';
-      } else {
-        status = 'normal';
+    // Plausible-Unit Critical Rescue: when unit is blank on a unit-variant marker (e.g., Hemoglobin 5.5 or 6.1),
+    // evaluate under BOTH SI and US interpretations. If critical under EVERY plausible interpretation,
+    // still raise the critical alert ("confirm unit on report") rather than silently missing an emergency!
+    let rescuedCritical = false;
+    if (rule && !converted.unitRecognized && (raw.unit || '').trim() === '' && unitDef && unitDef.siToUsFactor !== 1) {
+      const b = rule.bounds(context.sex, context.age);
+      const valIfSI = raw.value;
+      const valIfUSInSI = roundClinical(raw.value / unitDef.siToUsFactor, unitDef.decimalsSI);
+      const candidates = [valIfSI, valIfUSInSI].filter(
+        (v) => Number.isFinite(v) && v >= 0 && (maxPlausible === undefined || v <= maxPlausible),
+      );
+      if (candidates.length > 0) {
+        const statuses = candidates.map((v) => classifyStatus(v, b));
+        const allCriticalLow = statuses.every((s) => s === 'critical_low');
+        const allCriticalHigh = statuses.every((s) => s === 'critical_high');
+        if (allCriticalLow || allCriticalHigh) {
+          status = allCriticalLow ? 'critical_low' : 'critical_high';
+          gaugePercent = allCriticalLow ? 5 : 95;
+          refLabelSI = `Possible critical value (unit missing — confirm on report; target ${formatRangeLabel(b.low, b.high, unitDef.siUnit, unitDef.decimalsSI, b.borderlineHigh, b.borderlineLow)})`;
+          refLabelUS = `Possible critical value (unit missing — confirm on report; target ${formatRangeLabel(b.low !== undefined ? b.low * unitDef.siToUsFactor : undefined, b.high !== undefined ? b.high * unitDef.siToUsFactor : undefined, unitDef.usUnit, unitDef.decimalsUS, b.borderlineHigh !== undefined ? b.borderlineHigh * unitDef.siToUsFactor : undefined, b.borderlineLow !== undefined ? b.borderlineLow * unitDef.siToUsFactor : undefined)})`;
+          rescuedCritical = true;
+        }
       }
-      const lo = parsed.low ?? 0;
-      const hi = parsed.high ?? lo * 2 + 10;
-      const margin = Math.max((hi - lo) * 0.45, 0.5);
-      const scaleMin = Math.max(0, lo - margin);
-      const scaleMax = hi + margin;
-      gaugePercent = Math.max(4, Math.min(96, Math.round(((val - scaleMin) / Math.max(scaleMax - scaleMin, 0.001)) * 100)));
-      refLowSI = parsed.low;
-      refHighSI = parsed.high;
-      refLowUS = parsed.low;
-      refHighUS = parsed.high;
+    }
+
+    if (!rescuedCritical) {
+      if (rule && !converted.unitRecognized) {
+        refLabelSI = raw.rawReferenceRange || 'Unit unverified — confirm on lab report';
+        refLabelUS = raw.rawReferenceRange || 'Unit unverified — confirm on lab report';
+      } else if (rule && !isPhysiologicallyPlausible) {
+        refLabelSI = 'Value outside plausible blood range — verify on report';
+        refLabelUS = 'Value outside plausible blood range — verify on report';
+      }
+      // Fallback: deterministically parse the lab's own printed Reference Interval (never fires 998)!
+      const parsed = parseRawReferenceRange(raw.rawReferenceRange);
+      if (parsed) {
+        const val = raw.value;
+        if (parsed.low !== undefined && val < parsed.low) {
+          status = 'low';
+        } else if (parsed.high !== undefined && val > parsed.high) {
+          status = 'high';
+        } else {
+          status = 'normal';
+        }
+        const lo = parsed.low ?? 0;
+        const hi = parsed.high ?? lo * 2 + 10;
+        const margin = Math.max((hi - lo) * 0.45, 0.5);
+        const scaleMin = Math.max(0, lo - margin);
+        const scaleMax = hi + margin;
+        gaugePercent = Math.max(4, Math.min(96, Math.round(((val - scaleMin) / Math.max(scaleMax - scaleMin, 0.001)) * 100)));
+        refLowSI = parsed.low;
+        refHighSI = parsed.high;
+        refLowUS = parsed.low;
+        refHighUS = parsed.high;
+      }
     }
   } else {
     refLabelSI = 'Invalid value — verify on lab report';

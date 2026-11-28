@@ -198,27 +198,30 @@ export async function identifyMedicationBoxWithGemini(params: {
     required: ['medications'],
   };
 
-  const { result: interaction } = await runWithModelFallback((model) =>
-    ai.interactions.create({
-      model,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      input: [
-        {
+  const { result: interaction } = await runWithModelFallback((model, signal) =>
+    ai.interactions.create(
+      {
+        model,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        input: [
+          {
+            type: 'text',
+            text: 'You are a UAE clinical pharmacy vision scanner. Identify every medication box, blister pack, bottle, or barcode label visible in the photo. Extract the exact brand name (e.g., Panadol Extra, Glucophage XR, Concor, Co-Diovan, Plavix), active generic ingredient(s), and dosage strength if visible. Return strictly valid JSON matching the schema.',
+          },
+          {
+            type: 'image',
+            data: params.base64Data,
+            mime_type: params.mimeType,
+          },
+        ] as any,
+        response_format: {
           type: 'text',
-          text: 'You are a UAE clinical pharmacy vision scanner. Identify every medication box, blister pack, bottle, or barcode label visible in the photo. Extract the exact brand name (e.g., Panadol Extra, Glucophage XR, Concor, Co-Diovan, Plavix), active generic ingredient(s), and dosage strength if visible. Return strictly valid JSON matching the schema.',
+          mime_type: 'application/json',
+          schema,
         },
-        {
-          type: 'image',
-          data: params.base64Data,
-          mime_type: params.mimeType,
-        },
-      ] as any,
-      response_format: {
-        type: 'text',
-        mime_type: 'application/json',
-        schema,
       },
-    }),
+      { signal },
+    ),
   );
 
   const text = interaction.output_text;
@@ -274,17 +277,20 @@ export async function extractClinicalDocumentWithGemini(params: {
     });
   }
 
-  const { result: interaction } = await runWithModelFallback((model) =>
-    client.interactions.create({
-      model,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      input: inputParts as any,
-      response_format: {
-        type: 'text',
-        mime_type: 'application/json',
-        schema: EXTRACTION_SCHEMA,
+  const { result: interaction } = await runWithModelFallback((model, signal) =>
+    client.interactions.create(
+      {
+        model,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        input: inputParts as any,
+        response_format: {
+          type: 'text',
+          mime_type: 'application/json',
+          schema: EXTRACTION_SCHEMA,
+        },
       },
-    }),
+      { signal },
+    ),
   );
 
   const text = interaction.output_text;
@@ -481,16 +487,19 @@ export async function generatePatientNarrativeWithGemini(params: {
     JSON.stringify(compactFacts),
   ].join('\n');
 
-  const { result: interaction } = await runWithModelFallback((model) =>
-    client.interactions.create({
-      model,
-      input: prompt,
-      response_format: {
-        type: 'text',
-        mime_type: 'application/json',
-        schema: NARRATIVE_SCHEMA,
+  const { result: interaction } = await runWithModelFallback((model, signal) =>
+    client.interactions.create(
+      {
+        model,
+        input: prompt,
+        response_format: {
+          type: 'text',
+          mime_type: 'application/json',
+          schema: NARRATIVE_SCHEMA,
+        },
       },
-    }),
+      { signal },
+    ),
   );
 
   const text = interaction.output_text;
@@ -565,32 +574,40 @@ export async function synthesizeSpeechWithGemini(params: {
   });
 
   const langMeta = LANGUAGE_MAP[params.language];
-  const interaction = await client.interactions.create({
-    model: DEFAULT_TTS_MODEL,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    input: [
-      {
-        type: 'user_input',
-        content: [
-          {
-            type: 'text',
-            text: params.text.slice(0, 900),
-            annotations: [
-              {
-                type: 'speech_metadata',
-                style: `calm, warm, reassuring clinical educator speaking clearly in ${langMeta.englishLabel}`,
-              },
-            ],
-          },
-        ],
-      },
-    ] as any,
-    response_format: { type: 'audio' },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    generation_config: {
-      speech_config: [{ voice: 'Kore' }],
-    } as any,
-  });
+  const interaction = await withAbortableTimeout(
+    (signal) =>
+      client.interactions.create(
+        {
+          model: DEFAULT_TTS_MODEL,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          input: [
+            {
+              type: 'user_input',
+              content: [
+                {
+                  type: 'text',
+                  text: params.text.slice(0, 900),
+                  annotations: [
+                    {
+                      type: 'speech_metadata',
+                      style: `calm, warm, reassuring clinical educator speaking clearly in ${langMeta.englishLabel}`,
+                    },
+                  ],
+                },
+              ],
+            },
+          ] as any,
+          response_format: { type: 'audio' },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          generation_config: {
+            speech_config: [{ voice: 'Kore' }],
+          } as any,
+        },
+        { signal },
+      ),
+    MODEL_TIMEOUT_MS,
+    DEFAULT_TTS_MODEL,
+  );
 
   const audio = interaction.output_audio;
   if (!audio?.data) {
@@ -653,11 +670,14 @@ export async function answerClinicalQuestionWithGemini(params: {
     `USER QUESTION: ${params.question}`,
   ].join('\n');
 
-  const { result: interaction, modelUsed } = await runWithModelFallback((model) =>
-    client.interactions.create({
-      model,
-      input: prompt,
-    }),
+  const { result: interaction, modelUsed } = await runWithModelFallback((model, signal) =>
+    client.interactions.create(
+      {
+        model,
+        input: prompt,
+      },
+      { signal },
+    ),
   );
 
   const answer = interaction.output_text?.trim();

@@ -566,7 +566,7 @@ export function IntakePanel({
                         onClick={() =>
                           setQueuedFiles((prev) => prev.filter((_, i) => i !== idx))
                         }
-                        className="rounded-full p-0.5 text-[#78716C] hover:bg-[#F3F1EC] hover:text-rose-600"
+                        className="inline-flex min-h-[28px] min-w-[28px] items-center justify-center rounded-full text-[#78716C] hover:bg-[#F3F1EC] hover:text-rose-600"
                       >
                         <X className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>

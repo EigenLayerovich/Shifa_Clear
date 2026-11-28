@@ -350,7 +350,7 @@ export function ClinicalAuditDrawer({
 
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-xs font-semibold text-slate-600">
-                    Executed live in browser against 12 gold-standard clinical stress-test vignettes (RxList + CKD-EPI 2021 + Panic Values).
+                    Executed live in browser against 12 internal self-authored clinical stress-test vignettes (RxList + CKD-EPI 2021 + Panic Values — not an external hospital dataset).
                   </p>
                   <button
                     type="button"
@@ -447,17 +447,43 @@ export function ClinicalAuditDrawer({
             ) : (
               <div className="space-y-4">
                 {evaluation.factCheck && (
-                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
+                  <div
+                    className={`rounded-2xl border p-4 ${
+                      evaluation.factCheck.verified
+                        ? 'border-emerald-200 bg-emerald-50/70'
+                        : 'border-amber-300 bg-amber-50'
+                    }`}
+                  >
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-emerald-950">
-                        <ShieldCheck className="h-4 w-4 text-emerald-700" aria-hidden="true" />
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-xs font-extrabold ${
+                          evaluation.factCheck.verified ? 'text-emerald-950' : 'text-amber-950'
+                        }`}
+                      >
+                        {evaluation.factCheck.verified ? (
+                          <ShieldCheck className="h-4 w-4 text-emerald-700" aria-hidden="true" />
+                        ) : (
+                          <ShieldAlert className="h-4 w-4 text-amber-700" aria-hidden="true" />
+                        )}
                         Post-Generation Fact-Preservation Audit
                       </span>
-                      <span className="rounded-full bg-emerald-700 px-2.5 py-0.5 text-[11px] font-extrabold text-white tabular-nums">
-                        {evaluation.factCheck.scorePercent}% Verified · {evaluation.factCheck.inventedNumbersCount} Invented
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-[11px] font-extrabold text-white tabular-nums ${
+                          evaluation.factCheck.verified ? 'bg-emerald-700' : 'bg-amber-700'
+                        }`}
+                      >
+                        {evaluation.factCheck.verified
+                          ? `${evaluation.factCheck.scorePercent}% Verified · 0 Invented`
+                          : `FLAGGED (${evaluation.factCheck.scorePercent}%) · ${evaluation.factCheck.inventedNumbersCount} Invented`}
                       </span>
                     </div>
-                    <p className="mt-1.5 text-xs text-emerald-900">{evaluation.factCheck.summary}</p>
+                    <p
+                      className={`mt-1.5 text-xs ${
+                        evaluation.factCheck.verified ? 'text-emerald-900' : 'text-amber-950'
+                      }`}
+                    >
+                      {evaluation.factCheck.summary}
+                    </p>
                   </div>
                 )}
 
