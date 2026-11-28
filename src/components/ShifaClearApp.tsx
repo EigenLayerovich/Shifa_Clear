@@ -668,7 +668,6 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
             onAnalyzeFiles={handleAnalyzeFiles}
             onAnalyzeText={handleAnalyzeText}
             onSelectDemoCase={(id) => runDemoCase(id)}
-            onOpenDrugChecker={() => setDrugCheckerOpen(true)}
             savedOfflineHeadline={savedOfflineReport?.narrative.headline ?? null}
             onRestoreOfflineReport={
               savedOfflineReport

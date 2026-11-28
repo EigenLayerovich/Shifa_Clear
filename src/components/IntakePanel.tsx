@@ -12,7 +12,6 @@ import {
   Lock,
   Mic,
   MicOff,
-  Pill,
   ShieldCheck,
   UploadCloud,
   X,
@@ -35,7 +34,6 @@ interface IntakePanelProps {
   onAnalyzeFiles: (files: File[]) => void;
   onAnalyzeText: (text: string) => void;
   onSelectDemoCase: (caseId: string) => void;
-  onOpenDrugChecker: () => void;
   savedOfflineHeadline?: string | null;
   onRestoreOfflineReport?: () => void;
 }
@@ -53,7 +51,6 @@ export function IntakePanel({
   onAnalyzeFiles,
   onAnalyzeText,
   onSelectDemoCase,
-  onOpenDrugChecker,
   savedOfflineHeadline,
   onRestoreOfflineReport,
 }: IntakePanelProps) {
@@ -423,7 +420,7 @@ export function IntakePanel({
           </div>
         </div>
 
-        {/* Workspace Controls: Clean Underline Tabs + Separate Quick Drug Checker Button */}
+        {/* Workspace Controls: Clean Mode Tabs */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EFECE5] px-6 py-3">
           <div className="flex flex-wrap gap-1.5">
             <button
@@ -453,16 +450,6 @@ export function IntakePanel({
               <span>{t.pasteTab}</span>
             </button>
           </div>
-
-          <button
-            type="button"
-            onClick={onOpenDrugChecker}
-            className="inline-flex min-h-[38px] items-center gap-2 rounded-lg border border-[#0D5C56]/30 bg-[#F2F7F5] px-3.5 text-xs font-semibold text-[#0D5C56] transition hover:border-[#0D5C56] hover:bg-[#0D5C56] hover:text-white sm:text-sm"
-          >
-            <Pill className="h-4 w-4" aria-hidden="true" />
-            <span>Quick Drug Checker (620+ Brands)</span>
-            <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
-          </button>
         </div>
 
         <div className="p-6">
