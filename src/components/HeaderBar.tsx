@@ -2,7 +2,6 @@
 
 import React from 'react';
 import {
-  Activity,
   ClipboardCheck,
   Globe,
   Pill,
@@ -11,6 +10,7 @@ import {
 } from 'lucide-react';
 import type { SupportedLanguage, UnitSystem } from '@/lib/clinical/types';
 import { LANGUAGES, UI_STRINGS } from '@/lib/i18n/uiStrings';
+import { ShifaClearLogo } from './ShifaClearLogo';
 
 export type FamilyProfileKey = 'self' | 'parent' | 'child' | 'custom';
 
@@ -62,15 +62,16 @@ export function HeaderBar({
           <button
             type="button"
             onClick={onResetHome}
-            className="group flex items-center gap-2.5 rounded-xl text-start transition hover:opacity-90"
+            className="group flex items-center gap-2.5 rounded-xl text-start transition hover:opacity-95"
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#0D5C56] text-[#FAF9F6] shadow-xs">
-              <Activity className="h-[18px] w-[18px]" aria-hidden="true" />
-            </span>
+            <ShifaClearLogo
+              size={38}
+              className="shadow-xs transition-transform duration-200 group-hover:scale-[1.03]"
+            />
             <span>
               <span className="flex items-baseline gap-2">
-                <span className="font-editorial text-[22px] font-medium leading-none tracking-tight text-[#18181B]">
-                  ShifaClear
+                <span className="font-editorial text-[23px] font-medium leading-none tracking-tight text-[#18181B]">
+                  Shifa<em className="italic text-[#0D5C56]">Clear</em>
                 </span>
                 <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap border-s border-[#DDD8CE] ps-2 text-[10px] font-semibold uppercase tracking-wider text-[#0D5C56]">
                   <ShieldCheck className="h-3 w-3 shrink-0" aria-hidden="true" />
