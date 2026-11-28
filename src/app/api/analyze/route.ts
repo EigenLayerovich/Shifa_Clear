@@ -5,11 +5,14 @@ import {
   resolveApiKey,
 } from '@/lib/ai/gemini';
 import { evaluateClinicalDocument } from '@/lib/clinical/engine';
+import { verifyNarrativeFactPreservation } from '@/lib/clinical/factCheck';
+import { redactClinicalPII } from '@/lib/clinical/piiRedactor';
 import { parseClinicalTextDeterministically } from '@/lib/clinical/textParser';
 import type {
   PatientContext,
   PatientNarrative,
   RawExtractedDocument,
+  ReadingLevel,
   ShifaClearAnalysisResponse,
   SupportedLanguage,
 } from '@/lib/clinical/types';
@@ -20,6 +23,10 @@ function parseContext(raw?: Partial<PatientContext>): PatientContext {
   const lang = validLangs.includes(raw?.language as SupportedLanguage)
     ? (raw?.language as SupportedLanguage)
     : 'en';
+  const validLevels: ReadingLevel[] = ['simple', 'standard', 'clinical'];
+  const readingLevel = validLevels.includes(raw?.readingLevel as ReadingLevel)
+    ? (raw?.readingLevel as ReadingLevel)
+    : 'standard';
   const age = typeof raw?.age === 'number' && raw.age >= 0 && raw.age < 120 ? raw.age : 45;
   return {
     age,
@@ -28,6 +35,7 @@ function parseContext(raw?: Partial<PatientContext>): PatientContext {
     sex: raw?.sex === 'female' ? 'female' : 'male',
     unitSystem: raw?.unitSystem === 'US' ? 'US' : 'SI',
     language: lang,
+    readingLevel,
     autoDetectedFromReport: raw?.autoDetectedFromReport,
   };
 }
@@ -138,13 +146,19 @@ export async function POST(req: NextRequest) {
       let narrative: PatientNarrative;
       let aiPowered = false;
 
-      if (forceLiveAI && apiKey) {
-        narrative = await generatePatientNarrativeWithGemini({
-          apiKey,
-          evaluation,
-          language: context.language,
-        });
-        aiPowered = true;
+      if ((forceLiveAI || context.readingLevel !== 'standard') && apiKey) {
+        try {
+          narrative = await generatePatientNarrativeWithGemini({
+            apiKey,
+            evaluation,
+            language: context.language,
+            readingLevel: context.readingLevel,
+          });
+          aiPowered = true;
+        } catch {
+          const cached = demo.narratives[context.language] || demo.narratives.en;
+          narrative = { ...cached, language: context.language, source: 'verified_demo_cache' };
+        }
       } else {
         const cached = demo.narratives[context.language] || demo.narratives.en;
         narrative = {
@@ -153,6 +167,10 @@ export async function POST(req: NextRequest) {
           source: 'verified_demo_cache',
         };
       }
+
+      const { report: factCheck, auditStep } = verifyNarrativeFactPreservation(evaluation, narrative);
+      evaluation.factCheck = factCheck;
+      evaluation.auditTrail.push(auditStep);
 
       const payload: ShifaClearAnalysisResponse = {
         evaluation,
@@ -182,20 +200,21 @@ export async function POST(req: NextRequest) {
     }
 
     const context = parseContext(contextInput);
+    const scrubbedText = rawText ? redactClinicalPII(rawText).sanitizedText : undefined;
     let extracted: RawExtractedDocument;
     let usedLiveAI = false;
 
     try {
       extracted = await extractClinicalDocumentWithGemini({
         apiKey,
-        rawText,
+        rawText: scrubbedText,
         files: uploadedFiles,
       });
       usedLiveAI = true;
     } catch (extractErr) {
-      if (rawText) {
+      if (scrubbedText) {
         console.warn('[ShifaClear /api/analyze] Using deterministic text parser fallback:', extractErr);
-        extracted = parseClinicalTextDeterministically(rawText);
+        extracted = parseClinicalTextDeterministically(scrubbedText);
       } else {
         throw extractErr;
       }
@@ -224,11 +243,16 @@ export async function POST(req: NextRequest) {
         apiKey,
         evaluation,
         language: context.language,
+        readingLevel: context.readingLevel,
       });
       usedLiveAI = true;
     } catch {
       narrative = buildFallbackNarrative(evaluation, context.language);
     }
+
+    const { report: factCheck, auditStep } = verifyNarrativeFactPreservation(evaluation, narrative);
+    evaluation.factCheck = factCheck;
+    evaluation.auditTrail.push(auditStep);
 
     const payload: ShifaClearAnalysisResponse = {
       evaluation,

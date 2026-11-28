@@ -13,6 +13,7 @@ import { evaluateClinicalDocument } from '@/lib/clinical/engine';
 import type {
   BiologicalSex,
   RawMedication,
+  ReadingLevel,
   ShifaClearAnalysisResponse,
   SupportedLanguage,
   UnitSystem,
@@ -41,6 +42,7 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
   const [unitSystem, setUnitSystem] = useState<UnitSystem>('SI');
   const [elderMode, setElderMode] = useState(false);
   const [familyProfile, setFamilyProfile] = useState<FamilyProfileKey>('self');
+  const [readingLevel, setReadingLevel] = useState<ReadingLevel>('standard');
   const [age, setAge] = useState(54);
   const [sex, setSex] = useState<BiologicalSex>('male');
 
@@ -161,6 +163,7 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
             sex: effectiveSex,
             unitSystem: effectiveUnit,
             language: effectiveLang,
+            readingLevel,
           },
         }),
       });
@@ -211,7 +214,7 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
       }
       formData.append(
         'patientContext',
-        JSON.stringify({ age, sex, unitSystem, language }),
+        JSON.stringify({ age, sex, unitSystem, language, readingLevel }),
       );
 
       const res = await fetch('/api/analyze', {
@@ -335,7 +338,7 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
         headers: buildHeaders(true),
         body: JSON.stringify({
           rawText,
-          patientContext: { age, sex, unitSystem, language },
+          patientContext: { age, sex, unitSystem, language, readingLevel },
         }),
       });
       const data = await res.json();
@@ -404,6 +407,49 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
     }
   };
 
+  const handleReadingLevelChange = async (newLevel: ReadingLevel) => {
+    setReadingLevel(newLevel);
+    if (!analysis) return;
+
+    setIsTranslating(true);
+    try {
+      const res = await fetch('/api/translate', {
+        method: 'POST',
+        headers: buildHeaders(true),
+        body: JSON.stringify({
+          language,
+          readingLevel: newLevel,
+          demoCaseId: analysis.demoCaseId,
+          evaluation: analysis.evaluation,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.narrative) {
+        setAnalysis((prev) =>
+          prev
+            ? {
+                ...prev,
+                evaluation: {
+                  ...prev.evaluation,
+                  patientContext: {
+                    ...prev.evaluation.patientContext,
+                    readingLevel: newLevel,
+                  },
+                  factCheck: data.factCheck ?? prev.evaluation.factCheck,
+                },
+                narrative: data.narrative,
+                aiPowered: data.narrative.source === 'gemini_live' || prev.aiPowered,
+              }
+            : null,
+        );
+      }
+    } catch {
+      // Keep current narrative cleanly
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   const handleLanguageChange = async (newLang: SupportedLanguage) => {
     stopAnyAudio();
     const applyLang = () => setLanguage(newLang);
@@ -432,6 +478,7 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
         headers: buildHeaders(true),
         body: JSON.stringify({
           language: newLang,
+          readingLevel,
           demoCaseId: analysis.demoCaseId,
           evaluation: analysis.evaluation,
         }),
@@ -606,6 +653,7 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
             language={language}
             age={age}
             sex={sex}
+            readingLevel={readingLevel}
             onAgeChange={(val) => {
               setAge(val);
               setFamilyProfile('custom');
@@ -614,6 +662,7 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
               setSex(val);
               setFamilyProfile('custom');
             }}
+            onReadingLevelChange={setReadingLevel}
             isLoading={isLoading}
             errorMessage={errorMessage}
             onAnalyzeFiles={handleAnalyzeFiles}
@@ -693,6 +742,11 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
                       <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
                       {analysis.evaluation.auditTrail.length} Deterministic Checks Verified
                     </span>
+                    {analysis.evaluation.factCheck?.verified && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-900">
+                        Fact Preservation {analysis.evaluation.factCheck.scorePercent}% · 0 Invented
+                      </span>
+                    )}
                     {analysis.aiPowered && (
                       <span className="inline-flex items-center gap-1 rounded-full border border-[#E7E3DA] bg-[#FAF9F6] px-2.5 py-1 text-[11px] font-medium text-[#57534E]">
                         <Sparkles className="h-3 w-3 text-[#0D5C56]" aria-hidden="true" />
@@ -745,14 +799,45 @@ export function ShifaClearApp({ hasServerApiKey }: ShifaClearAppProps) {
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setAuditOpen(true)}
-                  className="no-print inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl border border-teal-200 bg-teal-50/70 px-4 text-xs font-extrabold text-teal-900 transition hover:bg-teal-100"
-                >
-                  <ClipboardCheck className="h-4 w-4 text-teal-700" aria-hidden="true" />
-                  <span>{t.auditTrailBtn}</span>
-                </button>
+                <div className="no-print flex shrink-0 flex-wrap items-center gap-2">
+                  {/* Live Reading-Level Switcher (Simple / Standard / Clinical) */}
+                  <div
+                    role="group"
+                    aria-label="Explanation Reading Level"
+                    className="inline-flex items-center rounded-xl border border-[#E2DDD2] bg-[#F3F1EC] p-0.5 text-[11px] font-semibold"
+                  >
+                    {(
+                      [
+                        { id: 'simple', label: 'Simple' },
+                        { id: 'standard', label: 'Standard' },
+                        { id: 'clinical', label: 'Clinical' },
+                      ] as const
+                    ).map((lvl) => (
+                      <button
+                        key={lvl.id}
+                        type="button"
+                        aria-pressed={readingLevel === lvl.id}
+                        onClick={() => handleReadingLevelChange(lvl.id)}
+                        className={`min-h-[34px] rounded-lg px-2.5 transition ${
+                          readingLevel === lvl.id
+                            ? 'bg-[#0D5C56] text-white shadow-2xs'
+                            : 'text-[#57534E] hover:text-[#18181B]'
+                        }`}
+                      >
+                        {lvl.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setAuditOpen(true)}
+                    className="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-xl border border-[#DCE5E2] bg-[#F2F7F5] px-4 text-xs font-semibold text-[#0D5C56] transition hover:bg-[#0D5C56] hover:text-white"
+                  >
+                    <ClipboardCheck className="h-4 w-4" aria-hidden="true" />
+                    <span>{t.auditTrailBtn}</span>
+                  </button>
+                </div>
               </div>
             </section>
 

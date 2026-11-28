@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
@@ -9,21 +9,27 @@ import {
   Download,
   FileText,
   Loader2,
+  Lock,
+  Mic,
+  MicOff,
   Pill,
   ShieldCheck,
   UploadCloud,
   X,
 } from 'lucide-react';
-import type { BiologicalSex, SupportedLanguage } from '@/lib/clinical/types';
+import { redactClinicalPII } from '@/lib/clinical/piiRedactor';
+import type { BiologicalSex, ReadingLevel, SupportedLanguage } from '@/lib/clinical/types';
 import { DEMO_CASES } from '@/lib/demo/cases';
-import { UI_STRINGS } from '@/lib/i18n/uiStrings';
+import { LANGUAGE_MAP, UI_STRINGS } from '@/lib/i18n/uiStrings';
 
 interface IntakePanelProps {
   language: SupportedLanguage;
   age: number;
   sex: BiologicalSex;
+  readingLevel: ReadingLevel;
   onAgeChange: (age: number) => void;
   onSexChange: (sex: BiologicalSex) => void;
+  onReadingLevelChange: (level: ReadingLevel) => void;
   isLoading: boolean;
   errorMessage: string | null;
   onAnalyzeFiles: (files: File[]) => void;
@@ -38,8 +44,10 @@ export function IntakePanel({
   language,
   age,
   sex,
+  readingLevel,
   onAgeChange,
   onSexChange,
+  onReadingLevelChange,
   isLoading,
   errorMessage,
   onAnalyzeFiles,
@@ -50,12 +58,78 @@ export function IntakePanel({
   onRestoreOfflineReport,
 }: IntakePanelProps) {
   const t = UI_STRINGS[language];
+  const langMeta = LANGUAGE_MAP[language];
   const [activeTab, setActiveTab] = useState<'upload' | 'paste'>('upload');
   const [pastedText, setPastedText] = useState('');
   const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [pipelineStage, setPipelineStage] = useState(0);
+  const [isDictating, setIsDictating] = useState(false);
+  const [dictationNotice, setDictationNotice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
+
+  const piiPreview = useMemo(() => redactClinicalPII(pastedText), [pastedText]);
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, []);
+
+  const toggleVoiceDictation = () => {
+    if (isDictating && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsDictating(false);
+      return;
+    }
+
+    if (typeof window === 'undefined') return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    const SpeechRec = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!SpeechRec) {
+      setDictationNotice('Voice dictation requires Chrome, Edge, or Safari with microphone access.');
+      return;
+    }
+
+    setDictationNotice(null);
+    const recognition = new SpeechRec();
+    recognition.lang = langMeta.speechLocale;
+    recognition.continuous = true;
+    recognition.interimResults = false;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
+      let transcript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          transcript += `${event.results[i][0].transcript} `;
+        }
+      }
+      if (transcript.trim()) {
+        setPastedText((prev) => `${prev ? `${prev.trim()} ` : ''}${transcript.trim()}`);
+      }
+    };
+    recognition.onerror = () => {
+      setIsDictating(false);
+      setDictationNotice('Could not access microphone. Please check browser mic permission.');
+    };
+    recognition.onend = () => {
+      setIsDictating(false);
+    };
+
+    recognitionRef.current = recognition;
+    setIsDictating(true);
+    recognition.start();
+  };
 
   useEffect(() => {
     if (!isLoading) {
@@ -315,6 +389,37 @@ export function IntakePanel({
                 </button>
               </div>
             </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-[#57534E]">Tone</span>
+              <div
+                role="group"
+                aria-label="Reading Level"
+                className="inline-flex rounded-lg border border-[#DDD8CE] bg-[#F3F1EC] p-0.5 text-xs font-semibold"
+              >
+                {(
+                  [
+                    { id: 'simple', label: 'Simple' },
+                    { id: 'standard', label: 'Standard' },
+                    { id: 'clinical', label: 'Clinical' },
+                  ] as const
+                ).map((lvl) => (
+                  <button
+                    key={lvl.id}
+                    type="button"
+                    aria-pressed={readingLevel === lvl.id}
+                    onClick={() => onReadingLevelChange(lvl.id)}
+                    className={`min-h-[32px] rounded-md px-2.5 transition ${
+                      readingLevel === lvl.id
+                        ? 'bg-[#0D5C56] text-white shadow-2xs'
+                        : 'text-[#57534E] hover:text-[#18181B]'
+                    }`}
+                  >
+                    {lvl.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -419,6 +524,13 @@ export function IntakePanel({
                   <span>Download Sample UAE Lab PDF</span>
                 </a>
               </div>
+
+              <p className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#78716C]">
+                <Lock className="h-3 w-3 shrink-0 text-[#0D5C56]" aria-hidden="true" />
+                <span>
+                  Privacy tip: you may crop out your full name or Emirates ID before uploading — only age, sex, and lab values are needed.
+                </span>
+              </p>
             </div>
 
             {queuedFiles.length > 0 && (
@@ -479,9 +591,45 @@ export function IntakePanel({
           </div>
         ) : (
           <div className="space-y-4">
-            <label htmlFor="clinical-paste-box" className="block text-sm font-semibold text-[#18181B]">
-              {t.pasteTab}
-            </label>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <label htmlFor="clinical-paste-box" className="text-sm font-semibold text-[#18181B]">
+                  {t.pasteTab}
+                </label>
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#DCE5E2] bg-[#F2F7F5] px-2.5 py-0.5 text-[10px] font-semibold text-[#0D5C56]">
+                  <Lock className="h-3 w-3" aria-hidden="true" />
+                  On-Device PII Redaction (UAE PDPL)
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={toggleVoiceDictation}
+                aria-pressed={isDictating}
+                className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition ${
+                  isDictating
+                    ? 'bg-rose-700 text-white hover:bg-rose-800'
+                    : 'border border-[#DDD8CE] bg-[#FAF9F6] text-[#18181B] hover:border-[#0D5C56] hover:text-[#0D5C56]'
+                }`}
+              >
+                {isDictating ? (
+                  <>
+                    <MicOff className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>Stop Dictating</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="h-3.5 w-3.5 text-[#0D5C56]" aria-hidden="true" />
+                    <span>Dictate Note ({langMeta.nativeLabel})</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {dictationNotice && (
+              <p className="text-xs font-medium text-amber-800">{dictationNotice}</p>
+            )}
+
             <textarea
               id="clinical-paste-box"
               rows={5}
@@ -490,22 +638,35 @@ export function IntakePanel({
               placeholder={t.pastePlaceholder}
               className="w-full rounded-xl border border-[#DDD8CE] bg-[#FAF9F6] p-4 text-sm text-[#18181B] placeholder:text-[#A8A29E] focus:border-[#0D5C56] focus:bg-white"
             />
+
+            {piiPreview.redactionCount > 0 && (
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#C6DDD7] bg-[#F2F7F5] px-3.5 py-2 text-xs text-[#0D5C56]">
+                <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>
+                  <strong className="font-semibold">
+                    {piiPreview.redactionCount} PII item(s) masked on-device before AI:
+                  </strong>{' '}
+                  {piiPreview.categories.join(', ')} (age, sex, and clinical values preserved).
+                </span>
+              </div>
+            )}
+
             <div className="flex flex-wrap items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={() =>
                   setPastedText(
-                    'SEHA Lab Result: HbA1c 7.6%, Fasting Glucose 156 mg/dL, LDL 4.1 mmol/L, Potassium 5.8 mmol/L, Creatinine 148 umol/L, eGFR 44 mL/min. Medications: Cozaar 50mg OD, Lasix 40mg OD, Voltaren 50mg BD, Glucophage 1000mg BD.',
+                    'Patient Name: Ahmed Al-Mansoori, Emirates ID: 784-1972-1234567-8, Phone: +971 50 123 4567\nSEHA Lab Result: HbA1c 7.6%, Fasting Glucose 156 mg/dL, LDL 4.1 mmol/L, Potassium 5.8 mmol/L, Creatinine 148 umol/L, eGFR 44 mL/min. Medications: Cozaar 50mg OD, Lasix 40mg OD, Voltaren 50mg BD, Glucophage 1000mg BD.',
                   )
                 }
                 className="text-xs font-semibold text-[#0D5C56] underline decoration-[#0D5C56]/30 underline-offset-4 hover:text-[#094742]"
               >
-                Insert realistic mixed UAE lab + Rx snippet
+                Insert realistic mixed UAE lab + Rx snippet (tests PII masking!)
               </button>
               <button
                 type="button"
                 disabled={isLoading || pastedText.trim().length < 5}
-                onClick={() => onAnalyzeText(pastedText)}
+                onClick={() => onAnalyzeText(piiPreview.sanitizedText)}
                 className="inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-[#0D5C56] px-6 text-sm font-semibold text-white transition hover:bg-[#094742] disabled:opacity-50"
               >
                 <span>{t.analyzeBtn}</span>

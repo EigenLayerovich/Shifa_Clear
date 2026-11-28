@@ -4,6 +4,8 @@ export type UnitSystem = 'SI' | 'US';
 
 export type BiologicalSex = 'male' | 'female';
 
+export type ReadingLevel = 'simple' | 'standard' | 'clinical';
+
 export type OrganSystem =
   | 'Glycemic'
   | 'Lipids & Cardiac'
@@ -44,6 +46,7 @@ export interface PatientContext {
   sex: BiologicalSex;
   unitSystem: UnitSystem;
   language: SupportedLanguage;
+  readingLevel?: ReadingLevel;
   autoDetectedFromReport?: boolean;
 }
 
@@ -185,6 +188,17 @@ export interface OrganSystemSummary {
   criticalCount: number;
 }
 
+export interface FactPreservationReport {
+  verified: boolean;
+  scorePercent: number;
+  criticalAlertsPreserved: number;
+  criticalAlertsTotal: number;
+  abnormalMarkersCovered: number;
+  abnormalMarkersTotal: number;
+  inventedNumbersCount: number;
+  summary: string;
+}
+
 export interface VerifiedClinicalEvaluation {
   documentType: 'lab_report' | 'prescription' | 'mixed';
   reportDate?: string;
@@ -197,6 +211,7 @@ export interface VerifiedClinicalEvaluation {
   alerts: ClinicalAlert[];
   organSummaries: OrganSystemSummary[];
   auditTrail: ClinicalAuditStep[];
+  factCheck?: FactPreservationReport;
 }
 
 export interface BiomarkerExplanation {

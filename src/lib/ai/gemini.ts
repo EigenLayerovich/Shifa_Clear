@@ -2,6 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 import type {
   PatientNarrative,
   RawExtractedDocument,
+  ReadingLevel,
   SupportedLanguage,
   VerifiedClinicalEvaluation,
 } from '@/lib/clinical/types';
@@ -402,9 +403,18 @@ export async function generatePatientNarrativeWithGemini(params: {
   apiKey: string;
   evaluation: VerifiedClinicalEvaluation;
   language: SupportedLanguage;
+  readingLevel?: ReadingLevel;
 }): Promise<PatientNarrative> {
   const client = createClient(params.apiKey);
   const langMeta = LANGUAGE_MAP[params.language];
+  const level: ReadingLevel = params.readingLevel || params.evaluation.patientContext.readingLevel || 'standard';
+
+  const readingLevelGuidance =
+    level === 'simple'
+      ? 'READING LEVEL — SIMPLE (Grade 5–6): Use ultra-short, calm sentences, zero medical jargon, and friendly everyday analogies ideal for elderly parents or caregivers.'
+      : level === 'clinical'
+        ? 'READING LEVEL — CLINICAL DETAIL: Use concise, precise clinical terminology (e.g., hyperkalemia, CKD-EPI G4, CYP2C19 inhibition, microcytic indices, chelation kinetics) tailored for MDs, nurses, pharmacists, or medical students while staying within the "translation, not diagnosis" boundary.'
+        : 'READING LEVEL — STANDARD: Use warm, clear everyday patient language that explains medical terms gently in plain words.';
 
   const compactFacts = {
     overallRisk: params.evaluation.overallRisk,
@@ -438,14 +448,16 @@ export async function generatePatientNarrativeWithGemini(params: {
   };
 
   const prompt = [
-    `You are ShifaClear, a compassionate UAE clinical health communicator designed by an MD and Biomedical Engineer.`,
-    `Write ALL user-facing text strictly in ${langMeta.englishLabel} (${langMeta.nativeLabel}) at a warm, clear grade-6 reading level.`,
+    `You are ShifaClear, a compassionate UAE clinical health communicator designed with MD-validated safety guardrails.`,
+    `Core principle: "Translation, not interpretation" — explain the verified clinical facts below without inventing numbers, diagnosing conditions, or altering prescriptions.`,
+    `Write ALL user-facing text strictly in ${langMeta.englishLabel} (${langMeta.nativeLabel}).`,
+    readingLevelGuidance,
     `CRITICAL SAFETY RULES:`,
     `1. NEVER contradict or change the deterministic statuses, numbers, or alerts provided below.`,
     `2. NEVER diagnose a disease or tell the patient to change/stop prescriptions on their own — always frame next steps as questions or prompts for their physician/pharmacist (or UAE 998 Emergency if an urgent alert is present).`,
     `3. Provide exactly 3 specific, practical Doctor Visit Questions.`,
     `4. Keep caregiverWhatsappSummary concise with clear bullet points.`,
-    `5. Keep spokenSummaryScript natural and ~45-65 words so it sounds warm when read aloud to an elder.`,
+    `5. Keep spokenSummaryScript natural and ~45-65 words so it sounds warm when read aloud.`,
     ``,
     `VERIFIED CLINICAL FACTS (SOURCE OF TRUTH):`,
     JSON.stringify(compactFacts),

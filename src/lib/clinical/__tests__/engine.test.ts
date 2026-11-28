@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { runClinicalValidationBenchmark } from '../benchmark';
 import { calculateCkdEpi2021Egfr, evaluateClinicalDocument } from '../engine';
+import { verifyNarrativeFactPreservation } from '../factCheck';
 import { buildFhirR4Bundle } from '../fhir';
+import { redactClinicalPII } from '../piiRedactor';
 import { parseClinicalTextDeterministically } from '../textParser';
-import type { PatientContext, RawExtractedDocument } from '../types';
+import type { PatientContext, PatientNarrative, RawExtractedDocument } from '../types';
 import { convertToSIAndUS } from '../units';
 
 const defaultMale: PatientContext = {
@@ -602,5 +604,74 @@ describe('ShifaClear Deterministic Clinical Engine', () => {
     );
     expect(silentMismatch.alerts.some((a) => a.ruleId === 'IPSG1_PATIENT_MISMATCH')).toBe(true);
     expect(silentMismatch.biomarkers[0].priorSiValue).toBeUndefined();
+  });
+
+  it('scrubs UAE PDPL PII on-device (Emirates ID, phone, email, MRN, Name) while preserving clinical demographics & lab values', () => {
+    const raw =
+      'Patient Name: Miss. Sara Baizak, Age: 54, Sex: Male, MRN: YASRN260005572, Emirates ID: 784-1992-1234567-8, Phone: +971 50 555 1234, Email: sara@example.ae. HbA1c 7.6%, Potassium 6.3 mmol/L.';
+    const res = redactClinicalPII(raw);
+
+    expect(res.redactionCount).toBeGreaterThanOrEqual(5);
+    expect(res.sanitizedText).not.toContain('784-1992-1234567-8');
+    expect(res.sanitizedText).not.toContain('+971 50 555 1234');
+    expect(res.sanitizedText).not.toContain('sara@example.ae');
+    expect(res.sanitizedText).not.toContain('YASRN260005572');
+    expect(res.sanitizedText).not.toContain('Sara Baizak');
+    expect(res.sanitizedText).toContain('Age: 54');
+    expect(res.sanitizedText).toContain('HbA1c 7.6%');
+    expect(res.sanitizedText).toContain('Potassium 6.3 mmol/L');
+  });
+
+  it('verifies post-generation narrative fact preservation and flags invented decimal numbers or false reassurance', () => {
+    const evaluation = evaluateClinicalDocument(
+      {
+        documentType: 'lab_report',
+        biomarkers: [{ name: 'Potassium', value: 6.3, unit: 'mmol/L' }],
+        medications: [],
+      },
+      defaultMale,
+    );
+
+    const goodNarrative: PatientNarrative = {
+      language: 'en',
+      headline: 'Urgent: Critical Potassium (6.3 mmol/L) — Call 998',
+      overallSummary: 'Your potassium is critically elevated at 6.3 mmol/L. Call 998 immediately.',
+      biomarkerExplanations: {
+        potassium: {
+          plainTitle: 'Potassium',
+          whatItMeasures: 'Heart electrolyte.',
+          whatYourLevelMeans: 'Critically high.',
+          practicalTip: 'Go to ER.',
+        },
+      },
+      medicationExplanations: {},
+      alertTranslations: {
+        'panic-potassium': {
+          title: 'Critical Potassium',
+          explanation: 'High arrhythmia risk.',
+          action: 'Call 998 now.',
+        },
+      },
+      doctorQuestions: ['Q1', 'Q2', 'Q3'],
+      caregiverWhatsappSummary: 'Call 998 for K+ 6.3',
+      spokenSummaryScript: 'Urgent potassium 6.3, call 998.',
+      source: 'gemini_live',
+    };
+
+    const goodCheck = verifyNarrativeFactPreservation(evaluation, goodNarrative);
+    expect(goodCheck.report.verified).toBe(true);
+    expect(goodCheck.report.scorePercent).toBe(100);
+    expect(goodCheck.report.inventedNumbersCount).toBe(0);
+
+    // Invented decimal number (9.99) + false reassurance must fail fact preservation
+    const badNarrative: PatientNarrative = {
+      ...goodNarrative,
+      headline: 'Great news! All your lab results are looking healthy and normal.',
+      overallSummary: 'Everything looks fine with value 9.99.',
+      alertTranslations: {},
+    };
+    const badCheck = verifyNarrativeFactPreservation(evaluation, badNarrative);
+    expect(badCheck.report.verified).toBe(false);
+    expect(badCheck.report.inventedNumbersCount).toBe(1);
   });
 });

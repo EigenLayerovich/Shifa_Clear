@@ -14,6 +14,7 @@ import {
   Play,
   RefreshCw,
   ShieldAlert,
+  ShieldCheck,
   X,
 } from 'lucide-react';
 import {
@@ -23,13 +24,52 @@ import {
 import { buildFhirR4Bundle } from '@/lib/clinical/fhir';
 import type { VerifiedClinicalEvaluation } from '@/lib/clinical/types';
 
+const KNOWN_LIMITATIONS_AND_MITIGATIONS = [
+  {
+    tag: 'OCR / INPUT',
+    limitation: 'Blurred photos or handwritten prescriptions can be misread by vision models.',
+    mitigation:
+      'Every extracted brand passes through our 150-drug / 620-brand UAE fuzzy resolver, and all parsed numbers/brands remain visibly editable and reviewable.',
+  },
+  {
+    tag: 'JCI IPSG.1',
+    limitation: 'Households may accidentally upload lab PDFs from two different family members together.',
+    mitigation:
+      'Two-layer patient-identity guardrail checks names, MRNs, sexes, and >3-year age gaps—hard-blocking cross-patient trajectories and alerting the user.',
+  },
+  {
+    tag: 'PEDIATRICS',
+    limitation: 'Adult CKD-EPI 2021 eGFR equations are clinically invalid for children (< 18y).',
+    mitigation:
+      'CKD-EPI 2021 is deterministically suppressed under age 18; pediatric age-stratified Creatinine bounds apply and Bedside Schwartz height requirements are logged.',
+  },
+  {
+    tag: 'HALLUCINATION',
+    limitation: 'LLMs can invent lab numbers or downplay life-threatening panic values.',
+    mitigation:
+      'All 77 LOINC ranges, 40 RxList rules, and UAE 998 alerts run strictly in non-LLM TypeScript, verified afterward by our Fact-Preservation check (0 invented values).',
+  },
+  {
+    tag: 'PRIVACY (PDPL)',
+    limitation: 'Pasted clinic notes often contain Emirates IDs, phone numbers, MRNs, or full names.',
+    mitigation:
+      'Client-side UAE PDPL scrubber redacts Emirates IDs, phones, emails, MRNs, and name headers in the browser before any text leaves the device.',
+  },
+  {
+    tag: 'CLINICAL SCOPE',
+    limitation: 'AI tools must never diagnose medical conditions or alter prescribed therapy.',
+    mitigation:
+      'ShifaClear follows "Translation, not interpretation"—framing guidance as doctor-visit questions plus a 1-click English clinician handoff card.',
+  },
+];
+
 interface ClinicalAuditDrawerProps {
   open: boolean;
   onClose: () => void;
   evaluation: VerifiedClinicalEvaluation | null;
 }
 
-type AuditTab = 'steps' | 'fhir' | 'benchmark' | 'json';
+type AuditTab = 'steps' | 'limitations' | 'fhir' | 'benchmark' | 'json';
 
 export function ClinicalAuditDrawer({
   open,
@@ -189,6 +229,19 @@ export function ClinicalAuditDrawer({
                 )}
                 <button
                   type="button"
+                  aria-pressed={activeTab === 'limitations'}
+                  onClick={() => setActiveTab('limitations')}
+                  className={`inline-flex min-h-[34px] items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition ${
+                    activeTab === 'limitations'
+                      ? 'bg-teal-700 text-white shadow-xs'
+                      : 'text-slate-700 hover:bg-white'
+                  }`}
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Limitations &amp; Mitigations</span>
+                </button>
+                <button
+                  type="button"
                   aria-pressed={activeTab === 'benchmark'}
                   onClick={() => {
                     setBenchmark(runClinicalValidationBenchmark());
@@ -227,7 +280,44 @@ export function ClinicalAuditDrawer({
               )}
             </div>
 
-            {activeTab === 'benchmark' && benchmark ? (
+            {activeTab === 'limitations' ? (
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-[#DCE5E2] bg-[#F2F7F5] p-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-[#0D5C56]">
+                    Clinical Transparency — &ldquo;Translation, Not Interpretation&rdquo;
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-700">
+                    ShifaClear pairs every known AI and clinical workflow risk with an explicit, deterministic engineering mitigation. It explains lab reports and prepares questions for your doctor — it never diagnoses conditions or modifies prescriptions.
+                  </p>
+                </div>
+
+                <div className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200">
+                  {KNOWN_LIMITATIONS_AND_MITIGATIONS.map((item) => (
+                    <div
+                      key={item.tag}
+                      className="grid gap-3 bg-white p-4 sm:grid-cols-12 sm:items-start"
+                    >
+                      <div className="space-y-1 sm:col-span-5">
+                        <span className="inline-block rounded bg-amber-100 px-2 py-0.5 font-mono text-[10px] font-extrabold text-amber-950">
+                          FLAGGED · {item.tag}
+                        </span>
+                        <p className="text-xs font-bold leading-relaxed text-slate-900">
+                          {item.limitation}
+                        </p>
+                      </div>
+                      <div className="sm:col-span-7 sm:border-s sm:border-slate-200 sm:ps-4">
+                        <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800">
+                          → Deterministic Mitigation
+                        </p>
+                        <p className="mt-1 text-xs leading-relaxed text-slate-700">
+                          {item.mitigation}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : activeTab === 'benchmark' && benchmark ? (
               <div className="space-y-4">
                 {/* KPI Scorecard */}
                 <div className="grid gap-3 sm:grid-cols-3">
@@ -355,7 +445,23 @@ export function ClinicalAuditDrawer({
                 {JSON.stringify(evaluation, null, 2)}
               </pre>
             ) : (
-              <ol className="space-y-3">
+              <div className="space-y-4">
+                {evaluation.factCheck && (
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-emerald-950">
+                        <ShieldCheck className="h-4 w-4 text-emerald-700" aria-hidden="true" />
+                        Post-Generation Fact-Preservation Audit
+                      </span>
+                      <span className="rounded-full bg-emerald-700 px-2.5 py-0.5 text-[11px] font-extrabold text-white tabular-nums">
+                        {evaluation.factCheck.scorePercent}% Verified · {evaluation.factCheck.inventedNumbersCount} Invented
+                      </span>
+                    </div>
+                    <p className="mt-1.5 text-xs text-emerald-900">{evaluation.factCheck.summary}</p>
+                  </div>
+                )}
+
+                <ol className="space-y-3">
                 {evaluation.auditTrail.map((step) => {
                   const icon =
                     step.status === 'critical' ? (
@@ -386,7 +492,8 @@ export function ClinicalAuditDrawer({
                     </li>
                   );
                 })}
-              </ol>
+                </ol>
+              </div>
             )}
           </div>
         </div>
