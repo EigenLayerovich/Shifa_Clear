@@ -11,14 +11,21 @@ import { LANGUAGE_MAP } from '@/lib/i18n/uiStrings';
 
 const MODEL_FALLBACK_CHAIN = Array.from(
   new Set([
-    process.env.GEMINI_MODEL || 'gemini-3.8-flash',
-    'gemini-3.5-flash-lite',
+    process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
     'gemini-3.1-flash-lite',
+    'gemini-3.8-flash',
   ]),
 );
 const DEFAULT_TTS_MODEL = process.env.GEMINI_TTS_MODEL || 'gemini-3.8-flash-lite-tts';
-const MODEL_TIMEOUT_MS = 14000;
-const STAGE_BUDGET_MS = 24000;
+const MODEL_TIMEOUT_MS = 18000;
+const EXTRACTION_BUDGET_MS = 34000;
+const NARRATIVE_BUDGET_MS = 20000;
+
+/**
+ * Short 60s circuit-breaker cooldown for models that just timed out upstream,
+ * so stage 2 (narrative) doesn't waste another 18s waiting on an overloaded endpoint.
+ */
+const modelCooldownUntil = new Map<string, number>();
 
 async function withAbortableTimeout<T>(
   runner: (signal: AbortSignal) => Promise<T>,
@@ -42,12 +49,21 @@ async function withAbortableTimeout<T>(
 
 async function runWithModelFallback<T>(
   runner: (model: string, signal: AbortSignal) => Promise<T>,
+  budgetMs = NARRATIVE_BUDGET_MS,
 ): Promise<{ result: T; modelUsed: string }> {
   let lastError: unknown;
-  const stageDeadline = Date.now() + STAGE_BUDGET_MS;
-  for (const model of MODEL_FALLBACK_CHAIN) {
+  const stageDeadline = Date.now() + budgetMs;
+  const now = Date.now();
+
+  // Try healthy models first; keep cooled-down models at the end as last-resort fallback
+  const orderedModels = [
+    ...MODEL_FALLBACK_CHAIN.filter((m) => (modelCooldownUntil.get(m) ?? 0) <= now),
+    ...MODEL_FALLBACK_CHAIN.filter((m) => (modelCooldownUntil.get(m) ?? 0) > now),
+  ];
+
+  for (const model of orderedModels) {
     const remainingMs = stageDeadline - Date.now();
-    if (remainingMs < 3000) break;
+    if (remainingMs < 3500) break;
     const perAttemptMs = Math.min(MODEL_TIMEOUT_MS, remainingMs);
     try {
       const result = await withAbortableTimeout(
@@ -55,10 +71,15 @@ async function runWithModelFallback<T>(
         perAttemptMs,
         model,
       );
+      modelCooldownUntil.delete(model);
       return { result, modelUsed: model };
     } catch (err) {
       lastError = err;
-      console.warn(`[ShifaClear Gemini] ${model} unavailable, trying next fallback:`, err instanceof Error ? err.message : err);
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/timed out|abort|503|429|unavailable/i.test(msg)) {
+        modelCooldownUntil.set(model, Date.now() + 60_000);
+      }
+      console.warn(`[ShifaClear Gemini] ${model} unavailable, trying next fallback:`, msg);
     }
   }
   throw lastError instanceof Error ? lastError : new Error('All Gemini models are temporarily unavailable.');
@@ -219,6 +240,7 @@ export async function identifyMedicationBoxWithGemini(params: {
           mime_type: 'application/json',
           schema,
         },
+        generation_config: { thinking_level: 'minimal' },
       },
       { signal },
     ),
@@ -277,20 +299,23 @@ export async function extractClinicalDocumentWithGemini(params: {
     });
   }
 
-  const { result: interaction } = await runWithModelFallback((model, signal) =>
-    client.interactions.create(
-      {
-        model,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        input: inputParts as any,
-        response_format: {
-          type: 'text',
-          mime_type: 'application/json',
-          schema: EXTRACTION_SCHEMA,
+  const { result: interaction } = await runWithModelFallback(
+    (model, signal) =>
+      client.interactions.create(
+        {
+          model,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          input: inputParts as any,
+          response_format: {
+            type: 'text',
+            mime_type: 'application/json',
+            schema: EXTRACTION_SCHEMA,
+          },
+          generation_config: { thinking_level: 'minimal' },
         },
-      },
-      { signal },
-    ),
+        { signal },
+      ),
+    EXTRACTION_BUDGET_MS,
   );
 
   const text = interaction.output_text;
@@ -487,19 +512,22 @@ export async function generatePatientNarrativeWithGemini(params: {
     JSON.stringify(compactFacts),
   ].join('\n');
 
-  const { result: interaction } = await runWithModelFallback((model, signal) =>
-    client.interactions.create(
-      {
-        model,
-        input: prompt,
-        response_format: {
-          type: 'text',
-          mime_type: 'application/json',
-          schema: NARRATIVE_SCHEMA,
+  const { result: interaction } = await runWithModelFallback(
+    (model, signal) =>
+      client.interactions.create(
+        {
+          model,
+          input: prompt,
+          response_format: {
+            type: 'text',
+            mime_type: 'application/json',
+            schema: NARRATIVE_SCHEMA,
+          },
+          generation_config: { thinking_level: 'minimal' },
         },
-      },
-      { signal },
-    ),
+        { signal },
+      ),
+    NARRATIVE_BUDGET_MS,
   );
 
   const text = interaction.output_text;
@@ -675,6 +703,7 @@ export async function answerClinicalQuestionWithGemini(params: {
       {
         model,
         input: prompt,
+        generation_config: { thinking_level: 'minimal' },
       },
       { signal },
     ),

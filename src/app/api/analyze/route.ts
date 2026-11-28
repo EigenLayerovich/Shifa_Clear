@@ -320,9 +320,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(payload);
   } catch (err) {
     console.error('[ShifaClear /api/analyze] Error:', err);
+    const isTimeout = err instanceof Error && /timed out|abort/i.test(err.message);
     return NextResponse.json(
-      { error: 'Unable to complete clinical analysis right now. Please try again.' },
-      { status: 500 },
+      {
+        error: isTimeout
+          ? 'Document OCR timed out on this upload. Please tap Analyze again or upload one page at a time.'
+          : 'Unable to complete clinical analysis right now. Please try again.',
+      },
+      { status: isTimeout ? 504 : 500 },
     );
   }
 }
