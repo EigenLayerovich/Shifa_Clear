@@ -44,6 +44,7 @@ final class ShifaClearViewModel {
             let res = try await ShifaClearAPI.shared.analyzeDemoCase(caseId: demo.id, context: currentContext)
             analysis = res
             triggerHaptic(for: res.evaluation.overallRisk)
+            WatchSyncManager.shared.pushAnalysis(res)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -64,6 +65,7 @@ final class ShifaClearViewModel {
             let res = try await ShifaClearAPI.shared.analyzeImageData(jpegData, context: currentContext)
             analysis = res
             triggerHaptic(for: res.evaluation.overallRisk)
+            WatchSyncManager.shared.pushAnalysis(res)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -82,6 +84,7 @@ final class ShifaClearViewModel {
             let res = try await ShifaClearAPI.shared.analyzeRawText(trimmed, context: currentContext)
             analysis = res
             triggerHaptic(for: res.evaluation.overallRisk)
+            WatchSyncManager.shared.pushAnalysis(res)
         } catch {
             errorMessage = error.localizedDescription
         }

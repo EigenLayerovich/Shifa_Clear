@@ -32,6 +32,15 @@ struct ReportDashboardView: View {
                     Spacer()
 
                     Button {
+                        WatchSyncManager.shared.pushAnalysis(response)
+                    } label: {
+                        Label("Sync Watch", systemImage: "applewatch.radiowaves.left.and.right")
+                            .font(.caption.bold())
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(teal)
+
+                    Button {
                         showAuditSheet = true
                     } label: {
                         Label("Audit & FHIR", systemImage: "checklist.checked")
