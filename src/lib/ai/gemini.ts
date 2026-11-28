@@ -9,11 +9,12 @@ import type {
 import { validateExtractedDocument } from '@/lib/clinical/validation';
 import { LANGUAGE_MAP } from '@/lib/i18n/uiStrings';
 
+// Prioritize low-latency multimodal models first so PDF/image OCR + narrative finish well inside Vercel's timeout
 const MODEL_FALLBACK_CHAIN = Array.from(
   new Set([
-    process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
+    'gemini-3.5-flash-lite',
     'gemini-3.1-flash-lite',
-    'gemini-3.8-flash',
+    process.env.GEMINI_MODEL || 'gemini-3.8-flash',
   ]),
 );
 const DEFAULT_TTS_MODEL = process.env.GEMINI_TTS_MODEL || 'gemini-3.8-flash-lite-tts';
@@ -76,9 +77,7 @@ async function runWithModelFallback<T>(
     } catch (err) {
       lastError = err;
       const msg = err instanceof Error ? err.message : String(err);
-      if (/timed out|abort|503|429|unavailable/i.test(msg)) {
-        modelCooldownUntil.set(model, Date.now() + 60_000);
-      }
+      modelCooldownUntil.set(model, Date.now() + 60_000);
       console.warn(`[ShifaClear Gemini] ${model} unavailable, trying next fallback:`, msg);
     }
   }
@@ -240,7 +239,6 @@ export async function identifyMedicationBoxWithGemini(params: {
           mime_type: 'application/json',
           schema,
         },
-        generation_config: { thinking_level: 'minimal' },
       },
       { signal },
     ),
@@ -311,7 +309,6 @@ export async function extractClinicalDocumentWithGemini(params: {
             mime_type: 'application/json',
             schema: EXTRACTION_SCHEMA,
           },
-          generation_config: { thinking_level: 'minimal' },
         },
         { signal },
       ),
@@ -523,7 +520,6 @@ export async function generatePatientNarrativeWithGemini(params: {
             mime_type: 'application/json',
             schema: NARRATIVE_SCHEMA,
           },
-          generation_config: { thinking_level: 'minimal' },
         },
         { signal },
       ),
@@ -703,7 +699,6 @@ export async function answerClinicalQuestionWithGemini(params: {
       {
         model,
         input: prompt,
-        generation_config: { thinking_level: 'minimal' },
       },
       { signal },
     ),
